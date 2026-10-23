@@ -136,6 +136,9 @@ previous XML file. The corrected driver removes that file before each dump,
 requires the actual dump-success message, and retries at most five times.
 A later fresh snapshot confirmed the real C guitar diagram and ten variations.
 Stale accessibility output cannot count as a passing interaction.
+The software emulator can also hold a tap long enough for DocumentsUI to enter
+its real selection mode. The driver confirms the observed SELECT control when
+present; immediate-open and explicit-selection document flows are both valid.
 
 RejectBroken.idric is an intentionally invalid negative control: its declared
 Int32 answer is supplied Text. The strict build must reject it before producing

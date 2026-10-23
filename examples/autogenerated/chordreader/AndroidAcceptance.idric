@@ -87,6 +87,15 @@ click_matching target field description = do
 click : Target → Text → IO ()
 click target = click_matching target "content-desc"
 
+finish_document_selection : Target → IO ()
+finish_document_selection target = do
+  xml ← ui target
+  case matching_position "resource-id" "com.android.documentsui:id/action_menu_select" xml of
+    Nothing ⇒ pure ()
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+
 wait_for_application : Target → Nat → IO ()
 wait_for_application target Z = fail_check "Android did not return from the document picker"
 wait_for_application target (S remaining) = do
@@ -188,6 +197,7 @@ accept target apk pitch_dex runner_dex nonce = do
   click target "import"
   click target "choose-file"
   click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
   wait_for_application target 5
   imported ← ui target
   require "Document display name selects legacy setlist importer" (isInfixOf "Setlist: one song title per line" imported)
