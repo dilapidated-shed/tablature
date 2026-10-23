@@ -54,6 +54,12 @@ end
 function music.pitch(note)
   return (natural_pitch[note.letter+1] + note.accidental) % 12
 end
+function music.fingering_lookup_key(chord)
+  local shape={}
+  for key,value in pairs(chord) do shape[key]=value end
+  shape.root={letter=0,accidental=0}; shape.bass=nil
+  return music.pitch(chord.root).."|"..music.print(shape).."|"..(chord.bass and music.pitch(chord.bass) or "-")
+end
 function music.interval(semitones)
   local magnitude = math.abs(semitones)
   local steps = math.floor(magnitude / 12) * 7 + step_policy[magnitude % 12 + 1]

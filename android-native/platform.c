@@ -25,6 +25,8 @@ struct Platform {
     jclass idric_class;
     jmethodID pitch_up, pitch_down, accidental_symbol;
     unsigned core_calls[3];
+    char *pending_export;
+    size_t pending_export_size;
     void *reader;
     int timer, mailbox[2];
     ALooper *looper;
@@ -162,6 +164,16 @@ static void keep(JNIEnv *env, jobject *slot, jobject value) {
     *slot = value ? (*env)->NewGlobalRef(env, value) : NULL;
 }
 
+static void add_equal_button(JNIEnv *env, jobject row, jobject button) {
+    jclass type = (*env)->FindClass(env, "android/widget/LinearLayout$LayoutParams");
+    jobject parameters = (*env)->NewObject(env, type,
+        (*env)->GetMethodID(env, type, "<init>", "(IIF)V"), 0, -2, (jfloat)1);
+    (*env)->CallVoidMethod(env, row,
+        method(env, row, "addView", "(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V"), button, parameters);
+    (*env)->DeleteLocalRef(env, parameters);
+    (*env)->DeleteLocalRef(env, type);
+}
+
 /* The provider supplies already selected absolute fret positions. This
  * renderer makes no chord, spelling, instrument or fingering decisions. */
 static jobject diagram_image(Platform *platform, const UiScreen *screen) {
@@ -250,7 +262,7 @@ void platform_present(Platform *platform, const UiScreen *screen) {
         (*env)->CallVoidMethod(env, button, method(env, button, "setTag", "(Ljava/lang/Object;)V"), tag);
         (*env)->CallVoidMethod(env, button, method(env, button, "setOnClickListener",
             "(Landroid/view/View$OnClickListener;)V"), platform->listener);
-        add(env, row, button, -2, -2);
+        add_equal_button(env, row, button);
         (*env)->DeleteLocalRef(env, tag);
         (*env)->DeleteLocalRef(env, button);
         if (index % 3 == 2 || index + 1 == screen->action_count) (*env)->DeleteLocalRef(env, row);
@@ -466,6 +478,43 @@ static jobject new_intent(JNIEnv *env, const char *action) {
     (*env)->DeleteLocalRef(env, name); (*env)->DeleteLocalRef(env, type);
     return intent;
 }
+static int choose_document(Platform *platform, const char *action, const char *title, int request) {
+    JNIEnv *env = platform->activity->env;
+    (*env)->PushLocalFrame(env, 16);
+    jobject intent = new_intent(env, action);
+    size_t title_size = title ? strlen(title) : 0;
+    const char *mime = request == 4102 ? "text/plain" : "*/*";
+    if (request == 4102 && title_size >= 3 && !strcmp(title + title_size - 3, ".pl"))
+        mime = "application/octet-stream"; /* DocumentsUI must not append .txt to legacy setlists. */
+    (*env)->CallObjectMethod(env, intent, method(env, intent, "setType", "(Ljava/lang/String;)Landroid/content/Intent;"),
+        android_text(env, mime));
+    (*env)->CallObjectMethod(env, intent, method(env, intent, "addCategory", "(Ljava/lang/String;)Landroid/content/Intent;"),
+        android_text(env, "android.intent.category.OPENABLE"));
+    if (title) (*env)->CallObjectMethod(env, intent, method(env, intent, "putExtra",
+        "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;"),
+        android_text(env, "android.intent.extra.TITLE"), android_text(env, title));
+    (*env)->CallVoidMethod(env, platform->activity->clazz,
+        method(env, platform->activity->clazz, "startActivityForResult", "(Landroid/content/Intent;I)V"), intent, request);
+    int passed = !(*env)->ExceptionCheck(env);
+    report(env, "open Android document picker");
+    (*env)->PopLocalFrame(env, NULL);
+    return passed;
+}
+int platform_choose_file(Platform *platform) {
+    return choose_document(platform, "android.intent.action.OPEN_DOCUMENT", NULL, 4101);
+}
+int platform_export(Platform *platform, const char *title, const char *source, size_t size) {
+    if (platform->pending_export || size > INT32_MAX) return 0;
+    platform->pending_export = malloc(size + 1);
+    if (!platform->pending_export) return 0;
+    memcpy(platform->pending_export, source, size); platform->pending_export_size = size;
+    if (!platform_write(platform, "pending-export.txt", source, size)) {
+        free(platform->pending_export); platform->pending_export = NULL; return 0;
+    }
+    if (choose_document(platform, "android.intent.action.CREATE_DOCUMENT", title, 4102)) return 1;
+    free(platform->pending_export); platform->pending_export = NULL;
+    return 0;
+}
 void platform_share(Platform *platform, const char *title, const char *source) {
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 16);
@@ -502,6 +551,7 @@ static void release_platform(Platform *platform) {
     if (atomic_fetch_sub(&platform->references, 1) == 1) {
         close(platform->mailbox[0]); close(platform->mailbox[1]);
         pthread_mutex_destroy(&platform->lifetime);
+        free(platform->pending_export);
         free(platform);
     }
 }
@@ -612,6 +662,10 @@ static int timer_tick(int descriptor, int events, void *data) {
         reader_tick(platform->reader, (unsigned)(ticks * 20));
     return 1;
 }
+static void resume_activity(ANativeActivity *activity) {
+    Platform *platform = activity->instance;
+    if (platform->reader) reader_event(platform->reader, "resume", "", "");
+}
 static void pause_activity(ANativeActivity *activity) {
     Platform *platform = activity->instance;
     char *title = entry_text(activity->env, platform->title_entry);
@@ -643,6 +697,31 @@ static void destroy_activity(ANativeActivity *activity) {
     pthread_mutex_unlock(&platform->lifetime);
     release_platform(platform);
 }
+static char *document_name(JNIEnv *env, jobject resolver, jobject uri) {
+    (*env)->PushLocalFrame(env, 16);
+    jobjectArray columns = (*env)->NewObjectArray(env, 1, (*env)->FindClass(env, "java/lang/String"), NULL);
+    (*env)->SetObjectArrayElement(env, columns, 0, android_text(env, "_display_name"));
+    jobject cursor = (*env)->CallObjectMethod(env, resolver, method(env, resolver, "query",
+        "(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;"),
+        uri, columns, NULL, NULL, NULL);
+    char *name = NULL;
+    if (!(*env)->ExceptionCheck(env) && cursor) {
+        jboolean found = (*env)->CallBooleanMethod(env, cursor, method(env, cursor, "moveToFirst", "()Z"));
+        if (!(*env)->ExceptionCheck(env) && found) {
+            jstring value = (*env)->CallObjectMethod(env, cursor, method(env, cursor, "getString", "(I)Ljava/lang/String;"), 0);
+            if (!(*env)->ExceptionCheck(env)) name = native_text(env, value);
+        }
+        report(env, "read document display name");
+        (*env)->CallVoidMethod(env, cursor, method(env, cursor, "close", "()V"));
+    }
+    report(env, "query document metadata");
+    if (!name) {
+        jstring segment = (*env)->CallObjectMethod(env, uri, method(env, uri, "getLastPathSegment", "()Ljava/lang/String;"));
+        name = native_text(env, segment);
+    }
+    (*env)->PopLocalFrame(env, NULL);
+    return name;
+}
 static void receive_intent(Platform *platform) {
     if (!platform->reader) return;
     JNIEnv *env = platform->activity->env;
@@ -653,7 +732,11 @@ static void receive_intent(Platform *platform) {
         "(Ljava/lang/String;)Ljava/lang/String;"), android_text(env, "android.intent.extra.TEXT"));
     if (text) {
         char *source = native_text(env, text);
-        if (source) { reader_event(platform->reader, "incoming", "Imported song", source); free(source); }
+        jstring supplied_title = (*env)->CallObjectMethod(env, intent, method(env, intent, "getStringExtra",
+            "(Ljava/lang/String;)Ljava/lang/String;"), android_text(env, "android.intent.extra.TITLE"));
+        char *title = native_text(env, supplied_title);
+        if (source) reader_event(platform->reader, "incoming", title && *title ? title : "Imported song", source);
+        free(source); free(title);
     } else {
         jobject uri = (*env)->CallObjectMethod(env, intent, method(env, intent, "getData", "()Landroid/net/Uri;"));
         if (uri) {
@@ -664,14 +747,77 @@ static void receive_intent(Platform *platform) {
             if (stream && !(*env)->ExceptionCheck(env)) {
                 char *source = read_stream(env, stream);
                 if (!(*env)->ExceptionCheck(env)) (*env)->CallVoidMethod(env, stream, method(env, stream, "close", "()V"));
-                jstring segment = (*env)->CallObjectMethod(env, uri, method(env, uri, "getLastPathSegment", "()Ljava/lang/String;"));
-                char *name = native_text(env, segment);
+                char *name = document_name(env, resolver, uri);
                 if (source) reader_event(platform->reader, "incoming", name ? name : "Imported song", source);
                 free(source); free(name);
             }
         }
     }
     report(env, "import shared song or document URI");
+    (*env)->PopLocalFrame(env, NULL);
+}
+static Platform *platform_for_activity(JNIEnv *env, jobject activity) {
+    for (Platform *platform = activities; platform; platform = platform->next)
+        if ((*env)->IsSameObject(env, activity, platform->activity->clazz)) return platform;
+    return NULL;
+}
+static void activity_new_intent(JNIEnv *env, jobject activity, jobject intent) {
+    Platform *platform = platform_for_activity(env, activity);
+    if (!platform) return;
+    jclass parent = (*env)->FindClass(env, "android/app/NativeActivity");
+    (*env)->CallNonvirtualVoidMethod(env, activity, parent,
+        (*env)->GetMethodID(env, parent, "onNewIntent", "(Landroid/content/Intent;)V"), intent);
+    (*env)->DeleteLocalRef(env, parent);
+    (*env)->CallVoidMethod(env, activity, method(env, activity, "setIntent", "(Landroid/content/Intent;)V"), intent);
+    if (!(*env)->ExceptionCheck(env)) receive_intent(platform);
+    report(env, "receive Android intent callback");
+}
+static void activity_result(JNIEnv *env, jobject activity, jint request, jint result, jobject intent) {
+    Platform *platform = platform_for_activity(env, activity);
+    if (!platform || (request != 4101 && request != 4102)) return;
+    (*env)->PushLocalFrame(env, 24);
+    jclass parent = (*env)->FindClass(env, "android/app/NativeActivity");
+    (*env)->CallNonvirtualVoidMethod(env, activity, parent,
+        (*env)->GetMethodID(env, parent, "onActivityResult", "(IILandroid/content/Intent;)V"), request, result, intent);
+    if (request == 4102 && !platform->pending_export) {
+        platform->pending_export = platform_read(platform, "pending-export.txt");
+        if (platform->pending_export) platform->pending_export_size = strlen(platform->pending_export);
+    }
+    if (result == -1 && intent) {
+        jobject uri = (*env)->CallObjectMethod(env, intent, method(env, intent, "getData", "()Landroid/net/Uri;"));
+        if (request == 4101 && uri) {
+            (*env)->CallVoidMethod(env, activity, method(env, activity, "setIntent", "(Landroid/content/Intent;)V"), intent);
+            receive_intent(platform);
+        } else if (request == 4102 && uri && platform->pending_export) {
+            jobject resolver = (*env)->CallObjectMethod(env, activity,
+                method(env, activity, "getContentResolver", "()Landroid/content/ContentResolver;"));
+            jobject stream = (*env)->CallObjectMethod(env, resolver, method(env, resolver, "openOutputStream",
+                "(Landroid/net/Uri;)Ljava/io/OutputStream;"), uri);
+            if (stream && !(*env)->ExceptionCheck(env)) {
+                jbyteArray bytes = (*env)->NewByteArray(env, (jsize)platform->pending_export_size);
+                if (bytes) {
+                    (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)platform->pending_export_size,
+                        (const jbyte *)platform->pending_export);
+                    (*env)->CallVoidMethod(env, stream, method(env, stream, "write", "([B)V"), bytes);
+                }
+                int passed = bytes && !(*env)->ExceptionCheck(env);
+                report(env, "write exported document");
+                (*env)->CallVoidMethod(env, stream, method(env, stream, "close", "()V"));
+                passed = passed && !(*env)->ExceptionCheck(env);
+                report(env, "close exported document");
+                reader_event(platform->reader, passed ? "exported" : "export_failed", "", "");
+            } else {
+                report(env, "open export document");
+                reader_event(platform->reader, "export_failed", "", "");
+            }
+        }
+    }
+    if (request == 4102) {
+        free(platform->pending_export); platform->pending_export = NULL;
+        char *spool = private_path(platform, "pending-export.txt");
+        if (spool) { unlink(spool); free(spool); }
+    }
+    report(env, "Android document callback");
     (*env)->PopLocalFrame(env, NULL);
 }
 void ANativeActivity_onCreate(ANativeActivity *activity, void *saved, size_t saved_size) {
@@ -685,6 +831,7 @@ void ANativeActivity_onCreate(ANativeActivity *activity, void *saved, size_t sav
     platform->next = activities; activities = platform;
     activity->instance = platform;
     activity->callbacks->onPause = pause_activity;
+    activity->callbacks->onResume = resume_activity;
     activity->callbacks->onDestroy = destroy_activity;
     pthread_mutex_init(&platform->lifetime, NULL);
     JNIEnv *env = activity->env;
@@ -700,6 +847,14 @@ void ANativeActivity_onCreate(ANativeActivity *activity, void *saved, size_t sav
     (*env)->CallVoidMethod(env, window, method(env, window, "takeInputQueue",
         "(Landroid/view/InputQueue$Callback;)V"), NULL);
     report(env, "return surface and input to platform Views");
+    jclass activity_type = (*env)->GetObjectClass(env, activity->clazz);
+    JNINativeMethod document_callbacks[] = {
+        { "onActivityResult", "(IILandroid/content/Intent;)V", (void *)activity_result },
+        { "onNewIntent", "(Landroid/content/Intent;)V", (void *)activity_new_intent }
+    };
+    if ((*env)->RegisterNatives(env, activity_type, document_callbacks, 2) != JNI_OK) {
+        report(env, "register document and intent callbacks"); (*env)->PopLocalFrame(env, NULL); return;
+    }
     jobject loader = (*env)->CallObjectMethod(env, activity->clazz,
         method(env, activity->clazz, "getClassLoader", "()Ljava/lang/ClassLoader;"));
     jclass type = (*env)->CallObjectMethod(env, loader,

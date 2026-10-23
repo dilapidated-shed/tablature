@@ -10,7 +10,7 @@ permissions:
 jobs:
   checked-core-and-apks:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       IDRIS2_INC_CGS: chez
       CHEZ: ${{ github.workspace }}/deps/Idric/_/.tools/bin/scheme
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: isomorphisms/android-NDK
-          ref: 473671b219081b42039a38dc471a86e13875271d
+          ref: 84a4b44d4c87295f4c7479634552b1f6e3baa6d8
           path: deps/android-NDK
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -63,7 +63,7 @@ jobs:
           path: deps/ai-ci
           persist-credentials: false
       - name: Bootstrap dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip ripgrep
       - name: Bootstrap maintained checked compiler
         run: deps/Idric/edric bootstrap
       - name: Install compiler API and libraries
@@ -81,8 +81,8 @@ jobs:
         run: tar -xzf lua-5.4.8.tar.gz -C build
       - name: Execute checked core and live cross-language comparisons
         run: make -f Makefile.idric test assets
-      - name: Build ARM32 API19 and ARM64 API21 platform boundaries
-        run: make -f Makefile.idric native-arm32 native-arm64
+      - name: Build ARM32 API19, ARM64 API21 and emulator platform boundaries
+        run: make -f Makefile.idric native-arm32 native-arm64 native-emulator acceptance-driver
       - name: Sign ARM32 development package
         run: make -f Makefile.idric package ABI=armeabi-v7a ANDROID_BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
       - name: Verify ARM32 finished signer against central registry
@@ -97,6 +97,19 @@ jobs:
         with:
           apk: build/android/chordreader-arm64-v8a.apk
           lane: test
+      - name: Sign x86_64 emulator development package
+        run: make -f Makefile.idric package ABI=x86_64 ANDROID_MIN_SDK=29 ANDROID_BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+      - name: Enable hosted emulator acceleration
+        run: sudo chmod a+rw /dev/kvm
+      - name: Execute checked DEX and real application acceptance on Android
+        uses: reactivecircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
+        with:
+          api-level: 29
+          arch: x86_64
+          target: default
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          disable-animations: true
+          script: make -f Makefile.idric emulator-check ACCEPTANCE_NONCE=${{ github.run_id }}
       - name: Retain installable candidates and checked evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -110,3 +123,6 @@ jobs:
             build/exec/music-regressions.tsv
             build/exec/pitch-rows.tsv
             build/exec/library-fixture.txt
+            build/exec/android-emulator.receipt.tsv
+            build/exec/chordreader-pitch.dex
+            build/exec/chordreader-runner.dex

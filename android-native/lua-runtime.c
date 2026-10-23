@@ -87,6 +87,11 @@ static int read_asset(lua_State *lua) {
 static int scroll_to(lua_State *lua) { platform_scroll(reader(lua)->platform, (int)luaL_checkinteger(lua, 1)); return 0; }
 static int scroll_position(lua_State *lua) { lua_pushinteger(lua, platform_scroll_position(reader(lua)->platform)); return 1; }
 static int share(lua_State *lua) { platform_share(reader(lua)->platform, luaL_checkstring(lua, 1), luaL_checkstring(lua, 2)); return 0; }
+static int export_file(lua_State *lua) {
+    size_t size = 0; const char *title = luaL_checkstring(lua, 1), *source = luaL_checklstring(lua, 2, &size);
+    lua_pushboolean(lua, platform_export(reader(lua)->platform, title, source, size)); return 1;
+}
+static int choose_file(lua_State *lua) { lua_pushboolean(lua, platform_choose_file(reader(lua)->platform)); return 1; }
 static int browse(lua_State *lua) { platform_browse(reader(lua)->platform, luaL_checkstring(lua, 1)); return 0; }
 static int fetch(lua_State *lua) { lua_pushboolean(lua, platform_fetch(reader(lua)->platform, luaL_checkstring(lua, 1))); return 1; }
 static int pitch_up(lua_State *lua) { lua_pushinteger(lua, platform_pitch_step(reader(lua)->platform, (int)luaL_checkinteger(lua, 1), 1)); return 1; }
@@ -153,6 +158,7 @@ void *reader_start(Platform *platform) {
     bind(lua, instance, "write", write_private); bind(lua, instance, "asset", read_asset);
     bind(lua, instance, "scroll", scroll_to); bind(lua, instance, "scroll_position", scroll_position);
     bind(lua, instance, "share", share); bind(lua, instance, "browse", browse); bind(lua, instance, "fetch", fetch);
+    bind(lua, instance, "export", export_file); bind(lua, instance, "choose_file", choose_file);
     bind(lua, instance, "pitch_up", pitch_up); bind(lua, instance, "pitch_down", pitch_down);
     bind(lua, instance, "accidental_symbol", accidental_symbol);
     if (lua_pcall(lua, 1, 1, 0) != LUA_OK) { failed(instance, "start application"); return instance; }

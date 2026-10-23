@@ -196,6 +196,15 @@ print_chord chord =
   concat (map degree_text chord.alterations) ++
   maybe "" (\note ⇒ "/" ++ print_note note) chord.bass
 
+||| Finger positions depend on sounding pitches. This lookup key does not
+||| alter a chart's written root or slash bass, which remain in WrittenChord.
+public export
+fingering_lookup_key : WrittenChord → Text
+fingering_lookup_key chord =
+  show (sounding_pitch chord.root).semitone ++ "|" ++
+  print_chord ({ root := Written_note c_note 0, bass := Nothing } chord) ++ "|" ++
+  maybe "-" (\note ⇒ show (sounding_pitch note).semitone) chord.bass
+
 read_letter : Char → Maybe note_letter
 read_letter 'C' = Just c_note
 read_letter 'D' = Just d_note

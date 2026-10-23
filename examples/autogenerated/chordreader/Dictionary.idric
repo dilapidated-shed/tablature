@@ -106,7 +106,7 @@ lookup_diagrams requested dictionary = concatMap matching dictionary
     matching : DictionaryEntry → List ChordDiagram
     matching entry = case parse_chord entry.spelling of
       Left _ ⇒ []
-      Right stored ⇒ if print_chord requested ≟ print_chord stored then entry.diagrams else []
+      Right stored ⇒ if fingering_lookup_key requested ≟ fingering_lookup_key stored then entry.diagrams else []
 
 public export
 position_text : string_position → Text

@@ -7,7 +7,7 @@
     <application android:label="ChordReader Dev" android:icon="@mipmap/chord_reader_icon"
         android:hasCode="true" android:debuggable="true" android:allowBackup="true" android:extractNativeLibs="true"
         android:theme="@android:style/Theme.Holo.Light.NoActionBar">
-        <activity android:name="android.app.NativeActivity" android:exported="true"
+        <activity android:name="org.isomorphisms.NativeViewActivity" android:exported="true" android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <meta-data android:name="android.app.lib_name" android:value="chordreader" />
             <intent-filter>

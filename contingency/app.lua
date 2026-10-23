@@ -184,7 +184,9 @@ local function new(platform)
             for _,fret in ipairs(position.positions or {}) do frets[#frets+1]=tonumber(fret) or -1 end
             if #frets == 6 then variants[#variants+1]=frets end
           end
-          entries[music.print(chord)]=variants
+          local key=music.fingering_lookup_key(chord)
+          entries[key]=entries[key] or {}
+          for _,frets in ipairs(variants) do entries[key][#entries[key]+1]=frets end
         end
       end
     else
@@ -200,7 +202,9 @@ local function new(platform)
               end
               if #frets == 4 then variants[#variants+1]=frets end
             end
-            entries[music.print(chord)]=variants
+            local key=music.fingering_lookup_key(chord)
+            entries[key]=entries[key] or {}
+            for _,frets in ipairs(variants) do entries[key][#entries[key]+1]=frets end
           end
         end
       end
@@ -225,7 +229,8 @@ local function new(platform)
       model.notice=notice..string.format("\nTranspose %+d   Capo %d   Speed %d px/s",shift,capo,state.speed)
       add(actions,"down","− semitone"); add(actions,"up","+ semitone"); add(actions,"edit","Edit")
       add(actions,"written-key","Transpose by key")
-      add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share / Export")
+      add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
+      add(actions,"export","Save file")
       add(actions,"scroll",scrolling and "Pause" or "Auto scroll"); add(actions,"slower","Slower"); add(actions,"faster","Faster")
       local interval=state.key_interval or music.interval(shift)
       local capo_interval=music.interval(-capo)
@@ -246,6 +251,7 @@ local function new(platform)
       add(actions,"save","Save"); add(actions,"cancel","Cancel")
       if mode == "import" then
         add(actions,"fetch","Import URL"); add(actions,"search-web","Search web"); add(actions,"as-setlist","Import .pl setlist")
+        add(actions,"choose-file","Choose file")
       end
     elseif mode == "setlists" then
       add(actions,"new-setlist","New setlist")
@@ -254,7 +260,8 @@ local function new(platform)
     elseif mode == "setlist" then
       local list=state.setlists[current_setlist]
       if not list then mode="setlists"; return present() end
-      model.title=list.name; add(actions,"edit-setlist","Edit setlist"); add(actions,"share-setlist","Export .pl")
+      model.title=list.name; add(actions,"edit-setlist","Edit setlist"); add(actions,"share-setlist","Share .pl")
+      add(actions,"export-setlist","Save .pl file")
       for _,id in ipairs(list.ids) do local song=song_by_id(id); if song then add(actions,"open:"..id,song.title) end end
     elseif mode == "settings" then
       model.body=string.format("Text size: %d\nScroll speed: %d px/s\nInstrument: %s\nHand: %s\n\nOriginal ChordReader resources and GPLv3+ attribution are retained.",state.size,state.speed,state.instrument,left_handed and "left" or "right")
@@ -264,7 +271,8 @@ local function new(platform)
       model.title=selected_chord.." — "..state.instrument
       add(actions,"back-reader","Back to song"); add(actions,"previous-variation","Previous"); add(actions,"next-variation","Next")
       add(actions,"instrument",state.instrument); add(actions,"custom","Custom fingering")
-      local variants=(custom[state.instrument] or {})[selected_chord] or dictionary()[selected_chord] or {}
+      local variants=(custom[state.instrument] or {})[selected_chord] or
+        dictionary()[music.fingering_lookup_key(assert(music.parse(selected_chord)))] or {}
       if #variants > 0 then
         variation=(variation-1)%#variants+1
         local frets={table.unpack(variants[variation])}
@@ -285,7 +293,8 @@ local function new(platform)
     if locked then return end
     notice=""
     if mode == "reader" then scroll=platform.scroll_position() end
-    if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and
+    if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and id ~= "resume" and
+      id ~= "exported" and id ~= "export_failed" and id ~= "import_failed" and
       (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key") then
       draft_title=title; draft_body=body
     end
@@ -293,7 +302,10 @@ local function new(platform)
     elseif id == "new" or id == "import" then start_edit(id == "new" and "edit" or "import")
     elseif id:sub(1,5) == "open:" then
       selected=id:sub(6); mode="reader"; shift=0; capo=0; scroll=0; scrolling=false; state.key_interval=nil
-    elseif id == "incoming" then start_edit(title:match("%.pl$") and "setlist-edit" or "import",basename(title),body)
+    elseif id == "incoming" then
+      if utf8.len(body) and not body:find("\0",1,true) then
+        start_edit(title:lower():match("%.pl$") and "setlist-edit" or "import",basename(title),body)
+      else notice="Import requires valid UTF-8 text without NUL bytes" end
     elseif id == "edit" then local song=assert(selected_song()); start_edit("edit",song.title,song.source,song.id)
     elseif id == "written-key" then start_edit("written-key","","")
     elseif id == "cancel" then mode=selected and "reader" or "library"
@@ -340,9 +352,15 @@ local function new(platform)
       if platform.fetch(draft_body) then notice="Downloading chart…" else notice="Enter an HTTPS chart URL in the text box" end
     elseif id == "downloaded" then
       local chart,problem=online_chart(body)
-      if chart then draft_body=chart; if draft_title == "" then draft_title="Imported chart" end; mode="import"; notice="Review the imported text, then Save"
+      if chart and utf8.len(chart) and not chart:find("\0",1,true) then draft_body=chart; if draft_title == "" then draft_title="Imported chart" end; mode="import"; notice="Review the imported text, then Save"
+      elseif chart then notice="Import requires valid UTF-8 text without NUL bytes"
       else notice=problem end
     elseif id == "download_failed" then notice=body
+    elseif id == "choose-file" then
+      if not platform.choose_file() then notice="The Android document picker could not be opened" end
+    elseif id == "import_failed" then notice="The selected document could not be read; existing songs were retained"
+    elseif id == "exported" then notice="File saved"
+    elseif id == "export_failed" then notice="The selected document could not be written; the song remains saved here"
     elseif id == "search-web" then platform.browse("https://www.google.com/search?q="..url_encode(draft_title.." chords"))
     elseif id == "up" then shift=shift+1; state.key_interval=nil; scroll=platform.scroll_position()
     elseif id == "down" then shift=shift-1; state.key_interval=nil; scroll=platform.scroll_position()
@@ -356,21 +374,37 @@ local function new(platform)
     elseif id == "instrument" then state.instrument=state.instrument == "Guitar" and "Ukulele" or "Guitar"; variation=1; save()
     elseif id == "hand" then left_handed=not left_handed; platform.write("laterality.txt",left_handed and "left" or "right")
     elseif id == "share" then local song=assert(selected_song()); platform.share(song.title..".txt",song.source)
+    elseif id == "export" then
+      local song=assert(selected_song())
+      if not platform.export(song.title..".txt",song.source) then notice="The Android save dialog could not be opened" end
     elseif id == "new-setlist" then start_edit("setlist-edit")
     elseif id:sub(1,8) == "setlist:" then current_setlist=tonumber(id:sub(9)); mode="setlist"
     elseif id == "edit-setlist" then
       local list=state.setlists[current_setlist]; local titles={}
       for _,identifier in ipairs(list.ids) do local song=song_by_id(identifier); if song then titles[#titles+1]=song.title..".txt" end end
       start_edit("setlist-edit",list.name,table.concat(titles,"\n"),current_setlist)
-    elseif id == "share-setlist" then
+    elseif id == "share-setlist" or id == "export-setlist" then
       local list=state.setlists[current_setlist]; local titles={}
       for _,identifier in ipairs(list.ids) do local song=song_by_id(identifier); if song then titles[#titles+1]=song.title..".txt" end end
-      platform.share(list.name..".pl",table.concat(titles,"\n").."\n")
+      local source=table.concat(titles,"\n").."\n"
+      if id == "share-setlist" then platform.share(list.name..".pl",source)
+      elseif not platform.export(list.name..".pl",source) then notice="The Android save dialog could not be opened" end
     elseif id:sub(1,6) == "chord:" then selected_chord=id:sub(7); variation=1; mode="diagram"; scrolling=false
     elseif id == "previous-variation" then variation=variation-1
     elseif id == "next-variation" then variation=variation+1
     elseif id == "custom" then start_edit("custom",selected_chord,"")
     elseif id == "back-reader" then mode="reader"
+    elseif id == "resume" then
+      local latest=platform.read("library.txt")
+      if latest and latest ~= raw then
+        local valid,loaded=pcall(decode,latest)
+        if valid then
+          state.songs=loaded.songs; state.setlists=loaded.setlists
+          state.size=loaded.size; state.speed=loaded.speed; state.instrument=loaded.instrument
+          raw=latest
+          if selected and not selected_song() then selected=nil; mode="library"; scrolling=false end
+        else locked=true; notice="Stored library changed to an unreadable format; its bytes were preserved"; present(); return end
+      end
     elseif id == "suspend" then scrolling=false; save(); return end
     save()
     present()

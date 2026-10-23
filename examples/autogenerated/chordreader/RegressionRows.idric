@@ -13,8 +13,9 @@ inputs = ["C#7b9", "B°7", "Bø7", "FΔ7", "A/C♯", "A/D♭", "F𝄪m",
 row : Text → Integer → Text
 row source semitones =
   let result = case parse_chord source of
-        Left _ ⇒ "ERROR"
-        Right chord ⇒ print_chord (transpose_chord (chromatic_interval semitones) chord)
+        Left _ ⇒ "ERROR\tERROR"
+        Right chord ⇒ let moved = transpose_chord (chromatic_interval semitones) chord
+          in print_chord moved ++ "\t" ++ fingering_lookup_key moved
   in "chord\t" ++ show semitones ++ "\t" ++ source ++ "\t" ++ result
 
 main : IO ()

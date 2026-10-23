@@ -4,12 +4,14 @@ local music = assert(loadfile(root.."/music.lua"))()
 local count = 0
 local regression_path=assert(arg[1], "Live Idriç regression rows are required")
 for line in io.lines(regression_path) do
-  local kind, shift, source, expected = line:match("^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
+  local kind, shift, source, expected, expected_fingering = line:match("^([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
   assert(kind == "chord", "Malformed Idriç comparison record")
   local chord = music.parse(source)
   local actual = chord and music.print(music.transpose(music.interval(assert(tonumber(shift))),chord)) or "ERROR"
   assert(actual == expected, string.format("%s shift=%s expected=%q (%d bytes) actual=%q (%d bytes)",
     source,shift,expected,#expected,actual,#actual))
+  local actual_fingering=chord and music.fingering_lookup_key(music.transpose(music.interval(tonumber(shift)),chord)) or "ERROR"
+  assert(actual_fingering == expected_fingering,"Idriç/Lua fingering pitch key differs for "..source)
   count=count+1
 end
 assert(count >= 1000, "Idriç comparison corpus is incomplete")

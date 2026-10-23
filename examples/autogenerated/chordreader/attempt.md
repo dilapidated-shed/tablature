@@ -1,6 +1,7 @@
 # Program attempt: ChordReader
 
-Status: PARTIAL — implementation in progress; no Android acceptance.
+Status: checked host core PASS; genuine DEX/ART subset PASS; usable C+Lua
+Android contingency with actual import/transposition/restart acceptance.
 
 ## Purpose
 
@@ -107,6 +108,29 @@ packaging. Details and immutable input pins are in EVIDENCE.md.
 
 ## Evidence boundary
 
-Host execution and signed packaging are verified. ART, installation, launch,
-interaction, API19 runtime and physical-device acceptance require independent
-evidence. This checkpoint does not call the contingency a full Idriç app.
+Host execution, signed packaging, 33 ART assertions and actual API29
+installation/launch/import/transposition/setlist/process-restart behavior are
+verified independently. API19 runtime and physical-device acceptance remain
+unverified. The contingency is explicitly C+Lua, never called a full Idriç app.
+
+## Executable Android acceptance driver
+
+AndroidAcceptance.idric is a checked host program controlling only the explicitly
+identified x86_64 emulator. Its Target record keeps ADB and serial together;
+XML attributes yield Maybe coordinates, and the actual Android library must
+decode through ReaderState. Three local cases reject missing/invisible controls.
+The driver installs the real APK, invokes the separate ART oracle against the
+checked DEX, clicks real controls, tests Unicode/source preservation, two songs,
+legacy setlists and full process restarts. It cannot count an emulator as a
+physical MIRO device. No Python/Java application helper replaces this program.
+Initial split/List1 and missing projection-import source errors were corrected
+in Idriç; the final source compiles without diagnostics and its local cases pass.
+The base installed-app acceptance passed. The extended program also drives the
+standard document picker, compares ordered .pl bytes, tests provider display-name
+delivery, and opens guitar/ukulele diagrams. File-result timing is explicit:
+wait for the app to resume before reading the newly created document.
+
+RejectBroken.idric is an intentionally invalid negative control: its declared
+Int32 answer is supplied Text. The strict build must reject it before producing
+an executable. This checks the actual -Werror frontend behavior rather than
+assuming a successful command means its diagnostics were empty.
