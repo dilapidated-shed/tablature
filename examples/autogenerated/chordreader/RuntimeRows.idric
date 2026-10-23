@@ -1,0 +1,22 @@
+module RuntimeRows
+
+import Data.Text
+import AppPitch
+import Reader
+import System
+
+fixture : ReaderState
+fixture = update_reader (show_screen setlist_library)
+  (update_reader (save_setlist "Practice" ["2", "1", "2"])
+    (update_reader (import_song "2" "Two" "Bø7\n")
+      (update_reader (import_song "1" "One" "C#7b9\tFΔ7\r\nA song in Am\n") initial_reader)))
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, "library"] ⇒ putStr (encode_library fixture)
+    _ ⇒ do
+      traverse_ (\pitch ⇒ putStrLn (show pitch ++ "\t" ++ show (pitch_up pitch) ++ "\t" ++ show (pitch_down pitch))) [0 .. 11]
+      putStrLn ("#\t" ++ accidental_symbol "#")
+      putStrLn ("b\t" ++ accidental_symbol "b")

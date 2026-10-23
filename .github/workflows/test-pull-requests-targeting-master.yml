@@ -1,22 +1,15 @@
-name: Test pull requests targeting `master`
+name: Legacy baseline history (manual comparison only)
 on:
-  pull_request:
-    branches: [master]
-
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  original-history:
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Java
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          java-version: 1.8
-
-      - name: Run unit tests
-        run: ./gradlew testDebugUnitTest
-
-      - name: Process the test report
-        uses: asadmansr/android-test-report-action@v1.2.0
-        if: ${{ always() }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Show the retained accepted baseline
+        run: git show --stat 2179c276d88d91ba01642dde1a6c80a65103962f

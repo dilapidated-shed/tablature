@@ -1,0 +1,177 @@
+module Main
+
+import Data.Text
+import Data.Maybe
+import Music
+import Chart
+import Reader
+import Dictionary
+import AppPitch
+import System
+
+canonical : Text → Text
+canonical input = case parse_chord input of
+  Left problem ⇒ "ERROR: " ++ problem
+  Right chord ⇒ print_chord chord
+
+transposed : Integer → Text → Text
+transposed semitones input = case parse_chord input of
+  Left problem ⇒ "ERROR: " ++ problem
+  Right chord ⇒ print_chord (transpose_chord (chromatic_interval semitones) chord)
+
+is_rejected : Text → Bool
+is_rejected text = case parse_chord text of
+  Left _ ⇒ True
+  Right _ ⇒ False
+
+octave_law : Integer → Text → Bool
+octave_law semitones source = case parse_chord source of
+  Left _ ⇒ False
+  Right chord ⇒
+    let moved = transpose_chord (chromatic_interval semitones) chord
+    in (sounding_pitch moved.root).semitone ≟ (sounding_pitch chord.root).semitone &&
+       map (\note ⇒ (sounding_pitch note).semitone) moved.bass ≟
+         map (\note ⇒ (sounding_pitch note).semitone) chord.bass
+
+inverse_law : Integer → Text → Bool
+inverse_law semitones source = case parse_chord source of
+  Left _ ⇒ False
+  Right chord ⇒ print_chord
+    (transpose_chord (chromatic_interval (negate semitones))
+      (transpose_chord (chromatic_interval semitones) chord)) ≟ print_chord chord
+
+interval_example : Text
+interval_example = case parse_chord "A/C♯" of
+  Left problem ⇒ problem
+  Right chord ⇒ print_chord (transpose_chord (Written_interval 1 1) chord)
+
+span_example : Bool
+span_example = case recognise_chart "🧪 [A/C♯] la\n" of
+  [found] ⇒ found.beginning.scalar_offset ≟ 3 && found.ending.scalar_offset ≟ 7 &&
+    found.beginning.utf8_offset ≟ 6 && found.ending.utf8_offset ≟ 12 &&
+    found.beginning.utf16_offset ≟ 4 && found.ending.utf16_offset ≟ 8 &&
+    found.original ≟ "A/C♯"
+  _ ⇒ False
+
+two_songs : ReaderState
+two_songs = update_reader (import_song "two" "Second" "Bø7\n")
+  (update_reader (import_song "one" "First" "C#7b9\tFΔ7\r\nA song in Am\n") initial_reader)
+
+with_setlist : ReaderState
+with_setlist = update_reader (save_setlist "Practice" ["two", "one", "two"]) two_songs
+
+persistence_example : Bool
+persistence_example = case decode_library (encode_library with_setlist) of
+  Left _ ⇒ False
+  Right reopened ⇒ case (reopened.songs, reopened.setlists) of
+    ([first, second], [list]) ⇒ first.identifier ≟ "one" && second.identifier ≟ "two" &&
+      first.document.source ≟ "C#7b9\tFΔ7\r\nA song in Am\n" &&
+      list.song_identifiers ≟ ["two", "one", "two"] && not reopened.changed
+    _ ⇒ False
+
+source_preserved : Bool
+source_preserved =
+  let opened = update_reader (open_song "one") two_songs
+      shifted = update_reader (transpose_to 2) opened
+  in map source (selected_document shifted) ≟ Just "C#7b9\tFΔ7\r\nA song in Am\n" &&
+     reader_text shifted ≟ "D♯7♭9\tGΔ7\r\nA song in Am\n"
+
+tests : List (Text, Bool)
+tests =
+  [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
+  , ("diminished seventh", canonical "B°7" ≟ "B°7")
+  , ("half diminished seventh", canonical "Bø7" ≟ "Bø7")
+  , ("major seventh", canonical "FΔ7" ≟ "FΔ7")
+  , ("slash spelling", canonical "A/C♯" ≟ "A/C♯")
+  , ("ASCII slash spelling", canonical "A/C#" ≟ "A/C♯")
+  , ("flat slash spelling", canonical "A/D♭" ≟ "A/D♭")
+  , ("double accidental", canonical "F𝄪m" ≟ "F♯♯m")
+  , ("major alias", canonical "FM7" ≟ "FΔ7")
+  , ("minor alias", canonical "Fm7" ≟ "Fm7")
+  , ("dim alias", canonical "Bdim7" ≟ "B°7")
+  , ("half diminished ASCII alias", canonical "Bm7b5" ≟ "Bø7")
+  , ("minor major seventh", canonical "Cm(maj7)" ≟ "CmΔ7")
+  , ("grouped alterations", canonical "G7(b9,#11)" ≟ "G7♭9♯11")
+  , ("unclosed group", is_rejected "G7(b9")
+  , ("addition", canonical "Cadd9" ≟ "Cadd9")
+  , ("suspension", canonical "D7sus4" ≟ "D7sus4")
+  , ("six nine", canonical "C6/9" ≟ "C6add9")
+  , ("two alterations", canonical "G7b9#11" ≟ "G7♭9♯11")
+  , ("negative wrap", transposed (-1) "C" ≟ "C♭")
+  , ("upward octave", octave_law 12 "A/C♯")
+  , ("downward octave", octave_law (-12) "A/C♯")
+  , ("written minor second", interval_example ≟ "B♭/D")
+  , ("key tonic interval preserves letter", print_note (transpose_note
+      (interval_between_notes (Written_note c_note 1) (Written_note d_note 0))
+      (Written_note f_note 0)) ≟ "G♭")
+  , ("written key reader and persistence", let
+      contextual = update_reader (transpose_between_keys (Written_note c_note 1) (Written_note d_note 0))
+        (update_reader (open_song "one") two_songs)
+      in case decode_library (encode_library contextual) of
+        Right loaded ⇒ reader_text loaded ≟ "D7♭9\tG♭Δ7\r\nA song in Am\n"
+        Left _ ⇒ False)
+  , ("invalid prefix", is_rejected "Amazing")
+  , ("invalid suffix", is_rejected "Cfoo")
+  , ("incomplete slash", is_rejected "A/")
+  , ("incomplete alteration", is_rejected "C7b")
+  , ("Unicode offsets", span_example)
+  , ("ambiguous English lyric", null (recognise_chart "A song in Am\n"))
+  , ("explicit lyric chord", length (recognise_chart "A [Am] song\n") ≟ 1)
+  , ("chord line", length (recognise_chart "C♯7  FΔ7  Bø7\n") ≟ 3)
+  , ("legacy source preserved", (legacy_song "Title" "  C\r\nlyrics\n\n").source ≟ "  C\r\nlyrics\n\n")
+  , ("legacy setlist", legacy_setlist "one.txt\r\ntwo.txt\n" ≟ ["one.txt", "two.txt"])
+  , ("multiple song persistence", persistence_example)
+  , ("rendering leaves source intact", source_preserved)
+  , ("truncated persistence rejected", case decode_library "ChordReader/Idric/1\nS10:ab" of
+      Left _ ⇒ True; Right _ ⇒ False)
+  , ("setlist rejects unknown song", isJust (update_reader
+      (save_setlist "Invalid" ["missing"]) two_songs).last_error)
+  , ("pause stops scrolling", (update_reader (elapsed_milliseconds 1000)
+      (update_reader toggle_scrolling (update_reader toggle_scrolling two_songs))).scroll_position ≟ 0)
+  , ("scroll speed", (update_reader (elapsed_milliseconds 1000)
+      (update_reader toggle_scrolling two_songs)).scroll_position ≟ 24)
+  , ("short scroll ticks accumulate", (foldl
+      (\state, elapsed ⇒ update_reader (elapsed_milliseconds elapsed) state)
+      (update_reader toggle_scrolling two_songs) (replicate 100 10)).scroll_position ≟ 24)
+  , ("guitar dictionary schema", case read_guitar_dictionary
+      "{\"A/C#\":[{\"positions\":[\"x\",\"4\",\"2\",\"2\",\"2\",\"0\"]}]}" of
+        Right entries ⇒ case parse_chord "A/C♯" of
+          Right chord ⇒ length (lookup_diagrams chord entries) ≟ 1
+          Left _ ⇒ False
+        Left _ ⇒ False)
+  , ("guitar malformed position count rejected", case read_guitar_dictionary
+      "{\"C\":[{\"positions\":[\"0\"]}]}" of
+        Left _ ⇒ True; Right _ ⇒ False)
+  , ("ukulele dictionary schema", case read_ukulele_dictionary
+      "{\"chords\":{\"C\":[{\"key\":\"C\",\"suffix\":\"\",\"positions\":[{\"frets\":[0,0,0,3]}]}]}}" of
+        Right entries ⇒ length entries ≟ 1
+        Left _ ⇒ False)
+  , ("ukulele base fret preserves open strings", case read_ukulele_dictionary
+      "{\"chords\":{\"C\":[{\"key\":\"C\",\"suffix\":\"\",\"positions\":[{\"baseFret\":5,\"frets\":[0,0,0,3]}]}]}}" of
+        Right [entry] ⇒ case entry.diagrams of
+          [diagram] ⇒ map position_text diagram.positions ≟ ["0", "0", "0", "7"]
+          _ ⇒ False
+        _ ⇒ False)
+  ] ++ map (\pitch ⇒ ("DEX ABI up " ++ show pitch,
+      cast (pitch_up (cast pitch)) ≟ Music.wrap 12 (pitch + 1))) [0 .. 11] ++
+  map (\pitch ⇒ ("DEX ABI down " ++ show pitch,
+      cast (pitch_down (cast pitch)) ≟ Music.wrap 12 (pitch − 1))) [0 .. 11] ++
+  [("DEX ABI invalid low", pitch_up (-1) ≟ -1),
+   ("DEX ABI invalid high", pitch_down 12 ≟ -1),
+   ("DEX ABI text alias", accidental_symbol "#" ≟ "♯"),
+   ("DEX ABI text preservation", accidental_symbol "𝄪" ≟ "𝄪")] ++
+  concat (map (\source ⇒ map (\shift ⇒
+    ("inverse " ++ source ++ " " ++ show shift, inverse_law shift source))
+    [-36 .. 36]) ["A/C♯", "C♭m7", "F♯♯7♭9", "Gø7/B♭"])
+
+run_test : (Text, Bool) → IO Bool
+run_test (name, passed) = do
+  putStrLn ((if passed then "PASS\t" else "FAIL\t") ++ name)
+  pure passed
+
+main : IO ()
+main = do
+  results ← traverse run_test tests
+  if all id results
+    then putStrLn ("PASS\t" ++ show (length results) ++ " checks")
+    else exitFailure

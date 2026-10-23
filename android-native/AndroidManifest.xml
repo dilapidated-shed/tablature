@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.isomorphisms.chordreader.dev"
+    android:versionCode="1001" android:versionName="0.1-dev">
+    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="36" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application android:label="ChordReader Dev" android:icon="@mipmap/chord_reader_icon"
+        android:hasCode="true" android:debuggable="true" android:allowBackup="true" android:extractNativeLibs="true"
+        android:theme="@android:style/Theme.Holo.Light.NoActionBar">
+        <activity android:name="android.app.NativeActivity" android:exported="true"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+            <meta-data android:name="android.app.lib_name" android:value="chordreader" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" android:mimeType="text/*" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

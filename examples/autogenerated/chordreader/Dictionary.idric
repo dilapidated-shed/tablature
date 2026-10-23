@@ -1,0 +1,114 @@
+module Dictionary
+
+import Data.Text
+import Language.JSON
+import Music
+
+public export
+choice string_position one_of
+  muted
+  at_fret Number
+
+public export
+record ChordDiagram where
+  constructor Chord_diagram
+  positions : List string_position
+  base_fret : Number
+
+public export
+record DictionaryEntry where
+  constructor Dictionary_entry
+  spelling : Text
+  diagrams : List ChordDiagram
+
+as_array : JSON → Maybe (List JSON)
+as_array (JArray values) = Just values
+as_array _ = Nothing
+
+as_text : JSON → Maybe Text
+as_text (JString text) = Just text
+as_text _ = Nothing
+
+read_fret : JSON → Maybe string_position
+read_fret (JString "x") = Just muted
+read_fret (JString "X") = Just muted
+read_fret (JString text) = map at_fret (parsePositive {a=Number} text)
+read_fret (JNumber raw) =
+  -- Language.JSON is an inherited format boundary. Its Double is converted
+  -- once and checked; musical frets are exact nonnegative whole numbers.
+  let exact : Integer = cast raw
+  in if raw ≟ cast exact
+       then Just (if exact < 0 then muted else at_fret (cast exact))
+       else Nothing
+read_fret _ = Nothing
+
+read_base_fret : JSON → Maybe Number
+read_base_fret json = case Language.JSON.Data.lookup "baseFret" json of
+  Nothing ⇒ Just 1
+  Just (JNumber raw) ⇒
+    let exact : Integer = cast raw
+    in if raw ≟ cast exact && exact >= 1 then Just (cast exact) else Nothing
+  _ ⇒ Nothing
+
+absolute_position : Number → string_position → string_position
+absolute_position _ muted = muted
+absolute_position _ (at_fret Z) = at_fret 0
+absolute_position base (at_fret (S fret)) = at_fret (base + fret)
+
+read_diagram : Number → Text → JSON → Maybe ChordDiagram
+read_diagram string_count field json = do
+  values ← Language.JSON.Data.lookup field json >>= as_array
+  frets ← traverse read_fret values
+  base ← read_base_fret json
+  if length frets ≟ string_count
+    then Just (Chord_diagram (map (absolute_position base) frets) base)
+    else Nothing
+
+guitar_entry : (Text, JSON) → Maybe DictionaryEntry
+guitar_entry (spelling, json) = do
+  variations ← as_array json
+  diagrams ← traverse (read_diagram 6 "positions") variations
+  Just (Dictionary_entry spelling diagrams)
+
+public export
+read_guitar_dictionary : Text → Either Text (List DictionaryEntry)
+read_guitar_dictionary source = case Language.JSON.parse source of
+  Just (JObject entries) ⇒ case the (Maybe (List DictionaryEntry)) (traverse guitar_entry entries) of
+    Just dictionary ⇒ Right dictionary
+    Nothing ⇒ Left "Malformed guitar diagram; expected six string positions"
+  _ ⇒ Left "Expected the legacy guitar dictionary object"
+
+ukulele_entry : JSON → Maybe DictionaryEntry
+ukulele_entry json = do
+  key ← Language.JSON.Data.lookup "key" json >>= as_text
+  suffix ← Language.JSON.Data.lookup "suffix" json >>= as_text
+  variations ← Language.JSON.Data.lookup "positions" json >>= as_array
+  diagrams ← traverse (read_diagram 4 "frets") variations
+  Just (Dictionary_entry (key ++ suffix) diagrams)
+
+ukulele_group : (Text, JSON) → Maybe (List DictionaryEntry)
+ukulele_group (_, json) = as_array json >>= traverse ukulele_entry
+
+public export
+read_ukulele_dictionary : Text → Either Text (List DictionaryEntry)
+read_ukulele_dictionary source = case Language.JSON.parse source of
+  Nothing ⇒ Left "Invalid ukulele JSON"
+  Just json ⇒ case Language.JSON.Data.lookup "chords" json of
+    Just (JObject groups) ⇒ case the (Maybe (List (List DictionaryEntry))) (traverse ukulele_group groups) of
+      Just dictionary ⇒ Right (concat dictionary)
+      Nothing ⇒ Left "Malformed ukulele diagram; expected four string positions"
+    _ ⇒ Left "Expected the legacy ukulele chords object"
+
+public export
+lookup_diagrams : WrittenChord → List DictionaryEntry → List ChordDiagram
+lookup_diagrams requested dictionary = concatMap matching dictionary
+  where
+    matching : DictionaryEntry → List ChordDiagram
+    matching entry = case parse_chord entry.spelling of
+      Left _ ⇒ []
+      Right stored ⇒ if print_chord requested ≟ print_chord stored then entry.diagrams else []
+
+public export
+position_text : string_position → Text
+position_text muted = "x"
+position_text (at_fret fret) = show fret
