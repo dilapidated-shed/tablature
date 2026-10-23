@@ -361,7 +361,7 @@ local function new(platform)
     elseif id == "import_failed" then notice="The selected document could not be read; existing songs were retained"
     elseif id == "exported" then notice="File saved"
     elseif id == "export_failed" then notice="The selected document could not be written; the song remains saved here"
-    elseif id == "search-web" then platform.browse("https://www.google.com/search?q="..url_encode(draft_title.." chords"))
+    elseif id == "search-web" then platform.browse("https://www.startpage.com/sp/search?q="..url_encode(draft_title.." chords"))
     elseif id == "up" then shift=shift+1; state.key_interval=nil; scroll=platform.scroll_position()
     elseif id == "down" then shift=shift-1; state.key_interval=nil; scroll=platform.scroll_position()
     elseif id == "capo-up" then capo=capo+1; scroll=platform.scroll_position()

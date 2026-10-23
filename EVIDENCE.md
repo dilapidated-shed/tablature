@@ -49,7 +49,7 @@ Android execution result. Raw diagnostics are under `evidence/chordreader/`.
 | Songs, editing, reopen, settings | Typed state and persistence | Lua and C private storage | Byte comparison; two actual process restarts pass; UI preference assertion |
 | Setlists and legacy .txt/.pl | Implemented | Lua | Actual multiple songs and legacy setlist order/repetitions pass |
 | Scrolling, speed, pause/resume | Typed state | Lua timers plus C platform clock/scroll | Fractional/pause host tests |
-| Search and HTTPS importing | Explicit platform boundary | Browser search intent; C HTTPS plus Lua extraction | Implemented; live service/Android pending |
+| Search and HTTPS importing | Explicit platform boundary | Original Startpage default/browser intent; C HTTPS plus Lua extraction | Host query/UTF-8 escaping and extraction tests; live service/Android pending |
 | File import/export and sharing | Legacy formats | Android content/text intents, document picker and share sheet | Real .pl export bytes verified; executable document-result/import assertions |
 | Original translations/resources/license | Preserved | Icons/about/translations/license assets retained; new controls currently English | Source/assets retained; translated UI parity incomplete |
 | Full parser/state on Android in Idriç | Checked source exists | Blocked; explicitly C+Lua contingency | Actual DEX and ARM diagnostics |
