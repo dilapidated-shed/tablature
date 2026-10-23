@@ -1,0 +1,40 @@
+tests/dex/branch-separation-self-test.sh
+DEX branch separation self-test PASS
+tests/dex/branch-separation.sh
+DEX branch separation PASS
+IDRIS2_PATH="/workspace/scratch/c09acdbd327d/idric-arm-thumb/build/ttc:${IDRIS2_PATH}" \
+	/workspace/scratch/c09acdbd327d/Idric/_/build/exec/idris2 --source-dir tests/dex tests/dex/EncoderSelfTest.idr \
+	-o dex-encoder-selftest
+cp "/workspace/scratch/c09acdbd327d/Idric/_/build/exec/idris2_app/libidris2_support.so" build/exec/dex-encoder-selftest_app/
+LD_LIBRARY_PATH="/workspace/scratch/c09acdbd327d/Idric/_/build/exec/idris2_app/:${LD_LIBRARY_PATH}" \
+	./build/exec/dex-encoder-selftest
+PASS: DEX encoder self-test
+IDRIS2_PATH="/workspace/scratch/c09acdbd327d/idric-arm-thumb/build/ttc:${IDRIS2_PATH}" \
+	./build/exec/idric-dex --cg dex --source-dir examples examples/DexArithmetic.idric -o classes
+grep -q '^export DexArithmetic.add as add$' build/exec/classes.checked.anf
+grep -q 'Prelude.EqOrd.<' build/exec/classes.checked.anf
+grep -q '^method add$' build/exec/classes.dex.plan
+grep -q 'add-int' build/exec/classes.dex.plan
+grep -q 'sub-int' build/exec/classes.dex.plan
+grep -q 'mul-int' build/exec/classes.dex.plan
+grep -q 'if-lt' build/exec/classes.dex.plan
+grep -q 'if-eq' build/exec/classes.dex.plan
+grep -q 'goto' build/exec/classes.dex.plan
+grep -q 'const v0, -2147483648' build/exec/classes.dex.plan
+grep -q 'const v0, 2147483647' build/exec/classes.dex.plan
+IDRIS2_PATH="/workspace/scratch/c09acdbd327d/idric-arm-thumb/build/ttc:${IDRIS2_PATH}" \
+	./build/exec/idric-dex --cg dex --source-dir examples examples/DexText.idric -o text
+grep -q '^export DexText.echo_text as echo_text$' build/exec/text.checked.anf
+grep -q '^export DexText.icu_word as icu_word$' build/exec/text.checked.anf
+grep -q '^export DexText.text_equal as text_equal$' build/exec/text.checked.anf
+grep -q '^method echo_text$' build/exec/text.dex.plan
+grep -q '^parameters: \[Text\]$' build/exec/text.dex.plan
+grep -q '^result: Text$' build/exec/text.dex.plan
+grep -q '^method text_equal$' build/exec/text.dex.plan
+grep -q 'text-equal' build/exec/text.dex.plan
+grep -q 'move-object' build/exec/text.dex.plan
+grep -q 'const-string' build/exec/text.dex.plan
+grep -q 'return-object' build/exec/text.dex.plan
+grep -q 'dex rejected source ABI' build/exec/invalid-dex-int.log
+grep -q 'Int32' build/exec/invalid-dex-int.log
+test ! -e build/exec/invalid-dex-int.dex

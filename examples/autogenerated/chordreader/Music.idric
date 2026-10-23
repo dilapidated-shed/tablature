@@ -1,0 +1,351 @@
+module Music
+
+import Data.Text
+
+public export
+choice note_letter one_of
+  c_note
+  d_note
+  e_note
+  f_note
+  g_note
+  a_note
+  b_note
+
+public export
+record WrittenNote where
+  constructor Written_note
+  letter : note_letter
+  accidental : Integer
+
+public export
+record PitchClass where
+  constructor Pitch_class
+  semitone : Integer
+
+public export
+record WrittenInterval where
+  constructor Written_interval
+  letter_steps : Integer
+  semitone_steps : Integer
+
+public export
+choice chord_quality one_of
+  major
+  minor
+  diminished
+  half_diminished
+  augmented
+
+public export
+choice seventh_kind one_of
+  ordinary_seventh
+  major_seventh
+
+public export
+record ChordDegree where
+  constructor Chord_degree
+  degree : Number
+  alteration : Integer
+
+public export
+record WrittenChord where
+  constructor Written_chord
+  root : WrittenNote
+  quality : chord_quality
+  extension : Maybe Number
+  seventh_kind : Music.seventh_kind
+  additions : List ChordDegree
+  alterations : List ChordDegree
+  suspension : Maybe Number
+  bass : Maybe WrittenNote
+
+public export
+letter_number : note_letter → Integer
+letter_number c_note = 0
+letter_number d_note = 1
+letter_number e_note = 2
+letter_number f_note = 3
+letter_number g_note = 4
+letter_number a_note = 5
+letter_number b_note = 6
+
+public export
+letter_pitch : note_letter → Integer
+letter_pitch c_note = 0
+letter_pitch d_note = 2
+letter_pitch e_note = 4
+letter_pitch f_note = 5
+letter_pitch g_note = 7
+letter_pitch a_note = 9
+letter_pitch b_note = 11
+
+public export
+wrap : Integer → Integer → Integer
+wrap period value = ((value `mod` period) + period) `mod` period
+
+number_letter : Integer → note_letter
+number_letter value = case wrap 7 value of
+  0 ⇒ c_note
+  1 ⇒ d_note
+  2 ⇒ e_note
+  3 ⇒ f_note
+  4 ⇒ g_note
+  5 ⇒ a_note
+  _ ⇒ b_note
+
+public export
+sounding_pitch : WrittenNote → PitchClass
+sounding_pitch note = Pitch_class (wrap 12 (letter_pitch note.letter + note.accidental))
+
+public export
+transpose_note : WrittenInterval → WrittenNote → WrittenNote
+transpose_note interval note =
+  let absolute_letter = letter_number note.letter + interval.letter_steps
+      target_letter = number_letter absolute_letter
+      octave = (absolute_letter − wrap 7 absolute_letter) `div` 7
+      absolute_pitch = letter_pitch note.letter + note.accidental + interval.semitone_steps
+      target_accidental = absolute_pitch − letter_pitch target_letter − 12 × octave
+  in Written_note target_letter target_accidental
+
+public export
+transpose_chord : WrittenInterval → WrittenChord → WrittenChord
+transpose_chord interval chord =
+  { root := transpose_note interval chord.root,
+    bass := map (transpose_note interval) chord.bass } chord
+
+||| The ascending written interval between two key tonics. Preserve both the
+||| letter distance and accidental distance, including enharmonic unisons.
+public export
+interval_between_notes : WrittenNote → WrittenNote → WrittenInterval
+interval_between_notes source destination =
+  let steps = wrap 7 (letter_number destination.letter − letter_number source.letter)
+      octave = if letter_number destination.letter < letter_number source.letter then 1 else 0
+      semitones = letter_pitch destination.letter + destination.accidental + 12 × octave −
+                  letter_pitch source.letter − source.accidental
+  in Written_interval steps semitones
+
+||| A deterministic spelling policy for a chromatic reader control. An explicit
+||| written interval is preferable when the destination key is known. Negative
+||| motion uses the inverse interval; octave motion keeps the written letter.
+public export
+chromatic_interval : Integer → WrittenInterval
+chromatic_interval semitones =
+  let magnitude = abs semitones
+      octave = magnitude `div` 12
+      remainder = wrap 12 magnitude
+      within_octave = case remainder of
+        0 ⇒ 0
+        1 ⇒ 0
+        2 ⇒ 1
+        3 ⇒ 1
+        4 ⇒ 2
+        5 ⇒ 3
+        6 ⇒ 3
+        7 ⇒ 4
+        8 ⇒ 4
+        9 ⇒ 5
+        10 ⇒ 5
+        _ ⇒ 6
+      steps = octave × 7 + within_octave
+  in Written_interval (if semitones < 0 then negate steps else steps) semitones
+
+public export
+capo_shapes : Number → WrittenChord → WrittenChord
+capo_shapes fret = transpose_chord (chromatic_interval (negate (cast fret)))
+
+letter_text : note_letter → Text
+letter_text c_note = "C"
+letter_text d_note = "D"
+letter_text e_note = "E"
+letter_text f_note = "F"
+letter_text g_note = "G"
+letter_text a_note = "A"
+letter_text b_note = "B"
+
+accidental_text : Integer → Text
+accidental_text count =
+  if count < 0
+    then pack (replicate (cast (abs count)) '♭')
+    else pack (replicate (cast count) '♯')
+
+public export
+print_note : WrittenNote → Text
+print_note note = letter_text note.letter ++ accidental_text note.accidental
+
+quality_text : chord_quality → Text
+quality_text major = ""
+quality_text minor = "m"
+quality_text diminished = "°"
+quality_text half_diminished = "ø"
+quality_text augmented = "+"
+
+degree_text : ChordDegree → Text
+degree_text tone = accidental_text tone.alteration ++ show tone.degree
+
+public export
+print_chord : WrittenChord → Text
+print_chord chord =
+  print_note chord.root ++ quality_text chord.quality ++
+  (case (chord.seventh_kind, chord.extension) of
+     (major_seventh, Just degree) ⇒ if degree >= 7 then "Δ" else ""
+     _ ⇒ "") ++
+  maybe "" show chord.extension ++
+  concat (map (\tone ⇒ "add" ++ degree_text tone) chord.additions) ++
+  maybe "" (\degree ⇒ "sus" ++ show degree) chord.suspension ++
+  concat (map degree_text chord.alterations) ++
+  maybe "" (\note ⇒ "/" ++ print_note note) chord.bass
+
+||| Finger positions depend on sounding pitches. This lookup key does not
+||| alter a chart's written root or slash bass, which remain in WrittenChord.
+public export
+fingering_lookup_key : WrittenChord → Text
+fingering_lookup_key chord =
+  show (sounding_pitch chord.root).semitone ++ "|" ++
+  print_chord ({ root := Written_note c_note 0, bass := Nothing } chord) ++ "|" ++
+  maybe "-" (\note ⇒ show (sounding_pitch note).semitone) chord.bass
+
+read_letter : Char → Maybe note_letter
+read_letter 'C' = Just c_note
+read_letter 'D' = Just d_note
+read_letter 'E' = Just e_note
+read_letter 'F' = Just f_note
+read_letter 'G' = Just g_note
+read_letter 'A' = Just a_note
+read_letter 'B' = Just b_note
+read_letter _ = Nothing
+
+read_accidentals : Integer → List Char → (Integer, List Char)
+read_accidentals value ('#' :: rest) = read_accidentals (value + 1) rest
+read_accidentals value ('♯' :: rest) = read_accidentals (value + 1) rest
+read_accidentals value ('b' :: rest) = read_accidentals (value − 1) rest
+read_accidentals value ('♭' :: rest) = read_accidentals (value − 1) rest
+read_accidentals value ('𝄪' :: rest) = read_accidentals (value + 2) rest
+read_accidentals value ('𝄫' :: rest) = read_accidentals (value − 2) rest
+read_accidentals value rest = (value, rest)
+
+read_note : List Char → Maybe (WrittenNote, List Char)
+read_note [] = Nothing
+read_note (character :: rest) = do
+  letter ← read_letter character
+  let (accidental, remaining) = read_accidentals 0 rest
+  Just (Written_note letter accidental, remaining)
+
+public export
+parse_note : Text → Either Text WrittenNote
+parse_note text = case read_note (unpack text) of
+  Just (note, []) ⇒ Right note
+  _ ⇒ Left ("Invalid written note: " ++ text)
+
+||| Longest prefixes precede their shorter aliases. Case remains significant:
+||| M7 and m7 have different meanings.
+read_quality : List Char → (chord_quality, seventh_kind, List Char)
+read_quality ('m' :: 'a' :: 'j' :: 'o' :: 'r' :: rest) = (major, major_seventh, rest)
+read_quality ('m' :: 'a' :: 'j' :: rest) = (major, major_seventh, rest)
+read_quality ('M' :: 'a' :: 'j' :: rest) = (major, major_seventh, rest)
+read_quality ('Δ' :: rest) = (major, major_seventh, rest)
+read_quality ('M' :: rest) = (major, major_seventh, rest)
+read_quality ('m' :: 'i' :: 'n' :: 'o' :: 'r' :: rest) = (minor, ordinary_seventh, rest)
+read_quality ('m' :: 'i' :: 'n' :: rest) = (minor, ordinary_seventh, rest)
+read_quality ('m' :: rest) = (minor, ordinary_seventh, rest)
+read_quality ('-' :: rest) = (minor, ordinary_seventh, rest)
+read_quality ('d' :: 'i' :: 'm' :: 'i' :: 'n' :: 'i' :: 's' :: 'h' :: 'e' :: 'd' :: rest) = (diminished, ordinary_seventh, rest)
+read_quality ('d' :: 'i' :: 'm' :: rest) = (diminished, ordinary_seventh, rest)
+read_quality ('°' :: rest) = (diminished, ordinary_seventh, rest)
+read_quality ('o' :: rest) = (diminished, ordinary_seventh, rest)
+read_quality ('ø' :: rest) = (half_diminished, ordinary_seventh, rest)
+read_quality ('a' :: 'u' :: 'g' :: rest) = (augmented, ordinary_seventh, rest)
+read_quality ('+' :: rest) = (augmented, ordinary_seventh, rest)
+read_quality rest = (major, ordinary_seventh, rest)
+
+read_degree : List Char → Maybe (Number, List Char)
+read_degree ('1' :: '3' :: rest) = Just (13, rest)
+read_degree ('1' :: '1' :: rest) = Just (11, rest)
+read_degree ('9' :: rest) = Just (9, rest)
+read_degree ('7' :: rest) = Just (7, rest)
+read_degree ('6' :: rest) = Just (6, rest)
+read_degree ('5' :: rest) = Just (5, rest)
+read_degree ('4' :: rest) = Just (4, rest)
+read_degree ('3' :: rest) = Just (3, rest)
+read_degree ('2' :: rest) = Just (2, rest)
+read_degree _ = Nothing
+
+read_changed_degree : List Char → Maybe (ChordDegree, List Char)
+read_changed_degree characters = do
+  let (accidental, remaining) = read_accidentals 0 characters
+  (degree, rest) ← read_degree remaining
+  Just (Chord_degree degree accidental, rest)
+
+read_modifiers : Number → List Char → WrittenChord → Either Text WrittenChord
+read_modifiers Z _ _ = Left "Too many chord modifiers"
+read_modifiers (S fuel) [] chord = Right chord
+read_modifiers (S fuel) ('a' :: 'd' :: 'd' :: rest) chord =
+  case read_changed_degree rest of
+    Just (tone, remaining) ⇒
+      read_modifiers fuel remaining ({ additions $= (++ [tone]) } chord)
+    Nothing ⇒ Left "Expected a degree after add"
+read_modifiers (S fuel) ('m' :: 'a' :: 'j' :: rest) chord =
+  case read_degree rest of
+    Just (degree, remaining) ⇒ read_modifiers fuel remaining
+      ({ extension := Just degree, seventh_kind := major_seventh } chord)
+    Nothing ⇒ Left "Expected a degree after maj"
+read_modifiers (S fuel) ('M' :: rest) chord = read_modifiers fuel ('Δ' :: rest) chord
+read_modifiers (S fuel) ('Δ' :: rest) chord =
+  case read_degree rest of
+    Just (degree, remaining) ⇒ read_modifiers fuel remaining
+      ({ extension := Just degree, seventh_kind := major_seventh } chord)
+    Nothing ⇒ Left "Expected a degree after Δ"
+read_modifiers (S fuel) ('s' :: 'u' :: 's' :: rest) chord =
+  case chord.suspension of
+    Just _ ⇒ Left "Duplicate suspension"
+    Nothing ⇒ case read_degree rest of
+      Just (2, remaining) ⇒ read_modifiers fuel remaining ({ suspension := Just 2 } chord)
+      Just (4, remaining) ⇒ read_modifiers fuel remaining ({ suspension := Just 4 } chord)
+      _ ⇒ read_modifiers fuel rest ({ suspension := Just 4 } chord)
+read_modifiers (S fuel) ('/' :: '9' :: rest) chord =
+  case chord.extension of
+    Just 6 ⇒ read_modifiers fuel rest ({ additions $= (++ [Chord_degree 9 0]) } chord)
+    _ ⇒ Left "Only 6/9 is a degree slash; otherwise a bass note is required"
+read_modifiers (S fuel) ('/' :: rest) chord = case read_note rest of
+  Just (note, []) ⇒ Right ({ bass := Just note } chord)
+  _ ⇒ Left "Expected a complete written slash bass"
+read_modifiers (S fuel) characters chord =
+  let (accidental, remaining) = read_accidentals 0 characters
+  in if accidental ≟ 0 then Left ("Invalid chord suffix: " ++ pack characters)
+     else case read_degree remaining of
+       Just (degree, rest) ⇒ read_modifiers fuel rest
+         ({ alterations $= (++ [Chord_degree degree accidental]) } chord)
+       Nothing ⇒ Left "Expected a degree after an accidental"
+
+normalise_groups : Number → List Char → Either Text (List Char)
+normalise_groups Z [] = Right []
+normalise_groups (S _) [] = Left "Unclosed chord parenthesis"
+normalise_groups depth ('(' :: rest) = normalise_groups (S depth) rest
+normalise_groups Z (')' :: rest) = Left "Unmatched chord parenthesis"
+normalise_groups (S depth) (')' :: rest) = normalise_groups depth rest
+normalise_groups (S depth) (',' :: rest) = normalise_groups (S depth) rest
+normalise_groups depth (character :: rest) =
+  map (character ::) (normalise_groups depth rest)
+
+canonical_structure : WrittenChord → WrittenChord
+canonical_structure chord = case (chord.quality, chord.extension, chord.alterations) of
+  (minor, Just 7, [Chord_degree 5 accidental]) ⇒
+    if accidental ≟ -1 then { quality := half_diminished, alterations := [] } chord else chord
+  _ ⇒ chord
+
+parse_characters : Text → List Char → Either Text WrittenChord
+parse_characters text characters = case read_note characters of
+  Nothing ⇒ Left ("Expected a chord root: " ++ text)
+  Just (root, suffix) ⇒
+    let (quality, extension_kind, after_quality) = read_quality suffix
+        (extension, rest) = case read_degree after_quality of
+          Just (degree, remaining) ⇒ (Just degree, remaining)
+          Nothing ⇒ (Nothing, after_quality)
+        chord = Written_chord root quality extension extension_kind [] [] Nothing Nothing
+    in map canonical_structure (read_modifiers (S (S (length rest))) rest chord)
+
+public export
+parse_chord : Text → Either Text WrittenChord
+parse_chord text = do
+  characters ← normalise_groups 0 (unpack text)
+  parse_characters text characters

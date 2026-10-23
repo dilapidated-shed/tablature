@@ -1,0 +1,153 @@
+module Chart
+
+import Data.Text
+import Data.Maybe
+import Music
+
+public export
+record SourcePosition where
+  constructor Source_position
+  scalar_offset : Number
+  utf8_offset : Number
+  utf16_offset : Number
+
+public export
+record PositionedChord where
+  constructor Positioned_chord
+  beginning : SourcePosition
+  ending : SourcePosition
+  original : Text
+  chord : WrittenChord
+
+utf8_width : Char → Number
+utf8_width character =
+  let scalar = ord character
+  in if scalar < 128 then 1
+     else if scalar < 2048 then 2
+     else if scalar < 65536 then 3
+     else 4
+
+advance_position : SourcePosition → Char → SourcePosition
+advance_position position character = Source_position
+  (S position.scalar_offset)
+  (position.utf8_offset + utf8_width character)
+  (position.utf16_offset + if ord character < 65536 then 1 else 2)
+
+advance_text : SourcePosition → List Char → SourcePosition
+advance_text = foldl advance_position
+
+record SourceToken where
+  constructor Source_token
+  beginning : SourcePosition
+  ending : SourcePosition
+  characters : List Char
+
+||| Brackets, bar lines and whitespace delimit chord candidates. Punctuation
+||| inside a lyric word is retained; recognising a prefix must never eat lyrics.
+separator : Char → Bool
+separator character = isSpace character || elem character ['[', ']', '|']
+
+tokens : SourcePosition → SourcePosition → List Char → List Char → List SourceToken
+tokens position start reversed [] =
+  if null reversed then [] else [Source_token start position (reverse reversed)]
+tokens position start reversed (character :: rest) =
+  let next = advance_position position character
+  in if separator character
+       then if null reversed
+         then tokens next next [] rest
+         else Source_token start position (reverse reversed) :: tokens next next [] rest
+       else tokens next (if null reversed then position else start) (character :: reversed) rest
+
+read_token : SourceToken → Maybe PositionedChord
+read_token token = case parse_chord (pack token.characters) of
+  Left _ ⇒ Nothing
+  Right chord ⇒ Just (Positioned_chord token.beginning token.ending
+    (pack token.characters) chord)
+
+||| A and Am are valid chords and English words. On an ordinary lyric line a
+||| bare token is ambiguous, so only a chord-only line or explicit [brackets]
+||| supplies enough context. We never guess from capitalization alone.
+record LineRecognition where
+  constructor Line_recognition
+  chords : List PositionedChord
+  ambiguous : Bool
+
+recognise_line : SourcePosition → List Char → LineRecognition
+recognise_line start characters =
+  let candidates = tokens start start [] characters
+      parsed = map read_token candidates
+      chord_line = not (null candidates) && all isJust parsed
+  in Line_recognition (if chord_line then mapMaybe id parsed else []) (not chord_line)
+
+bracketed : SourcePosition → Maybe (SourcePosition, List Char) → List Char → List PositionedChord
+bracketed position pending_bracket [] = []
+bracketed position pending_bracket ('[' :: rest) =
+  let next = advance_position position '['
+  in bracketed next (Just (next, [])) rest
+bracketed position pending_bracket (']' :: rest) =
+  let next = advance_position position ']'
+      following = bracketed next Nothing rest
+  in case pending_bracket of
+    Nothing ⇒ following
+    Just (start, reversed) ⇒ case parse_chord (pack (reverse reversed)) of
+      Left _ ⇒ following
+      Right chord ⇒ Positioned_chord start position (pack (reverse reversed)) chord :: following
+bracketed position pending_bracket (character :: rest) =
+  let next = advance_position position character
+  in case character of
+    '\n' ⇒ bracketed next Nothing rest
+    '\r' ⇒ bracketed next Nothing rest
+    _ ⇒ bracketed next (map (\(start, reversed) ⇒ (start, character :: reversed)) pending_bracket) rest
+
+line_chords : SourcePosition → SourcePosition → List Char → List Char → List PositionedChord
+line_chords position start reversed [] = (recognise_line start (reverse reversed)).chords
+line_chords position start reversed (character :: rest) =
+  let next = advance_position position character
+  in if character ≟ '\n' || character ≟ '\r'
+       then (recognise_line start (reverse reversed)).chords ++ line_chords next next [] rest
+       else line_chords next start (character :: reversed) rest
+
+public export
+recognise_chart : Text → List PositionedChord
+recognise_chart source =
+  let start = Source_position 0 0 0
+      characters = unpack source
+      from_lines = line_chords start start [] characters
+      explicit = bracketed start Nothing characters
+      all = from_lines ++ filter
+        (\candidate ⇒ not (any
+          (\existing ⇒ existing.beginning.scalar_offset ≟ candidate.beginning.scalar_offset)
+          from_lines)) explicit
+  in sortBy (\left, right ⇒ compare left.beginning.scalar_offset right.beginning.scalar_offset) all
+
+replace_spans : Number → List Char → List PositionedChord → WrittenInterval → Text
+replace_spans offset remaining [] interval = pack remaining
+replace_spans offset remaining (positioned :: rest) interval =
+  let prefix_length = minus positioned.beginning.scalar_offset offset
+      chord_length = minus positioned.ending.scalar_offset positioned.beginning.scalar_offset
+      prefix = take prefix_length remaining
+      after = drop (prefix_length + chord_length) remaining
+  in pack prefix ++ print_chord (transpose_chord interval positioned.chord) ++
+     replace_spans positioned.ending.scalar_offset after rest interval
+
+public export
+render_transposition : WrittenInterval → Text → Text
+render_transposition interval source =
+  replace_spans 0 (unpack source) (recognise_chart source) interval
+
+||| Source preservation is separate from canonical rendering. Saving an unedited
+||| chart writes this original text; merely highlighting/transposing changes none
+||| of its whitespace, line endings, spelling or trailing newline bytes.
+public export
+record SongDocument where
+  constructor Song_document
+  title : Text
+  source : Text
+
+public export
+legacy_song : Text → Text → SongDocument
+legacy_song = Song_document
+
+public export
+legacy_setlist : Text → List Text
+legacy_setlist source = filter (\name ⇒ not (name ≟ "")) (lines source)
