@@ -4,9 +4,11 @@ import Data.Text
 import Data.List
 import Data.List1
 import Data.Maybe
+import Data.Buffer
 import System
 import System.Escape
 import System.File
+import System.File.Buffer
 import Reader
 import Chart
 
@@ -217,6 +219,31 @@ accept target apk pitch_dex runner_dex nonce = do
   click target "font-up"
   preferences ← stored target
   require "Android text-size preference persists" (preferences.settings.text_size > final.settings.text_size)
+  Just malformed ← newBuffer 6
+    | Nothing ⇒ fail_check "Could not allocate the binary import fixture"
+  setBits8 malformed 0 67
+  setBits8 malformed 1 0
+  setBits8 malformed 2 98
+  setBits8 malformed 3 97
+  setBits8 malformed 4 100
+  setBits8 malformed 5 10
+  Right () ← writeBufferToFile "build/exec/nul-song.txt" malformed 6
+    | Left _ ⇒ fail_check "Could not write the binary import fixture"
+  -- Reuse the document just created by this test. Its provider registration
+  -- and read grant are the same as the positive byte-for-byte import above.
+  ignore (device target ["push", "build/exec/nul-song.txt", "/sdcard/Download/" ++ setlist_name ++ ".pl"])
+  click target "library"
+  click target "import"
+  click target "choose-file"
+  click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
+  wait_for_application target 5
+  refused ← ui target
+  require "Binary NUL import is refused rather than truncated" (isInfixOf "could not be read" refused)
+  preserved ← stored target
+  require "Refused import preserves every saved source" (
+    map (\song ⇒ (song.identifier, song.document.source)) preserved.songs ≟
+    map (\song ⇒ (song.identifier, song.document.source)) preferences.songs)
   fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"

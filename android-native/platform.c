@@ -102,6 +102,9 @@ static char *native_text(JNIEnv *env, jstring text) {
     size_t output = 0;
     for (jsize index = 0; index < length; ++index) {
         uint32_t scalar = units[index];
+        if (!scalar) {
+            free(result); (*env)->ReleaseStringChars(env, text, units); errno = EILSEQ; return NULL;
+        }
         if (scalar >= 0xd800 && scalar <= 0xdbff && index + 1 < length &&
             units[index + 1] >= 0xdc00 && units[index + 1] <= 0xdfff)
             scalar = 0x10000 + ((scalar - 0xd800) << 10) + units[++index] - 0xdc00;
@@ -448,7 +451,10 @@ char *platform_read(Platform *platform, const char *name) {
     long size = ftell(file);
     if (size < 0 || fseek(file, 0, SEEK_SET)) { int problem = errno ? errno : EIO; fclose(file); errno = problem; return NULL; }
     char *result = malloc((size_t)size + 1);
-    if (result && fread(result, 1, (size_t)size, file) == (size_t)size) result[size] = 0;
+    if (result && fread(result, 1, (size_t)size, file) == (size_t)size) {
+        if (memchr(result, 0, (size_t)size)) { free(result); result = NULL; errno = EILSEQ; }
+        else result[size] = 0;
+    }
     else { free(result); result = NULL; }
     int problem = result ? 0 : (errno ? errno : EIO);
     fclose(file);
@@ -596,6 +602,7 @@ static char *read_stream(JNIEnv *env, jobject stream) {
         used += (size_t)received;
     }
     (*env)->DeleteLocalRef(env, block);
+    if (result && memchr(result, 0, used)) { free(result); result = NULL; }
     if (result) result[used] = 0;
     return result;
 }
@@ -726,34 +733,40 @@ static void receive_intent(Platform *platform) {
     if (!platform->reader) return;
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 24);
+    int attempted = 0, received = 0;
     jobject intent = (*env)->CallObjectMethod(env, platform->activity->clazz,
         method(env, platform->activity->clazz, "getIntent", "()Landroid/content/Intent;"));
     jstring text = (*env)->CallObjectMethod(env, intent, method(env, intent, "getStringExtra",
         "(Ljava/lang/String;)Ljava/lang/String;"), android_text(env, "android.intent.extra.TEXT"));
     if (text) {
+        attempted = 1;
         char *source = native_text(env, text);
         jstring supplied_title = (*env)->CallObjectMethod(env, intent, method(env, intent, "getStringExtra",
             "(Ljava/lang/String;)Ljava/lang/String;"), android_text(env, "android.intent.extra.TITLE"));
         char *title = native_text(env, supplied_title);
-        if (source) reader_event(platform->reader, "incoming", title && *title ? title : "Imported song", source);
+        if (source) { received = 1; reader_event(platform->reader, "incoming", title && *title ? title : "Imported song", source); }
         free(source); free(title);
     } else {
         jobject uri = (*env)->CallObjectMethod(env, intent, method(env, intent, "getData", "()Landroid/net/Uri;"));
         if (uri) {
+            attempted = 1;
             jobject resolver = (*env)->CallObjectMethod(env, platform->activity->clazz,
                 method(env, platform->activity->clazz, "getContentResolver", "()Landroid/content/ContentResolver;"));
             jobject stream = (*env)->CallObjectMethod(env, resolver, method(env, resolver, "openInputStream",
                 "(Landroid/net/Uri;)Ljava/io/InputStream;"), uri);
             if (stream && !(*env)->ExceptionCheck(env)) {
                 char *source = read_stream(env, stream);
-                if (!(*env)->ExceptionCheck(env)) (*env)->CallVoidMethod(env, stream, method(env, stream, "close", "()V"));
+                report(env, "read imported document");
+                (*env)->CallVoidMethod(env, stream, method(env, stream, "close", "()V"));
+                report(env, "close imported document");
                 char *name = document_name(env, resolver, uri);
-                if (source) reader_event(platform->reader, "incoming", name ? name : "Imported song", source);
+                if (source) { received = 1; reader_event(platform->reader, "incoming", name ? name : "Imported song", source); }
                 free(source); free(name);
             }
         }
     }
     report(env, "import shared song or document URI");
+    if (attempted && !received) reader_event(platform->reader, "import_failed", "", "");
     (*env)->PopLocalFrame(env, NULL);
 }
 static Platform *platform_for_activity(JNIEnv *env, jobject activity) {

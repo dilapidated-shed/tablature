@@ -291,7 +291,7 @@ local function new(platform)
   end
   local function event(id,title,body)
     if locked then return end
-    notice=""
+    if id ~= "resume" and id ~= "suspend" then notice="" end
     if mode == "reader" then scroll=platform.scroll_position() end
     if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and id ~= "resume" and
       id ~= "exported" and id ~= "export_failed" and id ~= "import_failed" and

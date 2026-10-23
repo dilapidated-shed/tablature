@@ -140,6 +140,21 @@ The software emulator can also hold a tap long enough for DocumentsUI to enter
 its real selection mode. The driver confirms the observed SELECT control when
 present; immediate-open and explicit-selection document flows are both valid.
 
+The host driver also uses a typed six-byte Buffer and the maintained binary
+file API to create C/NUL/bad/newline. It imports that actual document through
+Android and requires refusal plus preservation of every saved song source.
+This closes the C-string boundary before Lua: checking for NUL only after
+lua_pushstring would be too late, because truncation has already occurred.
+Import refusals survive the following lifecycle resume rather than disappearing
+before the screen can show them. Host state tests exercise that ordering.
+
+One local acceptance run overlapped rebuilding its host driver and ended in a
+host invalid-memory error; that run is not acceptance evidence or an established
+compiler defect. Make now stages a new immutable driver/APK/DEX bundle for each
+unique nonce, refuses to overwrite an earlier run directory, and removes the
+previous mutable receipt before testing. Build iteration cannot replace inputs
+under an executing acceptance program.
+
 RejectBroken.idric is an intentionally invalid negative control: its declared
 Int32 answer is supplied Text. The strict build must reject it before producing
 an executable. This checks the actual -Werror frontend behavior rather than

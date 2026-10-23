@@ -84,6 +84,12 @@ titles receive equal-width wrapping buttons so no later action is clipped.
 The expanded CI driver also exercises file callbacks, both diagram dictionaries
 and a persistent text-size change. Each run writes its own emulator receipt
 with the actual APK digest and Android fingerprint.
+The native text boundaries reject embedded NUL before C-string transport can
+truncate input. A typed Idriç Buffer supplies a real six-byte malformed document
+to the same provider path as the positive import. The refusal must preserve
+all saved song sources and remain visible after lifecycle resume. Host state
+tests cover message ordering. Acceptance stages an immutable per-run driver,
+APK and DEX bundle and removes any previous mutable receipt before execution.
 
 The development app is usable as a songbook; it is not claimed as full Idriç
 Android execution. See FEATURE-INVENTORY.md for old presentation/preferences

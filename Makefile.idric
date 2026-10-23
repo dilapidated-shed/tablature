@@ -77,8 +77,17 @@ acceptance-driver:
 ADB ?= $(ANDROID_HOME)/platform-tools/adb
 ANDROID_SERIAL ?= emulator-5554
 ACCEPTANCE_NONCE ?= local
+ACCEPTANCE_RUN_DIR := $(ROOT)/build/acceptance-run/$(ACCEPTANCE_NONCE)
 emulator-check:
-	./build/exec/android-acceptance "$(ADB)" "$(ANDROID_SERIAL)" "$(ROOT)/build/android/chordreader-x86_64.apk" "$(ROOT)/build/exec/chordreader-pitch.dex" "$(ROOT)/build/exec/chordreader-runner.dex" "$(ACCEPTANCE_NONCE)"
+	mkdir -p build/acceptance-run
+	mkdir "$(ACCEPTANCE_RUN_DIR)"
+	cp build/exec/android-acceptance "$(ACCEPTANCE_RUN_DIR)/"
+	cp -R build/exec/android-acceptance_app "$(ACCEPTANCE_RUN_DIR)/"
+	cp build/android/chordreader-x86_64.apk "$(ACCEPTANCE_RUN_DIR)/candidate.apk"
+	cp build/exec/chordreader-pitch.dex build/exec/chordreader-runner.dex "$(ACCEPTANCE_RUN_DIR)/"
+	rm -f build/exec/android-emulator.receipt.tsv
+	"$(ACCEPTANCE_RUN_DIR)/android-acceptance" "$(ADB)" "$(ANDROID_SERIAL)" "$(ACCEPTANCE_RUN_DIR)/candidate.apk" "$(ACCEPTANCE_RUN_DIR)/chordreader-pitch.dex" "$(ACCEPTANCE_RUN_DIR)/chordreader-runner.dex" "$(ACCEPTANCE_NONCE)"
+	cp build/exec/android-emulator.receipt.tsv "$(ACCEPTANCE_RUN_DIR)/"
 
 assets: dex callback
 	mkdir -p build/android/assets build/android/res
