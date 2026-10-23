@@ -689,6 +689,17 @@ void ANativeActivity_onCreate(ANativeActivity *activity, void *saved, size_t sav
     pthread_mutex_init(&platform->lifetime, NULL);
     JNIEnv *env = activity->env;
     (*env)->PushLocalFrame(env, 16);
+    /* NativeActivity takes the surface and input queue before this callback.
+     * This application uses ordinary platform Views, so return both to the
+     * framework before the window is attached. Otherwise Views neither draw
+     * nor receive touch events despite successful application startup. */
+    jobject window = (*env)->CallObjectMethod(env, activity->clazz,
+        method(env, activity->clazz, "getWindow", "()Landroid/view/Window;"));
+    (*env)->CallVoidMethod(env, window, method(env, window, "takeSurface",
+        "(Landroid/view/SurfaceHolder$Callback2;)V"), NULL);
+    (*env)->CallVoidMethod(env, window, method(env, window, "takeInputQueue",
+        "(Landroid/view/InputQueue$Callback;)V"), NULL);
+    report(env, "return surface and input to platform Views");
     jobject loader = (*env)->CallObjectMethod(env, activity->clazz,
         method(env, activity->clazz, "getClassLoader", "()Ljava/lang/ClassLoader;"));
     jclass type = (*env)->CallObjectMethod(env, loader,

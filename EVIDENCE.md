@@ -25,9 +25,10 @@ Android execution result. Raw diagnostics are under `evidence/chordreader/`.
 | --- | --- |
 | Maintained compiler base | 0e8cfdd1106ebdeffd01b6c519880ea3afc7dc35 |
 | Unicode subtraction compiler source | 28c5755d37fb868f1b9c2f5d8fab1ce2b2ada663; same source tree as local built 7accb208e94269e3d66873fcd61b0d63dfeaa51b |
-| DEX backend with application improvements | 004389155abb1650fd6687477da847eed64ffd37 |
-| Android-NDK adapter/packager | 8acc92fbf1436e0951eaa15013d7b67626b00a1e |
+| DEX backend with application improvements and interfaces | c13a6a223a24c211d090d2c88a395c134ed8d469 |
+| Android-NDK adapter/packager | 473671b219081b42039a38dc471a86e13875271d |
 | Native ARM starting head | ac981d6a9a61e75ad913768f74353829d0cab2e1 |
+| Native ARM compiler API repair | 11a2262cdb222b6632a91168c26ef3a96c65ec6d |
 | Signing registry | d7402b34bbdd0c17bbc92bf3b7ea936f761b6a06 |
 | Stable public test key source | isomorphismes/wegert 89dcfb840cec1a66ee04c7f7404954cbd6c09839 |
 | Lua5.4.8 archive SHA256 | 4f18ddae154e793e46eeab727c59ef1c0c0c2b744e7b94219710d76f530629ae |
@@ -64,7 +65,10 @@ alignment and finished signature; receipts accompany the artifacts.
 ARM32 links against API19; ARM64 targets API21. This does not prove API19
 runtime behavior. The API29 software emulator and the Android14 MIRO A1/C67
 are separate acceptance targets. No physical MIRO device is attached to this
-host. Installation/launch/interaction remain pending at this checkpoint.
+host. The x86_64/API29 candidate installed and launched. Ordinary Android Views
+render after returning NativeActivity's surface/input ownership to the framework.
+An incoming Unicode chart reached the editable form without corruption.
+Remaining interaction and persistence checks are still being exercised.
 
 ## History, CI and remaining acceptance
 
@@ -77,6 +81,10 @@ claimed here.
 The replacement workflow triggers on implementation-branch pushes, PRs to
 master and manual dispatch. It builds checked source and both ARM APKs with
 pinned dependencies and the central signer gate. Source presence alone does
-not resolve Issue6: an actual automatic run is required. The old Gradle-only
+not resolve Issue6: an actual automatic run is required. The first PR-head run
+39975872797 executed the compiler bootstrap, 366 core checks, 1,049 comparisons
+and application-state tests, then failed because compiler API objects and the
+backend launcher used different Chez versions. CHEZ is now pinned explicitly
+to the same bootstrapped10.4.1 runtime. The old Gradle-only
 workflow is retired with the architectural replacement. Master merge remains
 blocked until automatic checks and application runtime acceptance pass.

@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 60
     env:
       IDRIS2_INC_CGS: chez
+      CHEZ: ${{ github.workspace }}/deps/Idric/_/.tools/bin/scheme
       IDRIC_REPO: ${{ github.workspace }}/deps/Idric
       DEX_REPO: ${{ github.workspace }}/deps/idric-arm-thumb
       ANDROID_NDK_REPO: ${{ github.workspace }}/deps/android-NDK
@@ -38,13 +39,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: fuego-ironworks/idric-arm-thumb
-          ref: 004389155abb1650fd6687477da847eed64ffd37
+          ref: c13a6a223a24c211d090d2c88a395c134ed8d469
           path: deps/idric-arm-thumb
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: isomorphisms/android-NDK
-          ref: 8acc92fbf1436e0951eaa15013d7b67626b00a1e
+          ref: 473671b219081b42039a38dc471a86e13875271d
           path: deps/android-NDK
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
