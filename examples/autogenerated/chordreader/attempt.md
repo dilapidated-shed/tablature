@@ -130,6 +130,13 @@ standard document picker, compares ordered .pl bytes, tests provider display-nam
 delivery, and opens guitar/ukulele diagrams. File-result timing is explicit:
 wait for the app to resume before reading the newly created document.
 
+An API29 software-emulator run exposed a harness defect: uiautomator can return
+exit status0 with "null root" while a dictionary view is busy, retaining the
+previous XML file. The corrected driver removes that file before each dump,
+requires the actual dump-success message, and retries at most five times.
+A later fresh snapshot confirmed the real C guitar diagram and ten variations.
+Stale accessibility output cannot count as a passing interaction.
+
 RejectBroken.idric is an intentionally invalid negative control: its declared
 Int32 answer is supplied Text. The strict build must reject it before producing
 an executable. This checks the actual -Werror frontend behavior rather than

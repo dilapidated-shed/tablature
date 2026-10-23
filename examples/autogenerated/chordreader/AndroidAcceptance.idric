@@ -61,10 +61,19 @@ matching_position field value xml = do
 button_position : Text → Text → Maybe (Integer, Integer)
 button_position = matching_position "content-desc"
 
+fresh_ui : Target → Nat → IO Text
+fresh_ui target Z = fail_check "Android did not supply a fresh accessibility root"
+fresh_ui target (S remaining) = do
+  ignore (remote target ["rm", "-f", "/sdcard/chordreader-acceptance.xml"])
+  result ← remote target ["uiautomator", "dump", "/sdcard/chordreader-acceptance.xml"]
+  case isInfixOf "dumped to:" result of
+    True ⇒ device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+    False ⇒ do
+      sleep 1
+      fresh_ui target remaining
+
 ui : Target → IO Text
-ui target = do
-  ignore (remote target ["uiautomator", "dump", "/sdcard/chordreader-acceptance.xml"])
-  device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+ui target = fresh_ui target 5
 
 click_matching : Target → Text → Text → IO ()
 click_matching target field description = do
