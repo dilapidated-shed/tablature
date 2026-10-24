@@ -1,0 +1,7 @@
+module RejectBroken
+
+answer : Int32
+answer = "Not an integer"
+
+main : IO ()
+main = printLn answer

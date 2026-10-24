@@ -1,0 +1,280 @@
+module AndroidAcceptance
+
+import Data.Text
+import Data.List
+import Data.List1
+import Data.Maybe
+import Data.Buffer
+import System
+import System.Escape
+import System.File
+import System.File.Buffer
+import Reader
+import Chart
+
+%default covering
+
+fail_check : Text → IO value
+fail_check explanation = do putStrLn ("FAIL\t" ++ explanation); exitFailure
+
+require : Text → Bool → IO ()
+require label passed = if passed then putStrLn ("PASS\t" ++ label) else fail_check label
+
+record Target where
+  constructor Android_target
+  adb : Text
+  serial : Text
+
+command : List Text → IO Text
+command arguments = do
+  (output, status) ← System.Escaped.run ("timeout" :: "60" :: arguments)
+  if status ≟ 0 then pure output else fail_check ("Command failed: " ++ unwords (take 4 arguments))
+
+device : Target → List Text → IO Text
+device target arguments = command ([target.adb, "-s", target.serial] ++ arguments)
+
+remote : Target → List Text → IO Text
+remote target arguments = device target ["shell", "-n", escapeCmd arguments]
+
+after : List Char → List Char → Maybe (List Char)
+after needle [] = Nothing
+after needle remaining@(_ :: rest) =
+  if isPrefixOf needle remaining then Just (drop (length needle) remaining) else after needle rest
+
+attribute : Text → Text → Maybe Text
+attribute name node = map (\characters ⇒ pack (takeWhile (/= '"') characters))
+  (after (unpack (name ++ "=\"")) (unpack node))
+
+coordinates : Text → Maybe (Integer, Integer)
+coordinates bounds =
+  let groups : List Text = filter (\part ⇒ length (unpack part) > 0)
+        (forget (Data.Text.split (\character ⇒ character < '0' || character > '9') bounds))
+  in case the (Maybe (List Integer)) (traverse (parsePositive {a=Integer}) groups) of
+    Just [left, top, right, bottom] ⇒
+      if right > left && bottom > top then Just ((left + right) `div` 2, (top + bottom) `div` 2) else Nothing
+    _ ⇒ Nothing
+
+matching_position : Text → Text → Text → Maybe (Integer, Integer)
+matching_position field value xml = do
+  node ← find (\node ⇒ attribute field node ≟ Just value) (forget (Data.Text.split (== '<') xml))
+  bounds ← attribute "bounds" node
+  coordinates bounds
+
+button_position : Text → Text → Maybe (Integer, Integer)
+button_position = matching_position "content-desc"
+
+fresh_ui : Target → Nat → IO Text
+fresh_ui target Z = fail_check "Android did not supply a fresh accessibility root"
+fresh_ui target (S remaining) = do
+  ignore (remote target ["rm", "-f", "/sdcard/chordreader-acceptance.xml"])
+  result ← remote target ["uiautomator", "dump", "/sdcard/chordreader-acceptance.xml"]
+  case isInfixOf "dumped to:" result of
+    True ⇒ device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+    False ⇒ do
+      sleep 1
+      fresh_ui target remaining
+
+ui : Target → IO Text
+ui target = fresh_ui target 5
+
+click_matching : Target → Text → Text → IO ()
+click_matching target field description = do
+  xml ← ui target
+  case matching_position field description xml of
+    Nothing ⇒ fail_check ("Visible control missing: " ++ description)
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+
+click : Target → Text → IO ()
+click target = click_matching target "content-desc"
+
+finish_document_selection : Target → IO ()
+finish_document_selection target = do
+  xml ← ui target
+  case matching_position "resource-id" "com.android.documentsui:id/action_menu_select" xml of
+    Nothing ⇒ pure ()
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+
+wait_for_application : Target → Nat → IO ()
+wait_for_application target Z = fail_check "Android did not return from the document picker"
+wait_for_application target (S remaining) = do
+  xml ← ui target
+  if isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" xml then pure ()
+    else do sleep 1; wait_for_application target remaining
+
+package_name : Text
+package_name = "org.isomorphisms.chordreader.dev"
+
+activity_name : Text
+activity_name = package_name ++ "/org.isomorphisms.NativeViewActivity"
+
+stored : Target → IO ReaderState
+stored target = do
+  raw ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  case decode_library raw of
+    Left problem ⇒ fail_check ("Idriç could not decode the real Android library: " ++ problem)
+    Right library ⇒ pure library
+
+fixture_source : Text
+fixture_source = "C#7b9 FΔ7 A/C♯ C\r\nA song in Am\n" ++
+  concatMap (\number ⇒ "Lyrics line " ++ show number ++ " stays unchanged\n") [1 .. 45]
+
+import_text : Target → Text → Text → IO ()
+import_text target name source = do
+  ignore (remote target ["am", "start", "-a", "android.intent.action.SEND", "-t", "text/plain",
+    "-n", activity_name, "--es", "android.intent.extra.TITLE", name,
+    "--es", "android.intent.extra.TEXT", source])
+  sleep 2
+  click target "save"
+
+find_song : Text → ReaderState → Maybe Song
+find_song title library = find (\song ⇒ song.document.title ≟ title) library.songs
+
+self_test : IO ()
+self_test = do
+  require "XML target bounds" (button_position "save"
+    "<node content-desc=\"other\" bounds=\"[0,0][40,40]\"/><node content-desc=\"save\" bounds=\"[10,20][70,60]\"/>" ≟ Just (40, 40))
+  require "Missing XML target fails" (button_position "save" "<node content-desc=\"save-elsewhere\"/>" ≟ Nothing)
+  require "Invisible bounds fail" (button_position "save" "<node content-desc=\"save\" bounds=\"[0,0][0,0]\"/>" ≟ Nothing)
+
+accept : Target → Text → Text → Text → Text → IO ()
+accept target apk pitch_dex runner_dex nonce = do
+  qemu ← remote target ["getprop", "ro.kernel.qemu"]
+  require "Explicit emulator boundary" (trim qemu ≟ "1")
+  abi ← remote target ["getprop", "ro.product.cpu.abi"]
+  require "Expected x86_64 emulator ABI" (trim abi ≟ "x86_64")
+  ignore (device target ["install", "-r", apk])
+  ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
+  ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
+  art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
+  require "Checked DEX executes all 33 ART assertions" (isInfixOf "PASS ChordReader checked DEX:" art)
+  let first_title = "Idric acceptance " ++ nonce ++ " First"
+  let second_title = "Idric acceptance " ++ nonce ++ " Second"
+  import_text target (first_title ++ ".txt") fixture_source
+  library ← stored target
+  first ← case find_song first_title library of
+    Nothing ⇒ fail_check "Imported song missing from Android storage"
+    Just song ⇒ pure song
+  require "Unicode, lyrics and CRLF survive real Android storage" (first.document.source ≟ fixture_source)
+  click target "up"
+  displayed ← ui target
+  require "Real View displays the written upward interval" (isInfixOf "C♯♯7♭9" displayed && isInfixOf "A♯/C♯♯" displayed)
+  click target "down"
+  click target "down"
+  negative ← ui target
+  require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
+  reopened ← stored target
+  require "Process restart keeps source and interval" (reopened.transpose_semitones ≟ -1 &&
+    maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title reopened))
+  import_text target (second_title ++ ".txt") "Bø7\n"
+  multiple ← stored target
+  require "Two songs survive single-task intent delivery" (isJust (find_song first_title multiple) && isJust (find_song second_title multiple))
+  import_text target ("Acceptance " ++ nonce ++ ".pl")
+    (first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n")
+  lists ← stored target
+  require "Legacy setlist order and repeated songs" (any (\list ⇒ length list.song_identifiers ≟ 3 &&
+    head' list.song_identifiers ≟ last' list.song_identifiers) lists.setlists)
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
+  final ← stored target
+  require "All saved songs survive another process restart" (isJust (find_song first_title final) && isJust (find_song second_title final))
+  let setlist_name = "Acceptance " ++ nonce
+  let setlist_source = first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n"
+  click_matching target "text" setlist_name
+  click target "export-setlist"
+  picker ← ui target
+  require "Standard Android save picker is visible" (isInfixOf "com.android.documentsui" picker)
+  click_matching target "resource-id" "android:id/button1"
+  wait_for_application target 5
+  exported ← remote target ["cat", "/sdcard/Download/" ++ setlist_name ++ ".pl"]
+  require "Document export keeps legacy .pl name and exact ordered bytes" (exported ≟ setlist_source)
+  click target "library"
+  click target "import"
+  click target "choose-file"
+  click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
+  wait_for_application target 5
+  imported ← ui target
+  require "Document display name selects legacy setlist importer" (isInfixOf "Setlist: one song title per line" imported)
+  click target "save"
+  from_document ← stored target
+  require "Document result callback saves another complete setlist" (length from_document.setlists ≟ S (length final.setlists))
+  click target "library"
+  click target ("open:" ++ first.identifier)
+  click target "chord:C"
+  if final.settings.instrument ≟ "Ukulele" then click target "instrument" else pure ()
+  diagram ← ui target
+  require "Original guitar dictionary opens a real diagram view" (isInfixOf "C — Guitar" diagram && isInfixOf "next-variation" diagram)
+  click target "instrument"
+  ukulele ← ui target
+  require "Original ukulele dictionary opens a real diagram view" (isInfixOf "C — Ukulele" ukulele)
+  click target "settings"
+  click target "font-up"
+  preferences ← stored target
+  require "Android text-size preference persists" (preferences.settings.text_size > final.settings.text_size)
+  Just malformed ← newBuffer 6
+    | Nothing ⇒ fail_check "Could not allocate the binary import fixture"
+  setBits8 malformed 0 67
+  setBits8 malformed 1 0
+  setBits8 malformed 2 98
+  setBits8 malformed 3 97
+  setBits8 malformed 4 100
+  setBits8 malformed 5 10
+  Right () ← writeBufferToFile "build/exec/nul-song.txt" malformed 6
+    | Left _ ⇒ fail_check "Could not write the binary import fixture"
+  -- Reuse the document just created by this test. Its provider registration
+  -- and read grant are the same as the positive byte-for-byte import above.
+  ignore (device target ["push", "build/exec/nul-song.txt", "/sdcard/Download/" ++ setlist_name ++ ".pl"])
+  click target "library"
+  click target "import"
+  click target "choose-file"
+  click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
+  wait_for_application target 5
+  refused ← ui target
+  require "Binary NUL import is refused rather than truncated" (isInfixOf "could not be read" refused)
+  preserved ← stored target
+  require "Refused import preserves every saved source" (
+    map (\song ⇒ (song.identifier, song.document.source)) preserved.songs ≟
+    map (\song ⇒ (song.identifier, song.document.source)) preferences.songs)
+  -- This emulator has no IB search receiver. A typed search must remain in
+  -- ChordReader with a visible refusal, not open Startpage/DDG or another
+  -- installed implicit ACTION_VIEW browser.
+  known_ib ← remote target ["pm", "list", "packages", "org.isomorphisms.ib.prepaint"]
+  require "Isolated emulator has no IB search receiver" (trim known_ib ≟ "")
+  click target "library"
+  click target "import"
+  search_form ← ui target
+  case matching_position "class" "android.widget.EditText" search_form of
+    Nothing ⇒ fail_check "Search title input not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "piano"])
+  click target "search-web"
+  denied_search ← ui target
+  require "Missing IB search receiver retains ChordReader instead of external browser"
+    (isInfixOf "IB search is unavailable" denied_search &&
+     isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" denied_search)
+  fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
+  apk_digest ← command ["sha256sum", apk]
+  receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
+    ("runtime\tC+Lua with checked Idric DEX\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t33 PASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+  case receipt of
+    Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
+    Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, "--self-test"] ⇒ self_test
+    [_, adb, serial, apk, pitch_dex, runner_dex, nonce] ⇒ accept (Android_target adb serial) apk pitch_dex runner_dex nonce
+    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX RUNNER_DEX NONCE"

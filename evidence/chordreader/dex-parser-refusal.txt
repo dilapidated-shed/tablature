@@ -1,0 +1,1 @@
+Error: dex rejected checked program: Checked DEX call Music.parse_chord needs binders, constructors, effects or further calls beyond binder-free leaf inlining

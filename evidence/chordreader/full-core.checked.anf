@@ -1,0 +1,312 @@
+export AndroidCore.canonical_chord as canonical_chord
+[0]: %let v3 = (Music.parse_chord(v0)) in (%case v3 of { %conalt Prelude.Types.Left(v1) => v0| %conalt Prelude.Types.Right(v2) => Music.print_chord(v2) Nothing })
+
+checked definition {__mainExpression:0}
+[]: %let v0 = (<{{__mainExpression:0}:0} underapp 1>()) in (PrimIO.unsafePerformIO(v0))
+
+checked definition {{__mainExpression:0}:0}
+[0]: AndroidCore.main(v0)
+
+checked definition _builtin.NIL
+Constructor tag Just 0 arity 0 newtype by Nothing
+
+checked definition _builtin.CONS
+Constructor tag Just 1 arity 2 newtype by Nothing
+
+checked definition _builtin.NOTHING
+Constructor tag Just 0 arity 0 newtype by Nothing
+
+checked definition _builtin.JUST
+Constructor tag Just 1 arity 1 newtype by Nothing
+
+checked definition {csegen:2}
+[]: %let v0 = (<{{csegen:2}:0} underapp 2>()) in (%let v1 = ("") in (%con _builtin.CONS(v0, v1)))
+
+checked definition {{csegen:2}:0}
+[1, 0]: %op ++(v1, v0)
+
+checked definition prim__sub_Integer
+[0, 1]: %op -Integer(v0, v1)
+
+checked definition AndroidCore.main
+[0]: ___
+
+checked definition AndroidCore.canonical_chord
+[0]: %let v3 = (Music.parse_chord(v0)) in (%case v3 of { %conalt Prelude.Types.Left(v1) => v0| %conalt Prelude.Types.Right(v2) => Music.print_chord(v2) Nothing })
+
+checked definition Music.case block in case block in case block in parse_characters
+[0, 1, 2, 3, 4, 5, 6, 7]: %case v7 of { %conalt _builtin.CONS(v8, v9) => %let v10 = (%let v11 = (%con _builtin.NIL()) in (%let v12 = (%con _builtin.NIL()) in (%let v13 = (%con _builtin.NOTHING()) in (%let v14 = (%con _builtin.NOTHING()) in (%con Music.Written_chord(v2, v4, v8, v5, v11, v12, v13, v14)))))) in (%let v23 = (%let v19 = (%let v17 = (%let v15 = (Prelude.Types.List.lengthTR(v9)) in (%let v16 = (1) in (%op +Integer(v15, v16)))) in (%let v18 = (1) in (%op +Integer(v17, v18)))) in (Music.read_modifiers(v19, v9, v10))) in (%case v23 of { %conalt Prelude.Types.Left(v20) => %con Prelude.Types.Left(v20)| %conalt Prelude.Types.Right(v21) => %let v22 = (Music.canonical_structure(v21)) in (%con Prelude.Types.Right(v22)) Nothing })) Nothing }
+
+checked definition Music.case block in case block in parse_characters
+[0, 1, 2, 3, 4]: %case v4 of { %conalt _builtin.CONS(v5, v6) => %case v6 of { %conalt _builtin.CONS(v7, v8) => %let v15 = (%let v14 = (Music.read_degree(v8)) in (%case v14 of { %conalt _builtin.JUST(v9) => %case v9 of { %conalt _builtin.CONS(v10, v11) => %let v12 = (%con _builtin.JUST(v10)) in (%con _builtin.CONS(v12, v11)) Nothing }| %conalt _builtin.NOTHING() => %let v13 = (%con _builtin.NOTHING()) in (%con _builtin.CONS(v13, v8)) Nothing })) in (Music.case block in case block in case block in parse_characters(v0, v1, v2, v3, v5, v7, v8, v15)) Nothing } Nothing }
+
+checked definition Music.case block in parse_characters
+[0, 1, 2]: %case v2 of { %conalt _builtin.NOTHING() => %let v4 = (%let v3 = ("Expected a chord root: ") in (%op ++(v3, v1))) in (%con Prelude.Types.Left(v4))| %conalt _builtin.JUST(v5) => %case v5 of { %conalt _builtin.CONS(v6, v7) => %let v8 = (Music.read_quality(v7)) in (Music.case block in case block in parse_characters(v0, v1, v6, v7, v8)) Nothing } Nothing }
+
+checked definition Music.case block in canonical_structure
+[0, 1]: %case v1 of { %conalt _builtin.CONS(v2, v3) => %case v2 of { %constalt(1) => %case v3 of { %conalt _builtin.CONS(v4, v5) => %case v4 of { %conalt _builtin.JUST(v6) => %case v6 of { %constalt(0) => v0 Just %let v7 = (%let v8 = (1) in (%op -Integer(v6, v8))) in (%case v7 of { %constalt(0) => v0 Just %let v9 = (%let v10 = (1) in (%op -Integer(v7, v10))) in (%case v9 of { %constalt(0) => v0 Just %let v11 = (%let v12 = (1) in (%op -Integer(v9, v12))) in (%case v11 of { %constalt(0) => v0 Just %let v13 = (%let v14 = (1) in (%op -Integer(v11, v14))) in (%case v13 of { %constalt(0) => v0 Just %let v15 = (%let v16 = (1) in (%op -Integer(v13, v16))) in (%case v15 of { %constalt(0) => v0 Just %let v17 = (%let v18 = (1) in (%op -Integer(v15, v18))) in (%case v17 of { %constalt(0) => v0 Just %let v19 = (%let v20 = (1) in (%op -Integer(v17, v20))) in (%case v19 of { %constalt(0) => %case v5 of { %conalt _builtin.CONS(v21, v22) => %case v21 of { %conalt _builtin.CONS(v23, v24) => %case v23 of { %constalt(0) => v0 Just %let v25 = (%let v26 = (1) in (%op -Integer(v23, v26))) in (%case v25 of { %constalt(0) => v0 Just %let v27 = (%let v28 = (1) in (%op -Integer(v25, v28))) in (%case v27 of { %constalt(0) => v0 Just %let v29 = (%let v30 = (1) in (%op -Integer(v27, v30))) in (%case v29 of { %constalt(0) => v0 Just %let v31 = (%let v32 = (1) in (%op -Integer(v29, v32))) in (%case v31 of { %constalt(0) => v0 Just %let v33 = (%let v34 = (1) in (%op -Integer(v31, v34))) in (%case v33 of { %constalt(0) => %case v22 of { %conalt _builtin.NIL() => %let v46 = (%let v35 = (-1) in (Prelude.EqOrd.==(v24, v35))) in (%case v46 of { %constalt(1) => %case v0 of { %conalt Music.Written_chord(v36, v37, v38, v39, v40, v41, v42, v43) => %let v44 = (3) in (%let v45 = (%con _builtin.NIL()) in (%con Music.Written_chord(v36, v44, v38, v39, v40, v45, v42, v43))) Nothing }| %constalt(0) => v0 Nothing }) Just v0 } Just v0 }) }) }) }) }) } Just v0 } Just v0 } Just v0 }) }) }) }) }) }) }) } Just v0 } Just v0 } Just v0 } Just v0 }
+
+checked definition Music.case block in case block in case block in read_modifiers
+[0, 1, 2, 3, 4, 5]: %case v5 of { %conalt _builtin.JUST(v6) => %case v6 of { %conalt _builtin.CONS(v7, v8) => %let v21 = (%case v1 of { %conalt Music.Written_chord(v9, v10, v11, v12, v13, v14, v15, v16) => %let v20 = (%let v19 = (%let v17 = (%con _builtin.CONS(v7, v3)) in (%let v18 = (%con _builtin.NIL()) in (%con _builtin.CONS(v17, v18)))) in (Prelude.Types.List.tailRecAppend(v14, v19))) in (%con Music.Written_chord(v9, v10, v11, v12, v13, v20, v15, v16)) Nothing }) in (Music.read_modifiers(v0, v8, v21)) Nothing }| %conalt _builtin.NOTHING() => %let v22 = ("Expected a degree after an accidental") in (%con Prelude.Types.Left(v22)) Nothing }
+
+checked definition Music.case block in read_modifiers
+[0, 1, 2, 3]: %case v3 of { %conalt _builtin.CONS(v4, v5) => %let v11 = (%let v6 = (0) in (Prelude.EqOrd.==(v4, v6))) in (%case v11 of { %constalt(1) => %let v9 = (%let v7 = ("Invalid chord suffix: ") in (%let v8 = (Prelude.Types.fastPack(v2)) in (%op ++(v7, v8)))) in (%con Prelude.Types.Left(v9))| %constalt(0) => %let v10 = (Music.read_degree(v5)) in (Music.case block in case block in case block in read_modifiers(v0, v1, v2, v4, v5, v10)) Nothing }) Nothing }
+
+checked definition Music.case block in case block in read_modifiers
+[0, 1, 2, 3]: %case v3 of { %conalt _builtin.JUST(v4) => %case v4 of { %conalt _builtin.CONS(v5, v6) => %case v5 of { %constalt(0) => %let v17 = (%case v2 of { %conalt Music.Written_chord(v7, v8, v9, v10, v11, v12, v13, v14) => %let v16 = (%let v15 = (4) in (%con _builtin.JUST(v15))) in (%con Music.Written_chord(v7, v8, v9, v10, v11, v12, v16, v14)) Nothing }) in (Music.read_modifiers(v0, v1, v17)) Just %let v18 = (%let v19 = (1) in (%op -Integer(v5, v19))) in (%case v18 of { %constalt(0) => %let v30 = (%case v2 of { %conalt Music.Written_chord(v20, v21, v22, v23, v24, v25, v26, v27) => %let v29 = (%let v28 = (4) in (%con _builtin.JUST(v28))) in (%con Music.Written_chord(v20, v21, v22, v23, v24, v25, v29, v27)) Nothing }) in (Music.read_modifiers(v0, v1, v30)) Just %let v31 = (%let v32 = (1) in (%op -Integer(v18, v32))) in (%case v31 of { %constalt(0) => %let v43 = (%case v2 of { %conalt Music.Written_chord(v33, v34, v35, v36, v37, v38, v39, v40) => %let v42 = (%let v41 = (2) in (%con _builtin.JUST(v41))) in (%con Music.Written_chord(v33, v34, v35, v36, v37, v38, v42, v40)) Nothing }) in (Music.read_modifiers(v0, v6, v43)) Just %let v44 = (%let v45 = (1) in (%op -Integer(v31, v45))) in (%case v44 of { %constalt(0) => %let v56 = (%case v2 of { %conalt Music.Written_chord(v46, v47, v48, v49, v50, v51, v52, v53) => %let v55 = (%let v54 = (4) in (%con _builtin.JUST(v54))) in (%con Music.Written_chord(v46, v47, v48, v49, v50, v51, v55, v53)) Nothing }) in (Music.read_modifiers(v0, v1, v56)) Just %let v57 = (%let v58 = (1) in (%op -Integer(v44, v58))) in (%case v57 of { %constalt(0) => %let v69 = (%case v2 of { %conalt Music.Written_chord(v59, v60, v61, v62, v63, v64, v65, v66) => %let v68 = (%let v67 = (4) in (%con _builtin.JUST(v67))) in (%con Music.Written_chord(v59, v60, v61, v62, v63, v64, v68, v66)) Nothing }) in (Music.read_modifiers(v0, v6, v69)) Just %let v80 = (%case v2 of { %conalt Music.Written_chord(v70, v71, v72, v73, v74, v75, v76, v77) => %let v79 = (%let v78 = (4) in (%con _builtin.JUST(v78))) in (%con Music.Written_chord(v70, v71, v72, v73, v74, v75, v79, v77)) Nothing }) in (Music.read_modifiers(v0, v1, v80)) }) }) }) }) } Just %let v91 = (%case v2 of { %conalt Music.Written_chord(v81, v82, v83, v84, v85, v86, v87, v88) => %let v90 = (%let v89 = (4) in (%con _builtin.JUST(v89))) in (%con Music.Written_chord(v81, v82, v83, v84, v85, v86, v90, v88)) Nothing }) in (Music.read_modifiers(v0, v1, v91)) } Just %let v102 = (%case v2 of { %conalt Music.Written_chord(v92, v93, v94, v95, v96, v97, v98, v99) => %let v101 = (%let v100 = (4) in (%con _builtin.JUST(v100))) in (%con Music.Written_chord(v92, v93, v94, v95, v96, v97, v101, v99)) Nothing }) in (Music.read_modifiers(v0, v1, v102)) }
+
+checked definition Music.case block in read_modifiers
+[0, 1, 2, 3]: %case v3 of { %conalt _builtin.JUST(v4) => %case v4 of { %conalt _builtin.CONS(v5, v6) => %let v17 = (%case v2 of { %conalt Music.Written_chord(v7, v8, v9, v10, v11, v12, v13, v14) => %let v15 = (%con _builtin.JUST(v5)) in (%let v16 = (1) in (%con Music.Written_chord(v7, v8, v15, v16, v11, v12, v13, v14))) Nothing }) in (Music.read_modifiers(v0, v6, v17)) Nothing }| %conalt _builtin.NOTHING() => %let v18 = ("Expected a degree after \916") in (%con Prelude.Types.Left(v18)) Nothing }
+
+checked definition Music.case block in read_modifiers
+[0, 1, 2, 3]: %case v3 of { %conalt _builtin.JUST(v4) => %case v4 of { %conalt _builtin.CONS(v5, v6) => %let v17 = (%case v2 of { %conalt Music.Written_chord(v7, v8, v9, v10, v11, v12, v13, v14) => %let v15 = (%con _builtin.JUST(v5)) in (%let v16 = (1) in (%con Music.Written_chord(v7, v8, v15, v16, v11, v12, v13, v14))) Nothing }) in (Music.read_modifiers(v0, v6, v17)) Nothing }| %conalt _builtin.NOTHING() => %let v18 = ("Expected a degree after maj") in (%con Prelude.Types.Left(v18)) Nothing }
+
+checked definition Music.case block in read_modifiers
+[0, 1, 2, 3]: %case v3 of { %conalt _builtin.JUST(v4) => %case v4 of { %conalt _builtin.CONS(v5, v6) => %let v18 = (%case v2 of { %conalt Music.Written_chord(v7, v8, v9, v10, v11, v12, v13, v14) => %let v17 = (%let v16 = (%let v15 = (%con _builtin.NIL()) in (%con _builtin.CONS(v5, v15))) in (Prelude.Types.List.tailRecAppend(v11, v16))) in (%con Music.Written_chord(v7, v8, v9, v10, v17, v12, v13, v14)) Nothing }) in (Music.read_modifiers(v0, v6, v18)) Nothing }| %conalt _builtin.NOTHING() => %let v19 = ("Expected a degree after add") in (%con Prelude.Types.Left(v19)) Nothing }
+
+checked definition Music.case block in read_changed_degree
+[0, 1]: %case v1 of { %conalt _builtin.CONS(v2, v3) => %let v4 = (Music.read_degree(v3)) in (%let v5 = (<Music.{case block in read_changed_degree (4267):0} underapp 1>(v2)) in (Prelude.Types.>>=(v4, v5))) Nothing }
+
+checked definition Music.{case block in read_changed_degree (4267):0}
+[0, 1]: %case v1 of { %conalt _builtin.CONS(v2, v3) => %let v5 = (%let v4 = (%con _builtin.CONS(v2, v0)) in (%con _builtin.CONS(v4, v3))) in (%con _builtin.JUST(v5)) Nothing }
+
+checked definition Music.case block in print_chord
+[0, 1]: %case v1 of { %conalt _builtin.CONS(v2, v3) => %case v2 of { %constalt(1) => %case v3 of { %conalt _builtin.JUST(v4) => %let v6 = (%let v5 = (7) in (Prelude.Types.>=(v4, v5))) in (%case v6 of { %constalt(1) => "\916"| %constalt(0) => "" Nothing }) Just "" } Just "" } Just "" }
+
+checked definition Music.read_quality
+[0]: %case v0 of { %conalt _builtin.CONS(v1, v2) => %case v1 of { %constalt('m') => %case v2 of { %conalt _builtin.CONS(v3, v4) => %case v3 of { %constalt('a') => %case v4 of { %conalt _builtin.CONS(v5, v6) => %case v5 of { %constalt('j') => %case v6 of { %conalt _builtin.CONS(v7, v8) => %case v7 of { %constalt('o') => %case v8 of { %conalt _builtin.CONS(v9, v10) => %case v9 of { %constalt('r') => %let v12 = (0) in (%let v13 = (%let v11 = (1) in (%con _builtin.CONS(v11, v10))) in (%con _builtin.CONS(v12, v13))) Just %let v15 = (0) in (%let v16 = (%let v14 = (1) in (%con _builtin.CONS(v14, v6))) in (%con _builtin.CONS(v15, v16))) } Just %let v18 = (0) in (%let v19 = (%let v17 = (1) in (%con _builtin.CONS(v17, v6))) in (%con _builtin.CONS(v18, v19))) } Just %let v21 = (0) in (%let v22 = (%let v20 = (1) in (%con _builtin.CONS(v20, v6))) in (%con _builtin.CONS(v21, v22))) } Just %let v24 = (0) in (%let v25 = (%let v23 = (1) in (%con _builtin.CONS(v23, v6))) in (%con _builtin.CONS(v24, v25))) } Just %let v27 = (1) in (%let v28 = (%let v26 = (0) in (%con _builtin.CONS(v26, v2))) in (%con _builtin.CONS(v27, v28))) } Just %let v30 = (1) in (%let v31 = (%let v29 = (0) in (%con _builtin.CONS(v29, v2))) in (%con _builtin.CONS(v30, v31))) }| %constalt('i') => %case v4 of { %conalt _builtin.CONS(v32, v33) => %case v32 of { %constalt('n') => %case v33 of { %conalt _builtin.CONS(v34, v35) => %case v34 of { %constalt('o') => %case v35 of { %conalt _builtin.CONS(v36, v37) => %case v36 of { %constalt('r') => %let v39 = (1) in (%let v40 = (%let v38 = (0) in (%con _builtin.CONS(v38, v37))) in (%con _builtin.CONS(v39, v40))) Just %let v42 = (1) in (%let v43 = (%let v41 = (0) in (%con _builtin.CONS(v41, v33))) in (%con _builtin.CONS(v42, v43))) } Just %let v45 = (1) in (%let v46 = (%let v44 = (0) in (%con _builtin.CONS(v44, v33))) in (%con _builtin.CONS(v45, v46))) } Just %let v48 = (1) in (%let v49 = (%let v47 = (0) in (%con _builtin.CONS(v47, v33))) in (%con _builtin.CONS(v48, v49))) } Just %let v51 = (1) in (%let v52 = (%let v50 = (0) in (%con _builtin.CONS(v50, v33))) in (%con _builtin.CONS(v51, v52))) } Just %let v54 = (1) in (%let v55 = (%let v53 = (0) in (%con _builtin.CONS(v53, v2))) in (%con _builtin.CONS(v54, v55))) } Just %let v57 = (1) in (%let v58 = (%let v56 = (0) in (%con _builtin.CONS(v56, v2))) in (%con _builtin.CONS(v57, v58))) } Just %let v60 = (1) in (%let v61 = (%let v59 = (0) in (%con _builtin.CONS(v59, v2))) in (%con _builtin.CONS(v60, v61))) } Just %let v63 = (1) in (%let v64 = (%let v62 = (0) in (%con _builtin.CONS(v62, v2))) in (%con _builtin.CONS(v63, v64))) }| %constalt('M') => %case v2 of { %conalt _builtin.CONS(v65, v66) => %case v65 of { %constalt('a') => %case v66 of { %conalt _builtin.CONS(v67, v68) => %case v67 of { %constalt('j') => %let v70 = (0) in (%let v71 = (%let v69 = (1) in (%con _builtin.CONS(v69, v68))) in (%con _builtin.CONS(v70, v71))) Just %let v73 = (0) in (%let v74 = (%let v72 = (1) in (%con _builtin.CONS(v72, v2))) in (%con _builtin.CONS(v73, v74))) } Just %let v76 = (0) in (%let v77 = (%let v75 = (1) in (%con _builtin.CONS(v75, v2))) in (%con _builtin.CONS(v76, v77))) } Just %let v79 = (0) in (%let v80 = (%let v78 = (1) in (%con _builtin.CONS(v78, v2))) in (%con _builtin.CONS(v79, v80))) } Just %let v82 = (0) in (%let v83 = (%let v81 = (1) in (%con _builtin.CONS(v81, v2))) in (%con _builtin.CONS(v82, v83))) }| %constalt('\916') => %let v85 = (0) in (%let v86 = (%let v84 = (1) in (%con _builtin.CONS(v84, v2))) in (%con _builtin.CONS(v85, v86)))| %constalt('-') => %let v88 = (1) in (%let v89 = (%let v87 = (0) in (%con _builtin.CONS(v87, v2))) in (%con _builtin.CONS(v88, v89)))| %constalt('d') => %case v2 of { %conalt _builtin.CONS(v90, v91) => %case v90 of { %constalt('i') => %case v91 of { %conalt _builtin.CONS(v92, v93) => %case v92 of { %constalt('m') => %case v93 of { %conalt _builtin.CONS(v94, v95) => %case v94 of { %constalt('i') => %case v95 of { %conalt _builtin.CONS(v96, v97) => %case v96 of { %constalt('n') => %case v97 of { %conalt _builtin.CONS(v98, v99) => %case v98 of { %constalt('i') => %case v99 of { %conalt _builtin.CONS(v100, v101) => %case v100 of { %constalt('s') => %case v101 of { %conalt _builtin.CONS(v102, v103) => %case v102 of { %constalt('h') => %case v103 of { %conalt _builtin.CONS(v104, v105) => %case v104 of { %constalt('e') => %case v105 of { %conalt _builtin.CONS(v106, v107) => %case v106 of { %constalt('d') => %let v109 = (2) in (%let v110 = (%let v108 = (0) in (%con _builtin.CONS(v108, v107))) in (%con _builtin.CONS(v109, v110))) Just %let v112 = (2) in (%let v113 = (%let v111 = (0) in (%con _builtin.CONS(v111, v93))) in (%con _builtin.CONS(v112, v113))) } Just %let v115 = (2) in (%let v116 = (%let v114 = (0) in (%con _builtin.CONS(v114, v93))) in (%con _builtin.CONS(v115, v116))) } Just %let v118 = (2) in (%let v119 = (%let v117 = (0) in (%con _builtin.CONS(v117, v93))) in (%con _builtin.CONS(v118, v119))) } Just %let v121 = (2) in (%let v122 = (%let v120 = (0) in (%con _builtin.CONS(v120, v93))) in (%con _builtin.CONS(v121, v122))) } Just %let v124 = (2) in (%let v125 = (%let v123 = (0) in (%con _builtin.CONS(v123, v93))) in (%con _builtin.CONS(v124, v125))) } Just %let v127 = (2) in (%let v128 = (%let v126 = (0) in (%con _builtin.CONS(v126, v93))) in (%con _builtin.CONS(v127, v128))) } Just %let v130 = (2) in (%let v131 = (%let v129 = (0) in (%con _builtin.CONS(v129, v93))) in (%con _builtin.CONS(v130, v131))) } Just %let v133 = (2) in (%let v134 = (%let v132 = (0) in (%con _builtin.CONS(v132, v93))) in (%con _builtin.CONS(v133, v134))) } Just %let v136 = (2) in (%let v137 = (%let v135 = (0) in (%con _builtin.CONS(v135, v93))) in (%con _builtin.CONS(v136, v137))) } Just %let v139 = (2) in (%let v140 = (%let v138 = (0) in (%con _builtin.CONS(v138, v93))) in (%con _builtin.CONS(v139, v140))) } Just %let v142 = (2) in (%let v143 = (%let v141 = (0) in (%con _builtin.CONS(v141, v93))) in (%con _builtin.CONS(v142, v143))) } Just %let v145 = (2) in (%let v146 = (%let v144 = (0) in (%con _builtin.CONS(v144, v93))) in (%con _builtin.CONS(v145, v146))) } Just %let v148 = (2) in (%let v149 = (%let v147 = (0) in (%con _builtin.CONS(v147, v93))) in (%con _builtin.CONS(v148, v149))) } Just %let v151 = (2) in (%let v152 = (%let v150 = (0) in (%con _builtin.CONS(v150, v93))) in (%con _builtin.CONS(v151, v152))) } Just %let v154 = (0) in (%let v155 = (%let v153 = (0) in (%con _builtin.CONS(v153, v0))) in (%con _builtin.CONS(v154, v155))) } Just %let v157 = (0) in (%let v158 = (%let v156 = (0) in (%con _builtin.CONS(v156, v0))) in (%con _builtin.CONS(v157, v158))) } Just %let v160 = (0) in (%let v161 = (%let v159 = (0) in (%con _builtin.CONS(v159, v0))) in (%con _builtin.CONS(v160, v161))) } Just %let v163 = (0) in (%let v164 = (%let v162 = (0) in (%con _builtin.CONS(v162, v0))) in (%con _builtin.CONS(v163, v164))) }| %constalt('\176') => %let v166 = (2) in (%let v167 = (%let v165 = (0) in (%con _builtin.CONS(v165, v2))) in (%con _builtin.CONS(v166, v167)))| %constalt('o') => %let v169 = (2) in (%let v170 = (%let v168 = (0) in (%con _builtin.CONS(v168, v2))) in (%con _builtin.CONS(v169, v170)))| %constalt('\248') => %let v172 = (3) in (%let v173 = (%let v171 = (0) in (%con _builtin.CONS(v171, v2))) in (%con _builtin.CONS(v172, v173)))| %constalt('a') => %case v2 of { %conalt _builtin.CONS(v174, v175) => %case v174 of { %constalt('u') => %case v175 of { %conalt _builtin.CONS(v176, v177) => %case v176 of { %constalt('g') => %let v179 = (4) in (%let v180 = (%let v178 = (0) in (%con _builtin.CONS(v178, v177))) in (%con _builtin.CONS(v179, v180))) Just %let v182 = (0) in (%let v183 = (%let v181 = (0) in (%con _builtin.CONS(v181, v0))) in (%con _builtin.CONS(v182, v183))) } Just %let v185 = (0) in (%let v186 = (%let v184 = (0) in (%con _builtin.CONS(v184, v0))) in (%con _builtin.CONS(v185, v186))) } Just %let v188 = (0) in (%let v189 = (%let v187 = (0) in (%con _builtin.CONS(v187, v0))) in (%con _builtin.CONS(v188, v189))) } Just %let v191 = (0) in (%let v192 = (%let v190 = (0) in (%con _builtin.CONS(v190, v0))) in (%con _builtin.CONS(v191, v192))) }| %constalt('+') => %let v194 = (4) in (%let v195 = (%let v193 = (0) in (%con _builtin.CONS(v193, v2))) in (%con _builtin.CONS(v194, v195))) Just %let v197 = (0) in (%let v198 = (%let v196 = (0) in (%con _builtin.CONS(v196, v0))) in (%con _builtin.CONS(v197, v198))) } Just %let v200 = (0) in (%let v201 = (%let v199 = (0) in (%con _builtin.CONS(v199, v0))) in (%con _builtin.CONS(v200, v201))) }
+
+checked definition Music.read_note
+[0]: %case v0 of { %conalt _builtin.NIL() => %con _builtin.NOTHING()| %conalt _builtin.CONS(v1, v2) => %let v3 = (Music.read_letter(v1)) in (%let v4 = (<Music.{read_note:0} underapp 1>(v2)) in (Prelude.Types.>>=(v3, v4))) Nothing }
+
+checked definition Music.{read_note:0}
+[0, 1]: %let v7 = (%let v2 = (0) in (Music.read_accidentals(v2, v0))) in (%case v7 of { %conalt _builtin.CONS(v3, v4) => %let v6 = (%let v5 = (%con _builtin.CONS(v1, v3)) in (%con _builtin.CONS(v5, v4))) in (%con _builtin.JUST(v6)) Nothing })
+
+checked definition Music.read_modifiers
+[0, 1, 2]: %case v0 of { %constalt(0) => %let v3 = ("Too many chord modifiers") in (%con Prelude.Types.Left(v3)) Just %let v4 = (%let v5 = (1) in (%op -Integer(v0, v5))) in (%case v1 of { %conalt _builtin.NIL() => %con Prelude.Types.Right(v2)| %conalt _builtin.CONS(v6, v7) => %case v6 of { %constalt('a') => %case v7 of { %conalt _builtin.CONS(v8, v9) => %case v8 of { %constalt('d') => %case v9 of { %conalt _builtin.CONS(v10, v11) => %case v10 of { %constalt('d') => %let v12 = (Music.read_changed_degree(v11)) in (Music.case block in read_modifiers(v4, v11, v2, v12)) Just %let v14 = (%let v13 = (0) in (Music.read_accidentals(v13, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v14)) } Just %let v16 = (%let v15 = (0) in (Music.read_accidentals(v15, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v16)) } Just %let v18 = (%let v17 = (0) in (Music.read_accidentals(v17, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v18)) } Just %let v20 = (%let v19 = (0) in (Music.read_accidentals(v19, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v20)) }| %constalt('m') => %case v7 of { %conalt _builtin.CONS(v21, v22) => %case v21 of { %constalt('a') => %case v22 of { %conalt _builtin.CONS(v23, v24) => %case v23 of { %constalt('j') => %let v25 = (Music.read_degree(v24)) in (Music.case block in read_modifiers(v4, v24, v2, v25)) Just %let v27 = (%let v26 = (0) in (Music.read_accidentals(v26, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v27)) } Just %let v29 = (%let v28 = (0) in (Music.read_accidentals(v28, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v29)) } Just %let v31 = (%let v30 = (0) in (Music.read_accidentals(v30, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v31)) } Just %let v33 = (%let v32 = (0) in (Music.read_accidentals(v32, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v33)) }| %constalt('M') => %let v35 = (%let v34 = ('\916') in (%con _builtin.CONS(v34, v7))) in (Music.read_modifiers(v4, v35, v2))| %constalt('\916') => %let v36 = (Music.read_degree(v7)) in (Music.case block in read_modifiers(v4, v7, v2, v36))| %constalt('s') => %case v7 of { %conalt _builtin.CONS(v37, v38) => %case v37 of { %constalt('u') => %case v38 of { %conalt _builtin.CONS(v39, v40) => %case v39 of { %constalt('s') => %case v2 of { %conalt Music.Written_chord(v41, v42, v43, v44, v45, v46, v47, v48) => %case v47 of { %conalt _builtin.JUST(v49) => %let v50 = ("Duplicate suspension") in (%con Prelude.Types.Left(v50))| %conalt _builtin.NOTHING() => %let v51 = (Music.read_degree(v40)) in (Music.case block in case block in read_modifiers(v4, v40, v2, v51)) Nothing } Nothing } Just %let v53 = (%let v52 = (0) in (Music.read_accidentals(v52, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v53)) } Just %let v55 = (%let v54 = (0) in (Music.read_accidentals(v54, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v55)) } Just %let v57 = (%let v56 = (0) in (Music.read_accidentals(v56, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v57)) } Just %let v59 = (%let v58 = (0) in (Music.read_accidentals(v58, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v59)) }| %constalt('/') => %case v7 of { %conalt _builtin.CONS(v60, v61) => %case v60 of { %constalt('9') => %case v2 of { %conalt Music.Written_chord(v62, v63, v64, v65, v66, v67, v68, v69) => %case v64 of { %conalt _builtin.JUST(v70) => %case v70 of { %constalt(0) => %let v71 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v71)) Just %let v72 = (%let v73 = (1) in (%op -Integer(v70, v73))) in (%case v72 of { %constalt(0) => %let v74 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v74)) Just %let v75 = (%let v76 = (1) in (%op -Integer(v72, v76))) in (%case v75 of { %constalt(0) => %let v77 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v77)) Just %let v78 = (%let v79 = (1) in (%op -Integer(v75, v79))) in (%case v78 of { %constalt(0) => %let v80 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v80)) Just %let v81 = (%let v82 = (1) in (%op -Integer(v78, v82))) in (%case v81 of { %constalt(0) => %let v83 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v83)) Just %let v84 = (%let v85 = (1) in (%op -Integer(v81, v85))) in (%case v84 of { %constalt(0) => %let v86 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v86)) Just %let v87 = (%let v88 = (1) in (%op -Integer(v84, v88))) in (%case v87 of { %constalt(0) => %let v103 = (%case v2 of { %conalt Music.Written_chord(v89, v90, v91, v92, v93, v94, v95, v96) => %let v102 = (%let v101 = (%let v99 = (%let v97 = (9) in (%let v98 = (0) in (%con _builtin.CONS(v97, v98)))) in (%let v100 = (%con _builtin.NIL()) in (%con _builtin.CONS(v99, v100)))) in (Prelude.Types.List.tailRecAppend(v93, v101))) in (%con Music.Written_chord(v89, v90, v91, v92, v102, v94, v95, v96)) Nothing }) in (Music.read_modifiers(v4, v61, v103)) Just %let v104 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v104)) }) }) }) }) }) }) } Just %let v105 = ("Only 6/9 is a degree slash; otherwise a bass note is required") in (%con Prelude.Types.Left(v105)) } Nothing } Just %let v122 = (Music.read_note(v7)) in (%case v122 of { %conalt _builtin.JUST(v106) => %case v106 of { %conalt _builtin.CONS(v107, v108) => %case v108 of { %conalt _builtin.NIL() => %let v118 = (%case v2 of { %conalt Music.Written_chord(v109, v110, v111, v112, v113, v114, v115, v116) => %let v117 = (%con _builtin.JUST(v107)) in (%con Music.Written_chord(v109, v110, v111, v112, v113, v114, v115, v117)) Nothing }) in (%con Prelude.Types.Right(v118)) Just %let v119 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v119)) } Just %let v120 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v120)) } Just %let v121 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v121)) }) } Just %let v139 = (Music.read_note(v7)) in (%case v139 of { %conalt _builtin.JUST(v123) => %case v123 of { %conalt _builtin.CONS(v124, v125) => %case v125 of { %conalt _builtin.NIL() => %let v135 = (%case v2 of { %conalt Music.Written_chord(v126, v127, v128, v129, v130, v131, v132, v133) => %let v134 = (%con _builtin.JUST(v124)) in (%con Music.Written_chord(v126, v127, v128, v129, v130, v131, v132, v134)) Nothing }) in (%con Prelude.Types.Right(v135)) Just %let v136 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v136)) } Just %let v137 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v137)) } Just %let v138 = ("Expected a complete written slash bass") in (%con Prelude.Types.Left(v138)) }) } Just %let v141 = (%let v140 = (0) in (Music.read_accidentals(v140, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v141)) } Just %let v143 = (%let v142 = (0) in (Music.read_accidentals(v142, v1))) in (Music.case block in read_modifiers(v4, v2, v1, v143)) }) }
+
+checked definition Music.read_letter
+[0]: %case v0 of { %constalt('C') => %let v1 = (0) in (%con _builtin.JUST(v1))| %constalt('D') => %let v2 = (1) in (%con _builtin.JUST(v2))| %constalt('E') => %let v3 = (2) in (%con _builtin.JUST(v3))| %constalt('F') => %let v4 = (3) in (%con _builtin.JUST(v4))| %constalt('G') => %let v5 = (4) in (%con _builtin.JUST(v5))| %constalt('A') => %let v6 = (5) in (%con _builtin.JUST(v6))| %constalt('B') => %let v7 = (6) in (%con _builtin.JUST(v7)) Just %con _builtin.NOTHING() }
+
+checked definition Music.read_degree
+[0]: %case v0 of { %conalt _builtin.CONS(v1, v2) => %case v1 of { %constalt('1') => %case v2 of { %conalt _builtin.CONS(v3, v4) => %case v3 of { %constalt('3') => %let v6 = (%let v5 = (13) in (%con _builtin.CONS(v5, v4))) in (%con _builtin.JUST(v6))| %constalt('1') => %let v8 = (%let v7 = (11) in (%con _builtin.CONS(v7, v4))) in (%con _builtin.JUST(v8)) Just %con _builtin.NOTHING() } Just %con _builtin.NOTHING() }| %constalt('9') => %let v10 = (%let v9 = (9) in (%con _builtin.CONS(v9, v2))) in (%con _builtin.JUST(v10))| %constalt('7') => %let v12 = (%let v11 = (7) in (%con _builtin.CONS(v11, v2))) in (%con _builtin.JUST(v12))| %constalt('6') => %let v14 = (%let v13 = (6) in (%con _builtin.CONS(v13, v2))) in (%con _builtin.JUST(v14))| %constalt('5') => %let v16 = (%let v15 = (5) in (%con _builtin.CONS(v15, v2))) in (%con _builtin.JUST(v16))| %constalt('4') => %let v18 = (%let v17 = (4) in (%con _builtin.CONS(v17, v2))) in (%con _builtin.JUST(v18))| %constalt('3') => %let v20 = (%let v19 = (3) in (%con _builtin.CONS(v19, v2))) in (%con _builtin.JUST(v20))| %constalt('2') => %let v22 = (%let v21 = (2) in (%con _builtin.CONS(v21, v2))) in (%con _builtin.JUST(v22)) Just %con _builtin.NOTHING() } Just %con _builtin.NOTHING() }
+
+checked definition Music.read_changed_degree
+[0]: %let v2 = (%let v1 = (0) in (Music.read_accidentals(v1, v0))) in (Music.case block in read_changed_degree(v0, v2))
+
+checked definition Music.read_accidentals
+[0, 1]: %case v1 of { %conalt _builtin.CONS(v2, v3) => %case v2 of { %constalt('#') => %let v5 = (%let v4 = (1) in (%op +Integer(v0, v4))) in (Music.read_accidentals(v5, v3))| %constalt('\9839') => %let v7 = (%let v6 = (1) in (%op +Integer(v0, v6))) in (Music.read_accidentals(v7, v3))| %constalt('b') => %let v9 = (%let v8 = (1) in (%op -Integer(v0, v8))) in (Music.read_accidentals(v9, v3))| %constalt('\9837') => %let v11 = (%let v10 = (1) in (%op -Integer(v0, v10))) in (Music.read_accidentals(v11, v3))| %constalt('\119082') => %let v13 = (%let v12 = (2) in (%op +Integer(v0, v12))) in (Music.read_accidentals(v13, v3))| %constalt('\119083') => %let v15 = (%let v14 = (2) in (%op -Integer(v0, v14))) in (Music.read_accidentals(v15, v3)) Just %con _builtin.CONS(v0, v1) } Just %con _builtin.CONS(v0, v1) }
+
+checked definition Music.quality_text
+[0]: %case v0 of { %constalt(0) => ""| %constalt(1) => "m"| %constalt(2) => "\176"| %constalt(3) => "\248"| %constalt(4) => "+" Nothing }
+
+checked definition Music.print_note
+[0]: %let v7 = (%let v3 = (%case v0 of { %conalt _builtin.CONS(v1, v2) => v1 Nothing }) in (Music.letter_text(v3))) in (%let v8 = (%let v6 = (%case v0 of { %conalt _builtin.CONS(v4, v5) => v5 Nothing }) in (Music.accidental_text(v6))) in (%op ++(v7, v8)))
+
+checked definition Music.print_chord
+[0]: %let v111 = (%let v9 = (%case v0 of { %conalt Music.Written_chord(v1, v2, v3, v4, v5, v6, v7, v8) => v1 Nothing }) in (Music.print_note(v9))) in (%let v112 = (%let v109 = (%let v18 = (%case v0 of { %conalt Music.Written_chord(v10, v11, v12, v13, v14, v15, v16, v17) => v11 Nothing }) in (Music.quality_text(v18))) in (%let v110 = (%let v107 = (%let v37 = (%let v35 = (%case v0 of { %conalt Music.Written_chord(v19, v20, v21, v22, v23, v24, v25, v26) => v22 Nothing }) in (%let v36 = (%case v0 of { %conalt Music.Written_chord(v27, v28, v29, v30, v31, v32, v33, v34) => v29 Nothing }) in (%con _builtin.CONS(v35, v36)))) in (Music.case block in print_chord(v0, v37))) in (%let v108 = (%let v105 = (%let v46 = (<Music.{print_chord:0} underapp 1>()) in (%let v47 = (<Music.{print_chord:1} underapp 2>()) in (%let v48 = (%case v0 of { %conalt Music.Written_chord(v38, v39, v40, v41, v42, v43, v44, v45) => v40 Nothing }) in (Prelude.Types.maybe(v46, v47, v48))))) in (%let v106 = (%let v103 = (%let v60 = ({csegen:2}()) in (%let v61 = (<Music.{print_chord:2} underapp 1>()) in (%let v62 = (%let v57 = (%con _builtin.NIL()) in (%let v58 = (<Music.{print_chord:3} underapp 1>()) in (%let v59 = (%case v0 of { %conalt Music.Written_chord(v49, v50, v51, v52, v53, v54, v55, v56) => v53 Nothing }) in (Prelude.Types.List.mapAppend(v57, v58, v59))))) in (Prelude.Types.foldMap(v60, v61, v62))))) in (%let v104 = (%let v101 = (%let v71 = (<Music.{print_chord:4} underapp 1>()) in (%let v72 = (<Music.{print_chord:5} underapp 2>()) in (%let v73 = (%case v0 of { %conalt Music.Written_chord(v63, v64, v65, v66, v67, v68, v69, v70) => v69 Nothing }) in (Prelude.Types.maybe(v71, v72, v73))))) in (%let v102 = (%let v99 = (%let v85 = ({csegen:2}()) in (%let v86 = (<Music.{print_chord:6} underapp 1>()) in (%let v87 = (%let v82 = (%con _builtin.NIL()) in (%let v83 = (<Music.{print_chord:7} underapp 1>()) in (%let v84 = (%case v0 of { %conalt Music.Written_chord(v74, v75, v76, v77, v78, v79, v80, v81) => v79 Nothing }) in (Prelude.Types.List.mapAppend(v82, v83, v84))))) in (Prelude.Types.foldMap(v85, v86, v87))))) in (%let v100 = (%let v96 = (<Music.{print_chord:8} underapp 1>()) in (%let v97 = (<Music.{print_chord:9} underapp 2>()) in (%let v98 = (%case v0 of { %conalt Music.Written_chord(v88, v89, v90, v91, v92, v93, v94, v95) => v95 Nothing }) in (Prelude.Types.maybe(v96, v97, v98))))) in (%op ++(v99, v100)))) in (%op ++(v101, v102)))) in (%op ++(v103, v104)))) in (%op ++(v105, v106)))) in (%op ++(v107, v108)))) in (%op ++(v109, v110)))) in (%op ++(v111, v112)))
+
+checked definition Music.{print_chord:9}
+[1, 0]: %let v2 = ("/") in (%let v3 = (Music.print_note(v0)) in (%op ++(v2, v3)))
+
+checked definition Music.{print_chord:8}
+[0]: ""
+
+checked definition Music.{print_chord:7}
+[0]: Music.degree_text(v0)
+
+checked definition Music.{print_chord:6}
+[0]: v0
+
+checked definition Music.{print_chord:5}
+[1, 0]: %let v2 = ("sus") in (%let v3 = (Prelude.Show.show(v0)) in (%op ++(v2, v3)))
+
+checked definition Music.{print_chord:4}
+[0]: ""
+
+checked definition Music.{print_chord:3}
+[0]: %let v1 = ("add") in (%let v2 = (Music.degree_text(v0)) in (%op ++(v1, v2)))
+
+checked definition Music.{print_chord:2}
+[0]: v0
+
+checked definition Music.{print_chord:1}
+[1, 0]: Prelude.Show.show(v0)
+
+checked definition Music.{print_chord:0}
+[0]: ""
+
+checked definition Music.parse_chord
+[0]: %let v3 = (%let v1 = (0) in (%let v2 = (Prelude.Types.fastUnpack(v0)) in (Music.normalise_groups(v1, v2)))) in (%let v4 = (<Music.{parse_chord:0} underapp 1>(v0)) in (Prelude.Types.>>=(v3, v4)))
+
+checked definition Music.{parse_chord:0}
+[0, 1]: Music.parse_characters(v0, v1)
+
+checked definition Music.parse_characters
+[0, 1]: %let v2 = (Music.read_note(v1)) in (Music.case block in parse_characters(v1, v0, v2))
+
+checked definition Music.normalise_groups
+[0, 1]: %case v0 of { %constalt(0) => %case v1 of { %conalt _builtin.NIL() => %let v2 = (%con _builtin.NIL()) in (%con Prelude.Types.Right(v2)) Just %case v1 of { %conalt _builtin.CONS(v3, v4) => %case v3 of { %constalt('(') => %let v6 = (%let v5 = (1) in (%op +Integer(v0, v5))) in (Music.normalise_groups(v6, v4)) Just %case v0 of { %constalt(0) => %case v1 of { %conalt _builtin.CONS(v7, v8) => %case v7 of { %constalt(')') => %let v9 = ("Unmatched chord parenthesis") in (%con Prelude.Types.Left(v9)) Just %case v1 of { %conalt _builtin.CONS(v10, v11) => %let v15 = (Music.normalise_groups(v0, v11)) in (%case v15 of { %conalt Prelude.Types.Left(v12) => %con Prelude.Types.Left(v12)| %conalt Prelude.Types.Right(v13) => %let v14 = (%con _builtin.CONS(v10, v13)) in (%con Prelude.Types.Right(v14)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v16, v17) => %let v21 = (Music.normalise_groups(v0, v17)) in (%case v21 of { %conalt Prelude.Types.Left(v18) => %con Prelude.Types.Left(v18)| %conalt Prelude.Types.Right(v19) => %let v20 = (%con _builtin.CONS(v16, v19)) in (%con Prelude.Types.Right(v20)) Nothing }) Nothing } } Just %let v22 = (%let v23 = (1) in (%op -Integer(v0, v23))) in (%case v1 of { %conalt _builtin.CONS(v24, v25) => %case v24 of { %constalt(')') => Music.normalise_groups(v22, v25)| %constalt(',') => %let v27 = (%let v26 = (1) in (%op +Integer(v22, v26))) in (Music.normalise_groups(v27, v25)) Just %case v1 of { %conalt _builtin.CONS(v28, v29) => %let v33 = (Music.normalise_groups(v0, v29)) in (%case v33 of { %conalt Prelude.Types.Left(v30) => %con Prelude.Types.Left(v30)| %conalt Prelude.Types.Right(v31) => %let v32 = (%con _builtin.CONS(v28, v31)) in (%con Prelude.Types.Right(v32)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v34, v35) => %let v39 = (Music.normalise_groups(v0, v35)) in (%case v39 of { %conalt Prelude.Types.Left(v36) => %con Prelude.Types.Left(v36)| %conalt Prelude.Types.Right(v37) => %let v38 = (%con _builtin.CONS(v34, v37)) in (%con Prelude.Types.Right(v38)) Nothing }) Nothing } }) } } Just %case v0 of { %constalt(0) => %case v1 of { %conalt _builtin.CONS(v40, v41) => %case v40 of { %constalt(')') => %let v42 = ("Unmatched chord parenthesis") in (%con Prelude.Types.Left(v42)) Just %case v1 of { %conalt _builtin.CONS(v43, v44) => %let v48 = (Music.normalise_groups(v0, v44)) in (%case v48 of { %conalt Prelude.Types.Left(v45) => %con Prelude.Types.Left(v45)| %conalt Prelude.Types.Right(v46) => %let v47 = (%con _builtin.CONS(v43, v46)) in (%con Prelude.Types.Right(v47)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v49, v50) => %let v54 = (Music.normalise_groups(v0, v50)) in (%case v54 of { %conalt Prelude.Types.Left(v51) => %con Prelude.Types.Left(v51)| %conalt Prelude.Types.Right(v52) => %let v53 = (%con _builtin.CONS(v49, v52)) in (%con Prelude.Types.Right(v53)) Nothing }) Nothing } } Just %let v55 = (%let v56 = (1) in (%op -Integer(v0, v56))) in (%case v1 of { %conalt _builtin.CONS(v57, v58) => %case v57 of { %constalt(')') => Music.normalise_groups(v55, v58)| %constalt(',') => %let v60 = (%let v59 = (1) in (%op +Integer(v55, v59))) in (Music.normalise_groups(v60, v58)) Just %case v1 of { %conalt _builtin.CONS(v61, v62) => %let v66 = (Music.normalise_groups(v0, v62)) in (%case v66 of { %conalt Prelude.Types.Left(v63) => %con Prelude.Types.Left(v63)| %conalt Prelude.Types.Right(v64) => %let v65 = (%con _builtin.CONS(v61, v64)) in (%con Prelude.Types.Right(v65)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v67, v68) => %let v72 = (Music.normalise_groups(v0, v68)) in (%case v72 of { %conalt Prelude.Types.Left(v69) => %con Prelude.Types.Left(v69)| %conalt Prelude.Types.Right(v70) => %let v71 = (%con _builtin.CONS(v67, v70)) in (%con Prelude.Types.Right(v71)) Nothing }) Nothing } }) } } } Just %case v1 of { %conalt _builtin.NIL() => %let v73 = ("Unclosed chord parenthesis") in (%con Prelude.Types.Left(v73)) Just %case v1 of { %conalt _builtin.CONS(v74, v75) => %case v74 of { %constalt('(') => %let v77 = (%let v76 = (1) in (%op +Integer(v0, v76))) in (Music.normalise_groups(v77, v75)) Just %case v0 of { %constalt(0) => %case v1 of { %conalt _builtin.CONS(v78, v79) => %case v78 of { %constalt(')') => %let v80 = ("Unmatched chord parenthesis") in (%con Prelude.Types.Left(v80)) Just %case v1 of { %conalt _builtin.CONS(v81, v82) => %let v86 = (Music.normalise_groups(v0, v82)) in (%case v86 of { %conalt Prelude.Types.Left(v83) => %con Prelude.Types.Left(v83)| %conalt Prelude.Types.Right(v84) => %let v85 = (%con _builtin.CONS(v81, v84)) in (%con Prelude.Types.Right(v85)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v87, v88) => %let v92 = (Music.normalise_groups(v0, v88)) in (%case v92 of { %conalt Prelude.Types.Left(v89) => %con Prelude.Types.Left(v89)| %conalt Prelude.Types.Right(v90) => %let v91 = (%con _builtin.CONS(v87, v90)) in (%con Prelude.Types.Right(v91)) Nothing }) Nothing } } Just %let v93 = (%let v94 = (1) in (%op -Integer(v0, v94))) in (%case v1 of { %conalt _builtin.CONS(v95, v96) => %case v95 of { %constalt(')') => Music.normalise_groups(v93, v96)| %constalt(',') => %let v98 = (%let v97 = (1) in (%op +Integer(v93, v97))) in (Music.normalise_groups(v98, v96)) Just %case v1 of { %conalt _builtin.CONS(v99, v100) => %let v104 = (Music.normalise_groups(v0, v100)) in (%case v104 of { %conalt Prelude.Types.Left(v101) => %con Prelude.Types.Left(v101)| %conalt Prelude.Types.Right(v102) => %let v103 = (%con _builtin.CONS(v99, v102)) in (%con Prelude.Types.Right(v103)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v105, v106) => %let v110 = (Music.normalise_groups(v0, v106)) in (%case v110 of { %conalt Prelude.Types.Left(v107) => %con Prelude.Types.Left(v107)| %conalt Prelude.Types.Right(v108) => %let v109 = (%con _builtin.CONS(v105, v108)) in (%con Prelude.Types.Right(v109)) Nothing }) Nothing } }) } } Just %case v0 of { %constalt(0) => %case v1 of { %conalt _builtin.CONS(v111, v112) => %case v111 of { %constalt(')') => %let v113 = ("Unmatched chord parenthesis") in (%con Prelude.Types.Left(v113)) Just %case v1 of { %conalt _builtin.CONS(v114, v115) => %let v119 = (Music.normalise_groups(v0, v115)) in (%case v119 of { %conalt Prelude.Types.Left(v116) => %con Prelude.Types.Left(v116)| %conalt Prelude.Types.Right(v117) => %let v118 = (%con _builtin.CONS(v114, v117)) in (%con Prelude.Types.Right(v118)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v120, v121) => %let v125 = (Music.normalise_groups(v0, v121)) in (%case v125 of { %conalt Prelude.Types.Left(v122) => %con Prelude.Types.Left(v122)| %conalt Prelude.Types.Right(v123) => %let v124 = (%con _builtin.CONS(v120, v123)) in (%con Prelude.Types.Right(v124)) Nothing }) Nothing } } Just %let v126 = (%let v127 = (1) in (%op -Integer(v0, v127))) in (%case v1 of { %conalt _builtin.CONS(v128, v129) => %case v128 of { %constalt(')') => Music.normalise_groups(v126, v129)| %constalt(',') => %let v131 = (%let v130 = (1) in (%op +Integer(v126, v130))) in (Music.normalise_groups(v131, v129)) Just %case v1 of { %conalt _builtin.CONS(v132, v133) => %let v137 = (Music.normalise_groups(v0, v133)) in (%case v137 of { %conalt Prelude.Types.Left(v134) => %con Prelude.Types.Left(v134)| %conalt Prelude.Types.Right(v135) => %let v136 = (%con _builtin.CONS(v132, v135)) in (%con Prelude.Types.Right(v136)) Nothing }) Nothing } } Just %case v1 of { %conalt _builtin.CONS(v138, v139) => %let v143 = (Music.normalise_groups(v0, v139)) in (%case v143 of { %conalt Prelude.Types.Left(v140) => %con Prelude.Types.Left(v140)| %conalt Prelude.Types.Right(v141) => %let v142 = (%con _builtin.CONS(v138, v141)) in (%con Prelude.Types.Right(v142)) Nothing }) Nothing } }) } } } }
+
+checked definition Music.letter_text
+[0]: %case v0 of { %constalt(0) => "C"| %constalt(1) => "D"| %constalt(2) => "E"| %constalt(3) => "F"| %constalt(4) => "G"| %constalt(5) => "A"| %constalt(6) => "B" Nothing }
+
+checked definition Music.degree_text
+[0]: %let v7 = (%let v3 = (%case v0 of { %conalt _builtin.CONS(v1, v2) => v2 Nothing }) in (Music.accidental_text(v3))) in (%let v8 = (%let v6 = (%case v0 of { %conalt _builtin.CONS(v4, v5) => v4 Nothing }) in (Prelude.Show.show(v6))) in (%op ++(v7, v8)))
+
+checked definition Music.canonical_structure
+[0]: %let v29 = (%let v27 = (%case v0 of { %conalt Music.Written_chord(v1, v2, v3, v4, v5, v6, v7, v8) => v2 Nothing }) in (%let v28 = (%let v25 = (%case v0 of { %conalt Music.Written_chord(v9, v10, v11, v12, v13, v14, v15, v16) => v11 Nothing }) in (%let v26 = (%case v0 of { %conalt Music.Written_chord(v17, v18, v19, v20, v21, v22, v23, v24) => v22 Nothing }) in (%con _builtin.CONS(v25, v26)))) in (%con _builtin.CONS(v27, v28)))) in (Music.case block in canonical_structure(v0, v29))
+
+checked definition Music.accidental_text
+[0]: %let v11 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v11 of { %constalt(1) => %let v6 = (%let v3 = (%con _builtin.NIL()) in (%let v4 = (%let v2 = (Prelude.Num.abs(v0)) in (Prelude.Types.prim__integerToNat(v2))) in (%let v5 = ('\9837') in (Data.List.replicateTR(v3, v4, v5))))) in (Prelude.Types.fastPack(v6))| %constalt(0) => %let v10 = (%let v7 = (%con _builtin.NIL()) in (%let v8 = (Prelude.Types.prim__integerToNat(v0)) in (%let v9 = ('\9839') in (Data.List.replicateTR(v7, v8, v9))))) in (Prelude.Types.fastPack(v10)) Nothing })
+
+checked definition Music.Written_chord
+Constructor tag Just 0 arity 8 newtype by Nothing
+
+checked definition Prelude.Types.foldl
+[0, 1, 2]: %case v2 of { %conalt _builtin.NIL() => v1| %conalt _builtin.CONS(v3, v4) => %let v6 = (%let v5 = (v0 @ (v1)) in (v5 @ (v3))) in (Prelude.Types.foldl(v0, v6, v4)) Nothing }
+
+checked definition Prelude.Types.foldMap
+[0, 1, 2]: %let v5 = (<Prelude.Types.{foldMap_Foldable_List:0} underapp 2>(v0, v1)) in (%let v6 = (%case v0 of { %conalt _builtin.CONS(v3, v4) => v4 Nothing }) in (Prelude.Types.foldl(v5, v6, v2)))
+
+checked definition Prelude.Types.{foldMap_Foldable_List:0}
+[0, 1, 3, 2]: %case v0 of { %conalt _builtin.CONS(v4, v5) => %let v6 = (v4 @ (v3)) in (%let v7 = (v1 @ (v2)) in (v6 @ (v7))) Nothing }
+
+checked definition Prelude.Types.>>=
+[0, 1]: %case v0 of { %conalt _builtin.NOTHING() => %con _builtin.NOTHING()| %conalt _builtin.JUST(v2) => v1 @ (v2) Nothing }
+
+checked definition Prelude.Types.>>=
+[0, 1]: %case v0 of { %conalt Prelude.Types.Left(v2) => %con Prelude.Types.Left(v2)| %conalt Prelude.Types.Right(v3) => v1 @ (v3) Nothing }
+
+checked definition Prelude.Types.>=
+[0, 1]: %let v2 = (Prelude.EqOrd.compare(v0, v1)) in (%let v3 = (0) in (Prelude.EqOrd./=(v2, v3)))
+
+checked definition Prelude.Types.List.tailRecAppend
+[0, 1]: %let v2 = (Prelude.Types.List.reverse(v0)) in (Prelude.Types.List.reverseOnto(v1, v2))
+
+checked definition Prelude.Types.List.reverseOnto
+[0, 1]: %case v1 of { %conalt _builtin.NIL() => v0| %conalt _builtin.CONS(v2, v3) => %let v4 = (%con _builtin.CONS(v2, v0)) in (Prelude.Types.List.reverseOnto(v4, v3)) Nothing }
+
+checked definition Prelude.Types.List.reverse
+[0]: %let v1 = (%con _builtin.NIL()) in (Prelude.Types.List.reverseOnto(v1, v0))
+
+checked definition Prelude.Types.prim__integerToNat
+[0]: %let v2 = (%let v1 = (0) in (%op <=Integer(v1, v0))) in (%case v2 of { %constalt(0) => 0 Just v0 })
+
+checked definition Prelude.Types.maybe
+[0, 1, 2]: %case v2 of { %conalt _builtin.NOTHING() => v0 @ ([__])| %conalt _builtin.JUST(v3) => %let v4 = (v1 @ ([__])) in (v4 @ (v3)) Nothing }
+
+checked definition Prelude.Types.List.mapAppend
+[0, 1, 2]: %case v2 of { %conalt _builtin.CONS(v3, v4) => %let v6 = (%let v5 = (v1 @ (v3)) in (%con _builtin.CONS(v0, v5))) in (Prelude.Types.List.mapAppend(v6, v1, v4))| %conalt _builtin.NIL() => %let v7 = (%con _builtin.NIL()) in (Prelude.Types.SnocList.(<>>)(v0, v7)) Nothing }
+
+checked definition Prelude.Types.List.lengthTR
+[0]: %let v1 = (0) in (Prelude.Types.List.lengthPlus(v1, v0))
+
+checked definition Prelude.Types.List.lengthPlus
+[0, 1]: %case v1 of { %conalt _builtin.NIL() => v0| %conalt _builtin.CONS(v2, v3) => %let v5 = (%let v4 = (1) in (%op +Integer(v0, v4))) in (Prelude.Types.List.lengthPlus(v5, v3)) Nothing }
+
+checked definition Prelude.Types.fastUnpack
+Foreign call ["scheme:string-unpack", "RefC:fastUnpack", "javascript:lambda:(str)=>__prim_js2idris_array(Array.from(str))"] [String] -> Prelude.Basics.List Char
+
+checked definition Prelude.Types.fastPack
+Foreign call ["scheme:string-pack", "RefC:fastPack", "javascript:lambda:(xs)=>__prim_idris2js_array(xs).join('')"] [Prelude.Basics.List Char] -> String
+
+checked definition Prelude.Types.Right
+Constructor tag Just 1 arity 1 newtype by Nothing
+
+checked definition Prelude.Types.Left
+Constructor tag Just 0 arity 1 newtype by Nothing
+
+checked definition Prelude.Types.SnocList.(<>>)
+[0, 1]: %case v0 of { %conalt _builtin.NIL() => v1| %conalt _builtin.CONS(v2, v3) => %let v4 = (%con _builtin.CONS(v3, v1)) in (Prelude.Types.SnocList.(<>>)(v2, v4)) Nothing }
+
+checked definition Prelude.Num.abs
+[0]: %let v3 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v3 of { %constalt(1) => %let v2 = (0) in (%op -Integer(v2, v0))| %constalt(0) => v0 Nothing })
+
+checked definition Prelude.EqOrd.compare
+[0, 1]: %let v3 = (Prelude.EqOrd.<(v0, v1)) in (%case v3 of { %constalt(1) => 0| %constalt(0) => %let v2 = (Prelude.EqOrd.==(v0, v1)) in (%case v2 of { %constalt(1) => 1| %constalt(0) => 2 Nothing }) Nothing })
+
+checked definition Prelude.EqOrd.==
+[0, 1]: %case v0 of { %constalt(0) => %case v1 of { %constalt(0) => 1 Just 0 }| %constalt(1) => %case v1 of { %constalt(1) => 1 Just 0 }| %constalt(2) => %case v1 of { %constalt(2) => 1 Just 0 } Just 0 }
+
+checked definition Prelude.EqOrd.==
+[0, 1]: %let v2 = (%op ==Integer(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.==
+[0, 1]: %let v2 = (%op ==Char(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.<
+[0, 1]: %let v2 = (%op <Integer(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd./=
+[0, 1]: %let v2 = (Prelude.EqOrd.==(v0, v1)) in (%case v2 of { %constalt(1) => 0| %constalt(0) => 1 Nothing })
+
+checked definition Prelude.EqOrd.compareInteger
+[0, 1]: Prelude.EqOrd.compare(v0, v1)
+
+checked definition Prelude.Show.show
+[0]: Prelude.Show.show(v0)
+
+checked definition Prelude.Show.show
+[0]: %let v1 = (%con Prelude.Show.Open()) in (Prelude.Show.showPrec(v1, v0))
+
+checked definition Prelude.Show.showPrec
+[0, 1]: %let v2 = (<Prelude.Show.{showPrec_Show_Integer:0} underapp 1>()) in (Prelude.Show.primNumShow(v2, v0, v1))
+
+checked definition Prelude.Show.{showPrec_Show_Integer:0}
+[0]: %op cast-Integer-String(v0)
+
+checked definition Prelude.Show.compare
+[0, 1]: %case v0 of { %conalt Prelude.Show.User(v2) => %case v1 of { %conalt Prelude.Show.User(v3) => Prelude.EqOrd.compare(v2, v3) Just %let v4 = (Prelude.Show.precCon(v0)) in (%let v5 = (Prelude.Show.precCon(v1)) in (Prelude.EqOrd.compare(v4, v5))) } Just %let v6 = (Prelude.Show.precCon(v0)) in (%let v7 = (Prelude.Show.precCon(v1)) in (Prelude.EqOrd.compare(v6, v7))) }
+
+checked definition Prelude.Show.>=
+[0, 1]: %let v2 = (Prelude.Show.compare(v0, v1)) in (%let v3 = (0) in (Prelude.EqOrd./=(v2, v3)))
+
+checked definition Prelude.Show.showParens
+[0, 1]: %case v0 of { %constalt(0) => v1| %constalt(1) => %let v3 = ("(") in (%let v4 = (%let v2 = (")") in (%op ++(v1, v2))) in (%op ++(v3, v4))) Nothing }
+
+checked definition Prelude.Show.primNumShow
+[0, 1, 2]: %let v3 = (v0 @ (v2)) in (%let v7 = (%let v6 = (%let v4 = (%con Prelude.Show.PrefixMinus()) in (Prelude.Show.>=(v1, v4))) in (%case v6 of { %constalt(1) => %let v5 = (<Prelude.Show.{primNumShow:0} underapp 1>()) in (Prelude.Show.firstCharIs(v5, v3))| %constalt(0) => 0 Nothing })) in (Prelude.Show.showParens(v7, v3)))
+
+checked definition Prelude.Show.{primNumShow:0}
+[0]: %let v1 = ('-') in (Prelude.EqOrd.==(v0, v1))
+
+checked definition Prelude.Show.precCon
+[0]: %case v0 of { %conalt Prelude.Show.Open() => 0| %conalt Prelude.Show.Equal() => 1| %conalt Prelude.Show.Dollar() => 2| %conalt Prelude.Show.Backtick() => 3| %conalt Prelude.Show.User(v1) => 4| %conalt Prelude.Show.PrefixMinus() => 5| %conalt Prelude.Show.App() => 6 Nothing }
+
+checked definition Prelude.Show.firstCharIs
+[0, 1]: %case v1 of { %constalt("") => 0 Just %let v2 = (%op op_strhead(v1)) in (v0 @ (v2)) }
+
+checked definition Prelude.Show.User
+Constructor tag Just 4 arity 1 newtype by Nothing
+
+checked definition Prelude.Show.PrefixMinus
+Constructor tag Just 5 arity 0 newtype by Nothing
+
+checked definition Prelude.Show.Open
+Constructor tag Just 0 arity 0 newtype by Nothing
+
+checked definition Prelude.Show.Equal
+Constructor tag Just 1 arity 0 newtype by Nothing
+
+checked definition Prelude.Show.Dollar
+Constructor tag Just 2 arity 0 newtype by Nothing
+
+checked definition Prelude.Show.Backtick
+Constructor tag Just 3 arity 0 newtype by Nothing
+
+checked definition Prelude.Show.App
+Constructor tag Just 6 arity 0 newtype by Nothing
+
+checked definition PrimIO.unsafePerformIO
+[0]: %let v1 = (<PrimIO.{unsafePerformIO:0} underapp 1>(v0)) in (PrimIO.unsafeCreateWorld(v1))
+
+checked definition PrimIO.{unsafePerformIO:0}
+[0, 1]: v0 @ (v1)
+
+checked definition PrimIO.unsafeCreateWorld
+[0]: %let v1 = (%MkWorld) in (v0 @ (v1))
+
+checked definition Data.List.replicateTR
+[0, 1, 2]: %case v1 of { %constalt(0) => v0 Just %let v3 = (%let v4 = (1) in (%op -Integer(v1, v4))) in (%let v5 = (%con _builtin.CONS(v2, v0)) in (Data.List.replicateTR(v5, v3, v2))) }
+
