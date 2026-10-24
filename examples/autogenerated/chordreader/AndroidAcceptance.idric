@@ -261,7 +261,7 @@ accept target apk pitch_dex runner_dex nonce = do
   denied_search ← ui target
   require "Missing IB search receiver retains ChordReader instead of external browser"
     (isInfixOf "IB search is unavailable" denied_search &&
-     isInfixOf "package=\\"org.isomorphisms.chordreader.dev\\"" denied_search)
+     isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" denied_search)
   fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
