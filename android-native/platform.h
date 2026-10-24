@@ -26,7 +26,7 @@ int platform_scroll_position(Platform *);
 void platform_share(Platform *, const char *, const char *);
 int platform_export(Platform *, const char *, const char *, size_t);
 int platform_choose_file(Platform *);
-void platform_browse(Platform *, const char *);
+int platform_search_ib(Platform *, const char *);
 int platform_fetch(Platform *, const char *);
 char *platform_read(Platform *, const char *);
 int platform_write(Platform *, const char *, const char *, size_t);
