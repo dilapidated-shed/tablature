@@ -244,6 +244,24 @@ accept target apk pitch_dex runner_dex nonce = do
   require "Refused import preserves every saved source" (
     map (\song ⇒ (song.identifier, song.document.source)) preserved.songs ≟
     map (\song ⇒ (song.identifier, song.document.source)) preferences.songs)
+  -- This emulator has no IB search receiver. A typed search must remain in
+  -- ChordReader with a visible refusal, not open Startpage/DDG or another
+  -- installed implicit ACTION_VIEW browser.
+  known_ib ← remote target ["pm", "list", "packages", "org.isomorphisms.ib.prepaint"]
+  require "Isolated emulator has no IB search receiver" (trim known_ib ≟ "")
+  click target "library"
+  click target "import"
+  search_form ← ui target
+  case matching_position "class" "android.widget.EditText" search_form of
+    Nothing ⇒ fail_check "Search title input not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "piano"])
+  click target "search-web"
+  denied_search ← ui target
+  require "Missing IB search receiver retains ChordReader instead of external browser"
+    (isInfixOf "IB search is unavailable" denied_search &&
+     isInfixOf "package=\\"org.isomorphisms.chordreader.dev\\"" denied_search)
   fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
