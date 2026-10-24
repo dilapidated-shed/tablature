@@ -16,7 +16,7 @@ end
 local function read(path) local file=assert(io.open(path,"rb")); local text=file:read("a"); file:close(); return text end
 local files,model,scroll,up_calls,down_calls={},{},0,0,0
 local exported_name,exported_source,chosen=nil,nil,0
-local browsed=nil
+local ib_query,ib_available=nil,true
 local platform={
   read=function(name) return files[name] end,
   write=function(name,text) files[name]=text; return true end,
@@ -28,7 +28,8 @@ local platform={
   pitch_down=function(pitch) down_calls=down_calls+1; return assert(down[pitch]) end,
   accidental_symbol=function(input) return symbols[input] or input end,
   fetch=function(url) assert(url == "https://example.invalid/chart"); return true end,
-  browse=function(url) browsed=url end, share=function() end,
+  browse=function() error("A search opened an external browser") end,
+  search_ib=function(terms) ib_query=terms; return ib_available end, share=function() end,
   export=function(name,source) exported_name=name; exported_source=source; return true end,
   choose_file=function() chosen=chosen+1; return true end
 }
@@ -70,7 +71,13 @@ assert(application.online_chart("<html><pre>C#7b9\tFΔ7\n</pre></html>") == "C#7
 app.event("import","",""); app.event("choose-file","Draft","C#7")
 app.event("resume","",""); assert(model.body == "C#7" and model.edit_title == "Draft" and chosen == 1,"Document picker resume lost the draft")
 app.event("search-web","Björk & C#","C#7")
-assert(browsed == "https://www.startpage.com/sp/search?q=Bj%C3%B6rk%20%26%20C%23%20chords","Original search default or UTF-8 query escaping changed")
+assert(ib_query == "Björk & C# chords","Search must hand unescaped terms to IB")
+ib_available=false
+app.event("search-web","Björk & C#","C#7")
+assert(model.notice:find("IB search is unavailable",1,true),"Missing IB must fail visibly, never open external browser")
+ib_query=nil
+app.event("search-web","   ","C#7")
+assert(ib_query == nil and model.notice:find("Enter search words",1,true),"Empty query must not dispatch to IB")
 local intact=files["library.txt"]
 app.event("incoming","Bad.txt","\255"); assert(files["library.txt"] == intact and model.notice:find("UTF-8",1,true))
 app.event("resume","",""); assert(model.notice:find("UTF-8",1,true),"Resume hid the import refusal")
