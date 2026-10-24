@@ -539,18 +539,32 @@ void platform_share(Platform *platform, const char *title, const char *source) {
     report(env, "share source text");
     (*env)->PopLocalFrame(env, NULL);
 }
-void platform_browse(Platform *platform, const char *url) {
+/* ChordReader is not a browser. Send an unescaped search request to the
+ * selected IB Android package; IB owns the search URL and ICU acquisition.
+ * If no IB SEARCH receiver is installed, leave ChordReader visible and report
+ * an unavailable route. Never fall through to ACTION_VIEW/another browser. */
+int platform_search_ib(Platform *platform, const char *terms) {
+    if (!terms || !*terms) return 0;
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 16);
-    jobject intent = new_intent(env, "android.intent.action.VIEW");
-    jclass uri_type = (*env)->FindClass(env, "android/net/Uri");
-    jobject uri = (*env)->CallStaticObjectMethod(env, uri_type,
-        (*env)->GetStaticMethodID(env, uri_type, "parse", "(Ljava/lang/String;)Landroid/net/Uri;"), android_text(env, url));
-    (*env)->CallObjectMethod(env, intent, method(env, intent, "setData", "(Landroid/net/Uri;)Landroid/content/Intent;"), uri);
-    (*env)->CallVoidMethod(env, platform->activity->clazz,
-        method(env, platform->activity->clazz, "startActivity", "(Landroid/content/Intent;)V"), intent);
-    report(env, "open search URL");
+    jobject intent = new_intent(env, "android.intent.action.SEARCH");
+    (*env)->CallObjectMethod(env, intent,
+        method(env, intent, "setPackage",
+            "(Ljava/lang/String;)Landroid/content/Intent;"),
+        android_text(env, "org.isomorphisms.ib.prepaint"));
+    (*env)->CallObjectMethod(env, intent,
+        method(env, intent, "putExtra",
+            "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;"),
+        android_text(env, "query"), android_text(env, terms));
+    if (!(*env)->ExceptionCheck(env)) {
+        (*env)->CallVoidMethod(env, platform->activity->clazz,
+            method(env, platform->activity->clazz, "startActivity",
+                "(Landroid/content/Intent;)V"), intent);
+    }
+    int accepted = !(*env)->ExceptionCheck(env);
+    report(env, "request explicit IB search");
     (*env)->PopLocalFrame(env, NULL);
+    return accepted;
 }
 
 static void release_platform(Platform *platform) {
