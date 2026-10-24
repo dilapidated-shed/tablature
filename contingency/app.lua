@@ -99,7 +99,6 @@ local function online_chart(raw)
   end
   return nil,"This page has no supported preformatted chord chart; share or paste the chart text"
 end
-local function url_encode(text) return (text:gsub("[^%w%-._~]",function(character) return string.format("%%%02X",character:byte()) end)) end
 
 local function new(platform)
   music.use_idric(platform.pitch_up,platform.pitch_down,platform.accidental_symbol)
@@ -361,7 +360,12 @@ local function new(platform)
     elseif id == "import_failed" then notice="The selected document could not be read; existing songs were retained"
     elseif id == "exported" then notice="File saved"
     elseif id == "export_failed" then notice="The selected document could not be written; the song remains saved here"
-    elseif id == "search-web" then platform.browse("https://www.startpage.com/sp/search?q="..url_encode(draft_title.." chords"))
+    elseif id == "search-web" then
+      local terms=draft_title:gsub("^%s+",""):gsub("%s+$","")
+      if terms == "" then notice="Enter search words in the title field"
+      elseif not platform.search_ib(terms.." chords") then
+        notice="IB search is unavailable on this phone; no external browser was opened"
+      end
     elseif id == "up" then shift=shift+1; state.key_interval=nil; scroll=platform.scroll_position()
     elseif id == "down" then shift=shift-1; state.key_interval=nil; scroll=platform.scroll_position()
     elseif id == "capo-up" then capo=capo+1; scroll=platform.scroll_position()
