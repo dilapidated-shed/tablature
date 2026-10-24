@@ -49,7 +49,7 @@ Android execution result. Raw diagnostics are under `evidence/chordreader/`.
 | Songs, editing, reopen, settings | Typed state and persistence | Lua and C private storage | Byte comparison; two actual process restarts pass; UI preference assertion |
 | Setlists and legacy .txt/.pl | Implemented | Lua | Actual multiple songs and legacy setlist order/repetitions pass |
 | Scrolling, speed, pause/resume | Typed state | Lua timers plus C platform clock/scroll | Fractional/pause host tests |
-| Search and HTTPS importing | Explicit platform boundary | Original Startpage default/browser intent; C HTTPS plus Lua extraction | Host query/UTF-8 escaping and extraction tests; live service/Android pending |
+| Search and HTTPS importing | Explicit platform boundary | Explicit Android ACTION_SEARCH to IB (no generic external-browser fallback); IB/ICU Android receiver currently missing; existing C HTTPS chart import unchanged | Host query/UTF-8 escaping and extraction tests; live service/Android pending |
 | File import/export and sharing | Legacy formats | Android content/text intents, document picker and share sheet | Real .pl export bytes verified; executable document-result/import assertions |
 | Original translations/resources/license | Preserved | Icons/about/translations/license assets retained; new controls currently English | Source/assets retained; translated UI parity incomplete |
 | Full parser/state on Android in Idriç | Checked source exists | Blocked; explicitly C+Lua contingency | Actual DEX and ARM diagnostics |
@@ -122,3 +122,27 @@ its own result; the earlier green run is not reused as its acceptance.
 The old Gradle-only workflow is retired with the architectural replacement.
 Current exact-head logs, artifact IDs and acceptance receipts are attached to
 the replacement PR and its automatic workflow run before merge.
+
+
+## Physical MIRO C67 report and external-search integration (2026-10-24)
+
+The user confirms the exact ARM64 candidate from successful workflow
+`39996056494` installed via Shizuku with `/data/local/tmp` staging and
+**launched** on the physical MIRO C67. This is user-reported installation and
+visible launch only, not independent digest/signing or full behavior acceptance.
+The same user observed that Search web opened an external browser (DDG).
+
+On this branch the search button now hands **unescaped** terms to an explicit
+Android `ACTION_SEARCH` intent scoped to the provisional IB package
+`org.isomorphisms.ib.prepaint` with SearchManager's `query` extra.
+No generic `ACTION_VIEW` or Startpage/DDG URL remains on the new path.
+If an IB SEARCH receiver is not installed, ChordReader displays an error
+without opening another browser. A failed activity start is not an ICU fetch.
+
+The **IB-owned** Google URL construction and `IFS=+`/UTF-8 tests are under
+`isomorphisms/ib` PR #163. Actual IB search receipt, ICU fetch, Arena source
+admission, view and physical navigation **remain NOT_VERIFIED** because the
+checked IB/ICU Android receiver and reader integration are unfinished.
+The newly edited native APK needs its **own** exact-head build, signing,
+replacement-install and physical acceptance; the October 23 APK does not
+include this change.
