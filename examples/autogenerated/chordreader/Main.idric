@@ -97,6 +97,15 @@ declared_keys_survive =
     b_flat_value : WrittenNote
     b_flat_value = Written_note b_note (-1)
 
+managed_reader_import : Bool
+managed_reader_import =
+  case unpack (application_request ("u" ++ field (encode_library initial_reader) ++
+    field "save-chart" ++ field "" ++ field "Managed" ++ field "A/C#\r\n")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ map source (selected_document restored) ≟ Just "A/C#\r\n"
+      Left _ ⇒ False
+    _ ⇒ False
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -109,12 +118,7 @@ tests =
   , ("managed framing refuses truncation", isPrefixOf "0" (application_request "r20:x"))
   , ("managed scrolling retains remainder", application_request
       ("e" ++ field "24" ++ field "10" ++ field "0") ≟ "10\t240")
-  , ("managed reader imports original source", let reply = application_request
-      ("u" ++ field (encode_library initial_reader) ++ field "save-chart" ++ field "" ++
-       field "Managed" ++ field "A/C#\r\n")
-      in case decode_library (pack (drop 1 (unpack reply))) of
-        Right restored ⇒ map source (selected_document restored) ≟ Just "A/C#\r\n"
-        Left _ ⇒ False)
+  , ("managed reader imports original source", managed_reader_import)
   , ("diminished seventh", canonical "B°7" ≟ "B°7")
   , ("half diminished seventh", canonical "Bø7" ≟ "Bø7")
   , ("major seventh", canonical "FΔ7" ≟ "FΔ7")

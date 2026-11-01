@@ -64,10 +64,33 @@ jobs:
           persist-credentials: false
       - name: Bootstrap dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip ripgrep
+      - name: Restore exact checked frontend and library cache
+        id: frontend_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          key: chordreader-idric-e7e03fdc896d3740c735c603b5fed792e6172d83-ubuntu24-x86_64-host-bootstrap-v1
+          path: |
+            deps/Idric/_/.tools
+            deps/Idric/_/bootstrap-build
+            deps/Idric/_/build
+            deps/Idric/_/libs/*/build
       - name: Bootstrap maintained checked compiler
+        if: steps.frontend_cache.outputs.cache-hit != 'true'
         run: deps/Idric/edric bootstrap
+      - name: Regenerate source-owned compiler path metadata
+        run: make -C deps/Idric/_ src/IdrisPaths.idr PREFIX="$IDRIC_REPO/_/bootstrap-build"
       - name: Install compiler API and libraries
         run: make -C deps/Idric/_ install-libs install-support install-api IDRIS2_BOOT="$IDRIC_REPO/_/build/exec/idris2"
+      - name: Preserve the exact compiler before consumer qualification
+        if: steps.frontend_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          key: ${{ steps.frontend_cache.outputs.cache-primary-key }}
+          path: |
+            deps/Idric/_/.tools
+            deps/Idric/_/bootstrap-build
+            deps/Idric/_/build
+            deps/Idric/_/libs/*/build
       - name: Install pinned Android inputs
         run: >-
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865" "ndk;25.2.9519653" "platforms;android-36" "build-tools;36.0.0"
