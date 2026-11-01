@@ -3,6 +3,7 @@ module Main
 import Data.Text
 import Data.Maybe
 import Music
+import Key
 import Chart
 import Reader
 import Dictionary
@@ -76,6 +77,25 @@ source_preserved =
   in map source (selected_document shifted) ≟ Just "C#7b9\tFΔ7\r\nA song in Am\n" &&
      reader_text shifted ≟ "D♯7♭9\tGΔ7\r\nA song in Am\n"
 
+declared_keys_survive : Bool
+declared_keys_survive =
+  let original = update_reader (import_song "key" "Spelling" "A/C♯  E♭7\r\n") initial_reader
+      changed = update_reader (transpose_between_declared_keys
+        (Written_key a_note_value major_key) (Written_key b_flat_value major_key)) original
+  in case decode_library (encode_library changed) of
+    Right restored ⇒ reader_text restored ≟ "B♭/D  F♭7\r\n" &&
+      map source (selected_document restored) ≟ Just "A/C♯  E♭7\r\n" &&
+      case restored.declared_key_change of
+        Just change ⇒ print_key change.source_key ≟ "A major" &&
+          print_key change.destination_key ≟ "B♭ major"
+        Nothing ⇒ False
+    Left _ ⇒ False
+  where
+    a_note_value : WrittenNote
+    a_note_value = Written_note a_note 0
+    b_flat_value : WrittenNote
+    b_flat_value = Written_note b_note (-1)
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -101,6 +121,30 @@ tests =
   , ("upward octave", octave_law 12 "A/C♯")
   , ("downward octave", octave_law (-12) "A/C♯")
   , ("written minor second", interval_example ≟ "B♭/D")
+  , ("E major third is G sharp", map print_note
+      (diatonic_note (Written_key (Written_note e_note 0) major_key) 3) ≟ Just "G♯")
+  , ("A flat major tonic remains A flat", map print_note
+      (diatonic_note (Written_key (Written_note a_note (-1)) major_key) 1) ≟ Just "A♭")
+  , ("A major slash retains written third", canonical "A/C♯" ≟ "A/C♯")
+  , ("E minor signature differs", map print_note
+      (key_signature_notes (Written_key (Written_note e_note 0) minor_key)) ≟
+      ["E", "F♯", "G", "A", "B", "C", "D"])
+  , ("E major signature", map print_note
+      (key_signature_notes (Written_key (Written_note e_note 0) major_key)) ≟
+      ["E", "F♯", "G♯", "A", "B", "C♯", "D♯"])
+  , ("degree zero rejected", isNothing (diatonic_note
+      (Written_key (Written_note c_note 0) major_key) 0))
+  , ("degree eight rejected", isNothing (diatonic_note
+      (Written_key (Written_note c_note 0) major_key) 8))
+  , ("mode conversion is explicit refusal", case interval_between_keys
+      (Written_key (Written_note c_note 0) major_key)
+      (Written_key (Written_note c_note 0) minor_key) of
+        Left _ ⇒ True; Right _ ⇒ False)
+  , ("declared keys and source survive restart", declared_keys_survive)
+  , ("chromatic source spelling preserved", render_transposition
+      (Written_interval 0 0) "A/D♭  A/C♯  E♭7\n" ≟ "A/D♭  A/C♯  E♭7\n")
+  , ("key parser retains minor declaration", map print_key (parse_key "F♯ minor") ≟ Right "F♯ minor")
+  , ("unrecognised mode rejected", case parse_key "C dorian" of Left _ ⇒ True; Right _ ⇒ False)
   , ("key tonic interval preserves letter", print_note (transpose_note
       (interval_between_notes (Written_note c_note 1) (Written_note d_note 0))
       (Written_note f_note 0)) ≟ "G♭")

@@ -53,6 +53,11 @@ comparisons: build/exec/lua-host
 	./build/exec/runtime-rows > build/exec/pitch-rows.tsv
 	./build/exec/runtime-rows library > build/exec/library-fixture.txt
 	./build/exec/lua-host contingency/application-test.lua "$(ROOT)" build/exec/pitch-rows.tsv build/exec/library-fixture.txt
+	$(IDRIC) -Werror --check --source-dir $(CORE) $(CORE)/KeyRows.idric
+	$(IDRIC) -Werror --source-dir $(CORE) $(CORE)/KeyRows.idric -o key-rows
+	cp "$(SUPPORT)" build/exec/key-rows_app/
+	./build/exec/key-rows > build/exec/key-regressions.tsv
+	./build/exec/lua-host contingency/key-regression-test.lua "$(ROOT)" build/exec/key-regressions.tsv
 
 dex:
 	$(MAKE) -C "$(DEX_REPO)" driver IDRIC="$(IDRIC)"
@@ -111,4 +116,4 @@ native-emulator:
 ABI ?= armeabi-v7a
 ANDROID_MIN_SDK ?= 19
 package:
-	ANDROID_SOURCE_COMMIT="$(APP_SOURCE_COMMIT)" ANDROID_PACKAGE_ID=org.isomorphisms.chordreader.dev ANDROID_VERSION_CODE=1001 ANDROID_VERSION_NAME=0.1-dev ANDROID_MIN_SDK=$(ANDROID_MIN_SDK) ANDROID_TARGET_SDK=36 ANDROID_REQUIRE_NO_DEX=0 ANDROID_ACTIVITY_CLASS=org.isomorphisms.NativeViewActivity ANDROID_BAKSMALI_JAR="$(DEX_REPO)/build/oracles/baksmali-3.0.10.jar" ANDROID_DEX_FILE="$(ROOT)/build/exec/native-listener.dex" ANDROID_RES_DIR="$(ROOT)/build/android/res" ANDROID_ASSET_DIR="$(ROOT)/build/android/assets" bash "$(ANDROID_NDK_REPO)/apk/build-nativeactivity-apk.sh" android-native/AndroidManifest.xml build/android/$(ABI)/libchordreader.so $(ABI) build/android/chordreader-$(ABI).apk
+	ANDROID_SOURCE_COMMIT="$(APP_SOURCE_COMMIT)" ANDROID_PACKAGE_ID=org.isomorphisms.chordreader.dev ANDROID_VERSION_CODE=1002 ANDROID_VERSION_NAME=0.2-dev ANDROID_MIN_SDK=$(ANDROID_MIN_SDK) ANDROID_TARGET_SDK=36 ANDROID_REQUIRE_NO_DEX=0 ANDROID_ACTIVITY_CLASS=org.isomorphisms.NativeViewActivity ANDROID_BAKSMALI_JAR="$(DEX_REPO)/build/oracles/baksmali-3.0.10.jar" ANDROID_DEX_FILE="$(ROOT)/build/exec/native-listener.dex" ANDROID_RES_DIR="$(ROOT)/build/android/res" ANDROID_ASSET_DIR="$(ROOT)/build/android/assets" bash "$(ANDROID_NDK_REPO)/apk/build-nativeactivity-apk.sh" android-native/AndroidManifest.xml build/android/$(ABI)/libchordreader.so $(ABI) build/android/chordreader-$(ABI).apk

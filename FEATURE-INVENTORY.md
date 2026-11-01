@@ -8,6 +8,7 @@ Kotlin implementation is merged into this architecture.
 | --- | --- | --- |
 | Chord syntax, recognition, note spelling, source spans | chords/* and chords/regex/* | Music.idric, Chart.idric; compared music.lua contingency |
 | Transposition and capo | helper/TransposeHelper.java, model/SongViewFragmentViewModel.java | WrittenInterval, distinct written note/pitch types; rendering leaves stored source intact |
+| Declared major/minor keys | Completion campaign | Key.idric retains tonic/mode and derives diatonic written notes; key control and persistence retain both declarations. Host and Android qualification pending at this change. Mode conversion refuses rather than inventing harmony. |
 | Web search and extraction | ui/WebSearchFragment.java, helper/WebPageExtractionHelper.java, ChordWebpage.java | Browser search intent, HTTPS platform request, reviewed plain/preformatted chart import |
 | Song saving, reopening, export and Android sharing | helper/SaveFileHelper.java, model/DataViewModel.java | Typed Reader persistence contract, Lua state, atomic private files, Android document picker and share sheet |
 | Song/setlist lists, setlist editing and ordering | ui/ListFragment.java, ui/DraggableListFragment.java, adapters | Songs/Setlists screens; newline title editing preserves ordered repetitions; legacy .txt/.pl import/export |

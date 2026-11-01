@@ -16,6 +16,19 @@ songs, setlists and reader state. The pure core does not acquire Android objects
 
 ## Type-system sketch
 
+### Declared keys (completion campaign)
+
+`WrittenKey` retains a written tonic and a distinct major/minor mode.
+`KeyChange` retains both declarations; `interval_between_keys` returns either
+a written interval or an explicit refusal to convert between modes. A uniform
+transposition cannot change major into minor. `diatonic_note` requires an
+explicit degree from one through seven and returns its written note, never a
+pitch-class naming-table lookup. Chromatic chart notation remains source-owned.
+Reader persistence adds an optional `T` record while accepting existing files.
+All operations are pure; Android continues to own UTF-8 and atomic file writes.
+This slice needs ordinary choices, records, lists, checked integer arithmetic
+and Text parsing. Host/DEX/ART/application qualification is pending until run.
+
 ### Values and domains
 
 Written notes carry a letter and an integral accidental. Pitch classes are a

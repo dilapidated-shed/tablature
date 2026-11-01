@@ -4,6 +4,7 @@ import Data.Text
 import Data.Maybe
 import Data.Nat
 import Music
+import Key
 import Chart
 
 public export
@@ -44,6 +45,7 @@ record ReaderState where
   settings : ReaderSettings
   transpose_semitones : Integer
   key_interval : Maybe WrittenInterval
+  declared_key_change : Maybe KeyChange
   capo_fret : Number
   scroll_position : Number
   scroll_remainder : Number
@@ -54,7 +56,7 @@ record ReaderState where
 public export
 initial_reader : ReaderState
 initial_reader = Reader_state [] [] Nothing song_library
-  (Reader_settings 20 24 "Guitar") 0 Nothing 0 0 0 False False Nothing
+  (Reader_settings 20 24 "Guitar") 0 Nothing Nothing 0 0 0 False False Nothing
 
 public export
 choice reader_event one_of
@@ -66,6 +68,7 @@ choice reader_event one_of
   show_screen reader_screen
   transpose_to Integer
   transpose_between_keys WrittenNote WrittenNote
+  transpose_between_declared_keys WrittenKey WrittenKey
   capo_to Number
   toggle_scrolling
   elapsed_milliseconds Number
@@ -112,12 +115,14 @@ update_reader (import_song identifier title source) state =
   else { songs := replace_song (Saved_song identifier (Song_document title source)) state.songs,
          selected_song := Just identifier, screen := reading_song,
          changed := True, last_error := Nothing, scroll_position := 0, scroll_remainder := 0,
-         transpose_semitones := 0, key_interval := Nothing, capo_fret := 0, scrolling := False } state
+         transpose_semitones := 0, key_interval := Nothing, declared_key_change := Nothing,
+         capo_fret := 0, scrolling := False } state
 update_reader (open_song identifier) state =
   if any (\song ⇒ song.identifier ≟ identifier) state.songs
     then { selected_song := Just identifier, screen := reading_song,
            scroll_position := 0, scroll_remainder := 0, transpose_semitones := 0, capo_fret := 0,
-           scrolling := False, key_interval := Nothing, last_error := Nothing } state
+           scrolling := False, key_interval := Nothing, declared_key_change := Nothing,
+           last_error := Nothing } state
     else { last_error := Just "Song not found" } state
 update_reader (edit_song source) state = modify_selected ({ source := source }) state
 update_reader (rename_song title) state = modify_selected ({ title := title }) state
@@ -128,10 +133,18 @@ update_reader (remove_song identifier) state =
     selected_song := if state.selected_song ≟ Just identifier then Nothing else state.selected_song,
     changed := True, scrolling := False, last_error := Nothing } state
 update_reader (show_screen screen) state = { screen := screen, scrolling := False } state
-update_reader (transpose_to semitones) state = { transpose_semitones := semitones, key_interval := Nothing } state
+update_reader (transpose_to semitones) state =
+  { transpose_semitones := semitones, key_interval := Nothing, declared_key_change := Nothing } state
 update_reader (transpose_between_keys source destination) state =
   let interval = interval_between_notes source destination
-  in { transpose_semitones := interval.semitone_steps, key_interval := Just interval } state
+  in { transpose_semitones := interval.semitone_steps, key_interval := Just interval,
+       declared_key_change := Nothing } state
+update_reader (transpose_between_declared_keys source destination) state =
+  case interval_between_keys source destination of
+    Left problem ⇒ { last_error := Just problem } state
+    Right interval ⇒
+      { transpose_semitones := interval.semitone_steps, key_interval := Just interval,
+        declared_key_change := Just (Key_change source destination), last_error := Nothing } state
 update_reader (capo_to fret) state = { capo_fret := fret } state
 update_reader toggle_scrolling state =
   { scrolling := not state.scrolling && isJust (selected_document state) } state
@@ -209,7 +222,10 @@ encode_library state = "ChordReader/Idric/1\n" ++
   field (show state.transpose_semitones) ++ field (show state.capo_fret) ++ field (show state.scroll_position) ++
   (case state.key_interval of
     Nothing ⇒ ""
-    Just interval ⇒ "K" ++ field (show interval.letter_steps) ++ field (show interval.semitone_steps))
+    Just interval ⇒ "K" ++ field (show interval.letter_steps) ++ field (show interval.semitone_steps)) ++
+  (case state.declared_key_change of
+    Nothing ⇒ ""
+    Just change ⇒ "T" ++ field (print_key change.source_key) ++ field (print_key change.destination_key))
 
 read_number : List Char → Number → Maybe (Number, List Char)
 read_number [] value = Nothing
@@ -279,6 +295,19 @@ read_library_records (S fuel) ('K' :: rest) state = case read_fields 2 rest of
         ({ key_interval := Just (Written_interval letter_steps semitone_steps) } state)
       _ ⇒ Left "Invalid written key interval"
   _ ⇒ Left "Truncated key interval"
+read_library_records (S fuel) ('T' :: rest) state = case read_fields 2 rest of
+  Just ([source, destination], remaining) ⇒ do
+    source_key ← parse_key source
+    destination_key ← parse_key destination
+    interval ← interval_between_keys source_key destination_key
+    case state.key_interval of
+      Just existing ⇒ if existing.letter_steps ≟ interval.letter_steps &&
+                          existing.semitone_steps ≟ interval.semitone_steps
+        then read_library_records fuel remaining
+          ({ declared_key_change := Just (Key_change source_key destination_key) } state)
+        else Left "Stored keys disagree with the written interval"
+      Nothing ⇒ Left "Stored keys require a written interval"
+  _ ⇒ Left "Truncated declared keys"
 read_library_records (S fuel) _ state = Left "Unknown library record type"
 
 public export

@@ -1,0 +1,75 @@
+module Key
+
+import Data.Text
+import Data.Maybe
+import Music
+
+public export
+choice key_mode one_of
+  major_key
+  minor_key
+
+public export
+record WrittenKey where
+  constructor Written_key
+  tonic : WrittenNote
+  mode : key_mode
+
+public export
+record KeyChange where
+  constructor Key_change
+  source_key : WrittenKey
+  destination_key : WrittenKey
+
+same_mode : key_mode → key_mode → Bool
+same_mode major_key major_key = True
+same_mode minor_key minor_key = True
+same_mode _ _ = False
+
+||| A single interval preserves harmony. Changing mode needs a separate musical
+||| decision; it is never inferred from a transposition control.
+public export
+interval_between_keys : WrittenKey → WrittenKey → Either Text WrittenInterval
+interval_between_keys source destination =
+  if same_mode source.mode destination.mode
+    then Right (interval_between_notes source.tonic destination.tonic)
+    else Left "Choose matching key modes; major/minor conversion changes harmony"
+
+public export
+print_key : WrittenKey → Text
+print_key key = print_note key.tonic ++ case key.mode of
+  major_key ⇒ " major"
+  minor_key ⇒ " minor"
+
+public export
+parse_key : Text → Either Text WrittenKey
+parse_key source = case words source of
+  [tonic] ⇒ map (\note ⇒ Written_key note major_key) (parse_note tonic)
+  [tonic, "major"] ⇒ map (\note ⇒ Written_key note major_key) (parse_note tonic)
+  [tonic, "minor"] ⇒ map (\note ⇒ Written_key note minor_key) (parse_note tonic)
+  _ ⇒ Left "Enter a written tonic with major or minor, for example A♭ major"
+
+||| Natural minor describes its key signature. Raised sixths/sevenths are
+||| explicit chromatic notes, not an automatic change to the signature.
+degree_semitones : key_mode → Number → Maybe Integer
+degree_semitones _ 1 = Just 0
+degree_semitones _ 2 = Just 2
+degree_semitones major_key 3 = Just 4
+degree_semitones minor_key 3 = Just 3
+degree_semitones _ 4 = Just 5
+degree_semitones _ 5 = Just 7
+degree_semitones major_key 6 = Just 9
+degree_semitones minor_key 6 = Just 8
+degree_semitones major_key 7 = Just 11
+degree_semitones minor_key 7 = Just 10
+degree_semitones _ _ = Nothing
+
+public export
+diatonic_note : WrittenKey → Number → Maybe WrittenNote
+diatonic_note key degree = do
+  semitones ← degree_semitones key.mode degree
+  Just (transpose_note (Written_interval (cast degree − 1) semitones) key.tonic)
+
+public export
+key_signature_notes : WrittenKey → List WrittenNote
+key_signature_notes key = mapMaybe (diatonic_note key) [1 .. 7]

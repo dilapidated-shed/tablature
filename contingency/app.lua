@@ -28,6 +28,10 @@ local function encode(state)
   end
   if state.key_interval then
     pieces[#pieces+1]="K"..field(tostring(state.key_interval.letters))..field(tostring(state.key_interval.semitones))
+    if state.key_interval.source_key and state.key_interval.destination_key then
+      pieces[#pieces+1]="T"..field(music.print_key(state.key_interval.source_key))..
+        field(music.print_key(state.key_interval.destination_key))
+    end
   end
   return table.concat(pieces)
 end
@@ -65,6 +69,13 @@ local function decode(raw)
       assert(state.session.id == "" or identifiers[state.session.id],"Stored reader refers to an unknown song")
     elseif kind == "K" then
       state.key_interval={letters=assert(tonumber(read_field())),semitones=assert(tonumber(read_field()))}
+    elseif kind == "T" then
+      local source,destination=read_field(),read_field()
+      local interval,problem=music.key_interval(source,destination)
+      assert(interval,problem)
+      assert(state.key_interval and state.key_interval.letters == interval.letters and
+        state.key_interval.semitones == interval.semitones,"Stored keys disagree with the written interval")
+      state.key_interval=interval
     else error("Unknown stored library record "..kind) end
   end
   assert(state.size >= 8 and state.size <= 96 and state.speed >= 0,"Invalid reader settings")
@@ -226,6 +237,10 @@ local function new(platform)
       if not song then mode="library"; return present() end
       model.title=song.title
       model.notice=notice..string.format("\nTranspose %+d   Capo %d   Speed %d px/s",shift,capo,state.speed)
+      if state.key_interval and state.key_interval.source_key then
+        model.notice=model.notice.."\n"..music.print_key(state.key_interval.source_key).." → "..
+          music.print_key(state.key_interval.destination_key)
+      end
       add(actions,"down","− semitone"); add(actions,"up","+ semitone"); add(actions,"edit","Edit")
       add(actions,"written-key","Transpose by key")
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
@@ -244,7 +259,7 @@ local function new(platform)
       end
     elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" then
       model.editable=true; model.edit_title=draft_title; model.body=draft_body
-      model.title=mode == "written-key" and "Source tonic above; destination tonic below" or
+      model.title=mode == "written-key" and "Source key above; destination key below (e.g. A minor)" or
         mode == "setlist-edit" and "Setlist: one song title per line" or
         mode == "custom" and "Fingering: x or fret, separated by spaces" or "Song title and chart text / URL"
       add(actions,"save","Save"); add(actions,"cancel","Cancel")

@@ -65,15 +65,37 @@ function music.interval(semitones)
   local steps = math.floor(magnitude / 12) * 7 + step_policy[magnitude % 12 + 1]
   return {letters=semitones < 0 and -steps or steps, semitones=semitones}
 end
-function music.key_interval(source, destination)
-  local from, from_end = note(assert(characters(source)), 1)
-  local to, to_end = note(assert(characters(destination)), 1)
-  if not from or not to or from_end ~= utf8.len(source)+1 or to_end ~= utf8.len(destination)+1 then
-    return nil, "Enter two written tonics, for example C♯ and D"
+function music.parse_key(source)
+  local words={}
+  for word in source:gmatch("%S+") do words[#words+1]=word end
+  local raw=words[1] and characters(words[1])
+  local tonic,ending
+  if raw then tonic,ending=note(raw,1) end
+  if not tonic or ending ~= #raw+1 or #words > 2 or
+    (words[2] and words[2] ~= "major" and words[2] ~= "minor") then
+    return nil,"Enter a written tonic with major or minor, for example A♭ major"
   end
+  return {tonic=tonic,mode=words[2] or "major"}
+end
+function music.print_key(key) return music.print_note(key.tonic).." "..key.mode end
+function music.diatonic_note(key,degree)
+  if degree < 1 or degree > 7 or math.floor(degree) ~= degree then return nil end
+  local steps=key.mode == "major" and {0,2,4,5,7,9,11} or {0,2,3,5,7,8,10}
+  return music.transpose_note({letters=degree-1,semitones=steps[degree]},key.tonic)
+end
+function music.key_interval(source, destination)
+  local source_key,problem=music.parse_key(source)
+  if not source_key then return nil,problem end
+  local destination_key; destination_key,problem=music.parse_key(destination)
+  if not destination_key then return nil,problem end
+  if source_key.mode ~= destination_key.mode then
+    return nil,"Choose matching key modes; major/minor conversion changes harmony"
+  end
+  local from,to=source_key.tonic,destination_key.tonic
   local octave = to.letter < from.letter and 1 or 0
   return {letters=(to.letter-from.letter)%7,
-    semitones=natural_pitch[to.letter+1]+to.accidental+12*octave-natural_pitch[from.letter+1]-from.accidental}
+    semitones=natural_pitch[to.letter+1]+to.accidental+12*octave-natural_pitch[from.letter+1]-from.accidental,
+    source_key=source_key,destination_key=destination_key}
 end
 function music.transpose_note(interval, written)
   local absolute_letter = written.letter + interval.letters

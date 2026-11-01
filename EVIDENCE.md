@@ -173,3 +173,44 @@ reviewable in isomorphisms/ib #167, “Integrate the checked native reader for
 TAB_P10 on the merged DEX backend” (https://github.com/isomorphisms/ib/pull/167);
 its exact 0592dd8e installed navigation profile passes independently on API
 29/34 in ai-ci run 41292339244. Changed SEARCH source requires new evidence.
+# Completion campaign — 2026-11-01
+
+The November baseline is application head
+`86dc5406fdceb593fa5062d4e67312e5a15b75fc`, accepted by runs
+[41293909008](https://github.com/dilapidated-shed/tablature/actions/runs/41293909008)
+and [41293904880](https://github.com/dilapidated-shed/tablature/actions/runs/41293904880).
+That evidence remains scoped to its source and C+Lua runtime ownership.
+
+Probe `b62c3b604f966bab8838c685a7b45505cc895eae` failed in
+[41317096789](https://github.com/dilapidated-shed/tablature/actions/runs/41317096789)
+at Unicode subtraction in Music.idric with frontend `740bbf2`. Its trailing
+undefined-main message is not independently diagnosed. No DEX parser rejection
+was reached. The original refusal and workflow remain in history.
+
+The existing Unicode-subtraction PR now includes the checked compiler-driver
+error-exit repair at `e7e03fdc896d3740c735c603b5fed792e6172d83`; the canonical
+android-NDK DEX probe is pinned to that combined frontend. The unchanged parser
+is being requalified in
+[41330040829](https://github.com/dilapidated-shed/tablature/actions/runs/41330040829).
+It must finish before its capability can be claimed.
+
+The present change adds declared major/minor keys, explicitly distinct from
+pitch classes and chart spelling. Key.idric derives degree spellings from the
+tonic's letter and the mode's intervals. It refuses uniform mode conversion.
+Reader and contingency persistence retain both declarations in optional `T`
+records while reading old files. Existing `K` intervals remain supported;
+inconsistent declarations refuse without overwriting the library. Explicit
+chromatic chart spellings are not respelled from a key guess.
+
+This addition is **PENDING qualification** until its exact-head host and Android
+jobs finish. The application still uses the documented contingency for parsing,
+chart recognition and state; no managed-parser integration is claimed yet.
+Existing 366 checks and 1,049 comparisons remain; new key tests and 2,142 live
+Idriç/Lua key comparisons are added. API29 and API34 each run the installed
+application harness and retain separate staged receipts. Version code advances
+to 1002; package and public test signer are unchanged.
+
+Physical target is SVITOO TAB_P10, Android15. No authenticated device endpoint
+or current package/signer inventory is available in this workspace:
+`PHYSICAL_ACCEPTANCE_BLOCKED`. Historical MIRO results do not satisfy it.
+

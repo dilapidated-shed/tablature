@@ -1,0 +1,26 @@
+module KeyRows
+
+import Data.Text
+import Music
+import Key
+
+keys : List WrittenKey
+keys = concat (map (\mode ⇒ concat (map (\letter ⇒ map
+  (\accidental ⇒ Written_key (Written_note letter accidental) mode) [-1 .. 1])
+  [c_note, d_note, e_note, f_note, g_note, a_note, b_note])) [major_key, minor_key])
+
+degree_row : WrittenKey → Number → IO ()
+degree_row key degree = putStrLn ("degree\t" ++ print_key key ++ "\t" ++ show degree ++ "\t" ++
+  maybe "REJECT" print_note (diatonic_note key degree))
+
+interval_row : WrittenKey → WrittenKey → IO ()
+interval_row source destination = putStrLn
+  ("interval\t" ++ print_key source ++ "\t" ++ print_key destination ++ "\t" ++
+    case interval_between_keys source destination of
+      Left _ ⇒ "REJECT\tREJECT"
+      Right interval ⇒ show interval.letter_steps ++ "\t" ++ show interval.semitone_steps)
+
+main : IO ()
+main = do
+  traverse_ (\key ⇒ traverse_ (degree_row key) [0 .. 8]) keys
+  traverse_ (\source ⇒ traverse_ (interval_row source) keys) keys
