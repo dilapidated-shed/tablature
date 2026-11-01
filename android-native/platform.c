@@ -557,9 +557,13 @@ int platform_search_ib(Platform *platform, const char *terms) {
             "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;"),
         android_text(env, "query"), android_text(env, terms));
     if (!(*env)->ExceptionCheck(env)) {
+        /* A fresh for-result Activity carries Android's authenticated caller
+         * package. IB refuses referrer extras and unauthenticated warm intents.
+         * 4104 is distinct from the 4101/4102 document picker/export requests;
+         * the existing result callback ignores this completion. */
         (*env)->CallVoidMethod(env, platform->activity->clazz,
-            method(env, platform->activity->clazz, "startActivity",
-                "(Landroid/content/Intent;)V"), intent);
+            method(env, platform->activity->clazz, "startActivityForResult",
+                "(Landroid/content/Intent;I)V"), intent, (jint)4104);
     }
     int accepted = !(*env)->ExceptionCheck(env);
     report(env, "request explicit IB search");

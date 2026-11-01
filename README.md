@@ -11,6 +11,10 @@ application and its data separate. Signed ARM32/API19 and ARM64/API21 APKs,
 their signer/source receipts, and Android emulator acceptance evidence are
 produced by `.github/workflows/idric-chordreader.yml`. See [EVIDENCE.md](EVIDENCE.md)
 for language ownership, exact toolchain revisions and physical-device limits.
+Search sends original query text to IB with an authenticated fresh Android
+for-result handoff. The same IB/ICU/Arena reader path owns acquisition and
+search rendering; real search results remain independently unqualified.
+
 The existing Java/Kotlin tree below remains comparison material; the retained
 Kotlin branch is not part of this replacement.
 

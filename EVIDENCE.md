@@ -146,3 +146,30 @@ checked IB/ICU Android receiver and reader integration are unfinished.
 The newly edited native APK needs its **own** exact-head build, signing,
 replacement-install and physical acceptance; the October 23 APK does not
 include this change.
+
+## TAB_P10 IB integration — 2026-11-01
+
+The native SEARCH handoff now uses a fresh startActivityForResult request
+(4104), while preserving ACTION_SEARCH, the explicit IB package, and original
+unescaped query text. Android supplies Activity.getCallingPackage to IB from
+this framework relationship; a referrer extra is not an identity credential.
+The existing document callback accepts only 4101/4102, so this result cannot
+alter song import/export state. No external browser fallback is introduced.
+Package org.isomorphisms.chordreader.dev, version1001, existing signer and
+user data are unchanged. This is a narrow SDK boundary change, not a new
+application implementation or a replacement of the checked Idriç core.
+
+Exact prior head 88e5f4378ce7c5c8846dd29f0d043fb47f30ffb7 passed the maintained
+host/ART/UI/package/signing workflow in run 40126424123, job 120968736438.
+That does not qualify this new for-result handoff. A fresh build, independent
+IB caller controls and actual Google response/result navigation are pending.
+
+Active hardware is now SVITOO TAB_P10. MIRO A1/C67 are damaged and unavailable;
+the historical C67 report above remains installation/launch evidence only.
+No authenticated tablet endpoint, fresh capability inventory or installed
+signer observation is available. Physical replacement, SEARCH and data
+retention are BLOCKED / NOT_RUN. The IB-owned maintained checked reader is
+reviewable in isomorphisms/ib #167, “Integrate the checked native reader for
+TAB_P10 on the merged DEX backend” (https://github.com/isomorphisms/ib/pull/167);
+its exact 0592dd8e installed navigation profile passes independently on API
+29/34 in ai-ci run 41292339244. Changed SEARCH source requires new evidence.

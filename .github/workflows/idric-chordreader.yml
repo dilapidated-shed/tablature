@@ -107,6 +107,7 @@ jobs:
           api-level: 29
           arch: x86_64
           target: default
+          disk-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           disable-animations: true
           script: make -f Makefile.idric emulator-check ACCEPTANCE_NONCE=${{ github.run_id }}
