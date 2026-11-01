@@ -182,7 +182,7 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
-          target: default
+          target: google_apis
           disk-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           disable-animations: true

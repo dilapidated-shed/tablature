@@ -16,9 +16,14 @@ The checked Idriç compiler is a separate language stage. Its retained bootstrap
 typechecking and backend receipts are not counted as NDK musical execution.
 The accepted historical pitch-only candidate labelled its remaining decisions
 C+Lua. The completion candidate compiles Music, Chart, Key and Reader through
-the canonical managed DEX backend; its exact-head runtime gates remain pending.
+the canonical managed DEX backend. EVIDENCE.md records actual managed ART
+checkpoints; per-run receipts qualify each exact-source application candidate.
 
-Grease was not installed on this host. No new shell launcher was authored.
-The fixed Make interfaces, the maintained Android-NDK packager, and an
-interactive terminal for emulator/ADB checks were used. This is a task-local
-tool availability boundary, not Grease qualification.
+Grease was absent from the original fallback host. The completion workflow now
+builds and smoke-tests dilapidated-shed/grease at
+f19c94c6df18cddbdc1e81463e5bd689533e3c13, including its pinned source submodule,
+through the maintained isomorphisms/catfood bootstrap at
+609a9628d5a52860f956bf62e0914a0cd03292ae. ANDROID_GREASE names that executable
+for the canonical Grease packager. Existing fixed Make and bootstrap interfaces
+remain separate from the application runtime; no alternative shell packager
+is introduced.
