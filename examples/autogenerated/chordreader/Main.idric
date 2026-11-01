@@ -106,6 +106,19 @@ managed_reader_import =
       Left _ ⇒ False
     _ ⇒ False
 
+managed_setlist_copy : Bool
+managed_setlist_copy =
+  case unpack (application_request ("u" ++ field (encode_library with_setlist) ++
+    field "setlist" ++ field "Practice" ++ field "one\ntwo\none\n" ++ field "")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ case restored.setlists of
+        [original, imported] ⇒ original.name ≟ "Practice" &&
+          original.song_identifiers ≟ ["two", "one", "two"] &&
+          imported.name ≟ "Practice (2)" && imported.song_identifiers ≟ ["one", "two", "one"]
+        _ ⇒ False
+      Left _ ⇒ False
+    _ ⇒ False
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -119,6 +132,11 @@ tests =
   , ("managed scrolling retains remainder", application_request
       ("e" ++ field "24" ++ field "10" ++ field "0") ≟ "10\t240")
   , ("managed reader imports original source", managed_reader_import)
+  , ("new setlist import preserves the existing list and repeated order", managed_setlist_copy)
+  , ("setlist import skips existing copy names", available_setlist_name "Practice"
+      [Setlist_value "Practice" [], Setlist_value "Practice (2)" []] ≟ "Practice (3)")
+  , ("new setlist requires a usable name", isPrefixOf "0" (application_request
+      ("u" ++ field (encode_library with_setlist) ++ field "setlist" ++ field "  " ++ field "one\n" ++ field "")))
   , ("checked custom ukulele fingering", application_request
       ("g" ++ field "Ukulele" ++ field "C" ++ field "0 0 0 3") ≟ "1C\t0,0,0,3")
   , ("checked custom fingering rejects ignored tokens", isPrefixOf "0" (application_request

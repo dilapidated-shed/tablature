@@ -100,6 +100,21 @@ replace_setlist replacement (list :: rest) =
   if list.name ≟ replacement.name then replacement :: rest
   else list :: replace_setlist replacement rest
 
+available_setlist_suffix : Number → Number → Text → List Setlist → Text
+available_setlist_suffix Z suffix title lists = title ++ " (" ++ show suffix ++ ")"
+available_setlist_suffix (S fuel) suffix title lists =
+  let candidate = title ++ " (" ++ show suffix ++ ")"
+  in if any (\list ⇒ list.name ≟ candidate) lists
+       then available_setlist_suffix fuel (S suffix) title lists
+       else candidate
+
+public export
+available_setlist_name : Text → List Setlist → Text
+available_setlist_name title lists =
+  if any (\list ⇒ list.name ≟ title) lists
+    then available_setlist_suffix (S (length lists)) 2 title lists
+    else title
+
 modify_selected : (SongDocument → SongDocument) → ReaderState → ReaderState
 modify_selected change state = case state.selected_song of
   Nothing ⇒ { last_error := Just "Open a song first" } state

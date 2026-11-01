@@ -49,12 +49,14 @@ transition "key" source destination _ state = do
 transition "capo-up" _ _ _ state = Right (update_reader (capo_to (S state.capo_fret)) state)
 transition "capo-down" _ _ _ state = Right (update_reader (capo_to (minus state.capo_fret 1)) state)
 transition "setlist" title identifiers previous state =
-  if not (previous ≟ "") && not (previous ≟ title) &&
+  if trim title ≟ "" then Left "Give the setlist a name"
+  else if not (previous ≟ "") && not (previous ≟ title) &&
      any (\list ⇒ list.name ≟ title) state.setlists
     then Left "A different setlist already has that name"
     else let retained = if previous ≟ "" then state else
                { setlists $= filter (\list ⇒ not (list.name ≟ previous)) } state
-         in Right (update_reader (save_setlist title (legacy_setlist identifiers)) retained)
+             chosen_title = if previous ≟ "" then available_setlist_name title state.setlists else title
+         in Right (update_reader (save_setlist chosen_title (legacy_setlist identifiers)) retained)
 transition "position" source _ _ state = do
   position ← number source
   Right (update_reader (move_scroll_to position) state)

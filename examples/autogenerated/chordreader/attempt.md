@@ -34,6 +34,14 @@ executed managed checkpoints are recorded in EVIDENCE.md.
 
 ### Managed application boundary
 
+New setlist imports use `available_setlist_name : Text → List Setlist → Text`
+in checked Reader state. Existing names are preserved; an imported copy receives
+an unused suffix. The search is bounded by the number of existing names, so it
+does not require unbounded effects or a second UI-owned state model. Explicit
+edits retain their existing identity and refuse a conflicting rename. The
+managed host regression deliberately uses different repeated-song orders for
+the original and imported lists so an overwrite cannot appear to pass.
+
 `application_request : Text → Text` receives a command plus scalar-counted
 text fields and returns `1` followed by a result or `0` followed by a checked
 error. It calls the maintained Music, Chart, Key and Reader functions; it does

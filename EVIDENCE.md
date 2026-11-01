@@ -299,6 +299,20 @@ in place of the saved viewport. The harness also backgrounds the restored app
 and checks the position read from the actual native View on suspend. This source
 repair requires its own per-run execution; stored bytes alone never qualify it.
 
+At `2ae6b3b7b077c9422acee1ec00c11d3d52c4f234`,
+[41341591349](https://github.com/dilapidated-shed/tablature/actions/runs/41341591349)
+waits for a fresh actual application View before querying restoration. Native
+readback reports desired52/actual52; background/resume reads the same actual
+position. Both pass, as do real major/minor key controls, key restart, capo,
+ordered repeated setlists, candidate replacement/installed-byte identity and
+exact .pl document export. Re-import then fails the preserved count assertion:
+the checked save operation replaced the existing identically named setlist.
+New imports now choose an unused name in Reader.idric, retaining the existing
+list and both repeated-song orders. Explicit edits continue to address the
+existing name. The original failing import assertion remains unchanged; host
+controls additionally exercise the actual managed transition, occupied copy
+names and refusal of unusable blank names. Later receipts qualify this repair.
+
 Independent exact-APK observation is maintained in
 [isomorphisms/ai-ci PR #334 — Independently qualify ChordReader managed music from signed APK assets on ART](https://github.com/isomorphisms/ai-ci/pull/334).
 Its nineteen independent literal assertions execute the DEX extracted from the
