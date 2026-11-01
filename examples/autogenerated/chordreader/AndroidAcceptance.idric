@@ -153,13 +153,40 @@ self_test = do
   require "Missing XML target fails" (button_position "save" "<node content-desc=\"save-elsewhere\"/>" ≟ Nothing)
   require "Invisible bounds fail" (button_position "save" "<node content-desc=\"save\" bounds=\"[0,0][0,0]\"/>" ≟ Nothing)
 
-accept : Target → Text → Text → Text → Text → Text → IO ()
-accept target apk pitch_dex mutant_dex runner_dex nonce = do
+accept : Target → Text → Text → Text → Text → Text → Text → IO ()
+accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   qemu ← remote target ["getprop", "ro.kernel.qemu"]
   require "Explicit emulator boundary" (trim qemu ≟ "1")
   abi ← remote target ["getprop", "ro.product.cpu.abi"]
   require "Expected x86_64 emulator ABI" (trim abi ≟ "x86_64")
+  baseline_digest ← command ["sha256sum", baseline_apk]
+  require "Exact accepted version1001 baseline"
+    (isPrefixOf "077a2167a34542e91219a114da4db1f98bbcf7fc901dd7511ea646ce7ce9d83b " baseline_digest)
+  ignore (device target ["install", "-r", baseline_apk])
+  import_text target "Retained1001" "A/C♯  A♭\r\nOld source 🧪\n"
+  click target "transpose-up"
+  click target "settings"
+  click target "font-up"
+  old_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  old_state ← stored target
+  require "Accepted old app actually saved the upgrade fixture"
+    (map (\song ⇒ song.document.source) (find_song "Retained1001" old_state) ≟
+      Just "A/C♯  A♭\r\nOld source 🧪\n")
+  ignore (remote target ["am", "force-stop", package_name])
   ignore (device target ["install", "-r", apk])
+  retained_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Version1001 to1002 replacement preserves private library bytes" (retained_library ≟ old_library)
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
+  upgraded_state ← stored target
+  require "Managed app reopens old source, selection, written interval and preferences"
+    (map (\song ⇒ (song.identifier, song.document.title, song.document.source)) upgraded_state.songs ≟
+      map (\song ⇒ (song.identifier, song.document.title, song.document.source)) old_state.songs &&
+      upgraded_state.selected_song ≟ old_state.selected_song &&
+      upgraded_state.transpose_semitones ≟ old_state.transpose_semitones &&
+      upgraded_state.settings.text_size ≟ old_state.settings.text_size &&
+      upgraded_state.settings.scroll_speed ≟ old_state.settings.scroll_speed &&
+      upgraded_state.settings.instrument ≟ old_state.settings.instrument)
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
@@ -381,6 +408,6 @@ main = do
   arguments ← getArgs
   case arguments of
     [_, "--self-test"] ⇒ self_test
-    [_, adb, serial, apk, pitch_dex, mutant_dex, runner_dex, nonce] ⇒
-      accept (Android_target adb serial) apk pitch_dex mutant_dex runner_dex nonce
-    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX MUTANT_DEX RUNNER_DEX NONCE"
+    [_, adb, serial, apk, pitch_dex, mutant_dex, runner_dex, nonce, baseline_apk] ⇒
+      accept (Android_target adb serial) apk pitch_dex mutant_dex runner_dex nonce baseline_apk
+    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX MUTANT_DEX RUNNER_DEX NONCE BASELINE_APK"

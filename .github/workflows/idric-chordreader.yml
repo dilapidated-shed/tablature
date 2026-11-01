@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   checked-core-and-apks:
     runs-on: ubuntu-24.04
@@ -134,6 +135,15 @@ jobs:
         run: mkdir -p build
       - name: Expand verified Lua source
         run: tar -xzf lua-5.4.8.tar.gz -C build
+      - name: Retrieve the accepted version1001 replacement baseline
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: 13079667709
+          run-id: 41293909008
+          github-token: ${{ github.token }}
+          path: build/baseline
+      - name: Verify exact accepted baseline APK bytes
+        run: sha256sum -c ci/chordreader-baseline.sha256
       - name: Execute checked core and live cross-language comparisons
         run: make -f Makefile.idric test assets
       - name: Build ARM32 API19, ARM64 API21 and emulator platform boundaries
