@@ -1,7 +1,7 @@
 # Program attempt: ChordReader
 
-Status: checked host core PASS; genuine DEX/ART subset PASS; usable C+Lua
-Android contingency with actual import/transposition/restart acceptance.
+Status: historical checked host core and DEX/ART subset PASS; historical C+Lua
+songbook accepted. Current managed application integration PENDING qualification.
 
 ## Purpose
 
@@ -38,14 +38,26 @@ not implement another parser. Musical objects and state stay managed inside
 ART. Lua's replacement music module decodes transport records only. The JNI
 boundary accepts ordinary UTF-8, converts to/from Android UTF-16, and invokes
 the checked String export. Native failures refuse the action without retrying
-the Lua musical implementation. The retained contingency stays outside the
-new candidate music asset until replacement qualification completes.
+the Lua musical implementation. The retained contingency supplies the regression
+baseline and prior APK; the new candidate has no automatic musical fallback.
 
 Commands cover parsing, fingering keys, chromatic intervals, chart recognition,
 written rendering, declared keys, library framing and reader transitions.
 Actual source generation, independent decoding, ART and installed UI execution
 are separate pending gates. The original AndroidCore parser probe remains an
 unchanged-source control rather than being replaced by this boundary.
+
+### Original dictionary preprocessing
+
+`DictionaryAssets` reads the retained JSON through the actual Dictionary.idric
+loaders, computes each key through Music.fingering_lookup_key, and writes a
+versioned TSV index of exact string positions. This is checked host execution
+over fixed application assets, not ART acceptance of the JSON/Double format
+boundary. The runtime transports that index and obtains the requested chord's
+lookup key from the managed musical core. It does not parse all12891 guitar
+spellings through JNI during a diagram interaction. Original JSON remains
+retained for attribution and independent comparison. Generation and UI controls
+must succeed before the index is accepted.
 
 ### Values and domains
 
@@ -108,7 +120,7 @@ describe identifications, not a written-chord parser or spelling engine. This
 application does not invent an OPTIC coordinate/voice-leading implementation.
 Retaining written spelling before the octave quotient is an application need.
 
-## Result or failure
+## Historical result or failure
 
 The bootstrap completed incrementally on this 8 GiB host. The monolithic
 optimized compiler build exceeded the memory limit. Focused syntax fixtures,
@@ -122,7 +134,7 @@ The native ARM driver was migrated to the maintained ANF API and emitted its
 word kernels. NativeCore.idric is rejected for its Text ABI. See the retained
 diagnostics and checked forms in evidence/chordreader.
 
-## Fallback
+## Historical fallback
 
 The authorized C+Lua contingency supplies the blocked parser, written spelling,
 chart recognition, Android state and presentation. It is compared mechanically

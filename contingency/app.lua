@@ -201,6 +201,27 @@ local function new(platform)
   end
   local function dictionary()
     if dictionaries[state.instrument] then return dictionaries[state.instrument] end
+    if platform.application_request then
+      local asset=state.instrument == "Guitar" and "guitar-index.tsv" or "ukulele-index.tsv"
+      local data=assert(platform.asset(asset),"Missing checked dictionary index")
+      local header="ChordReader/dictionary-index/1\n"
+      assert(data:sub(1,#header) == header,"Invalid checked dictionary index header")
+      local entries={}
+      for row in data:sub(#header+1):gmatch("([^\n]+)\n") do
+        local key,positions=row:match("^([^\t]+)\t(.+)$")
+        assert(key,"Invalid checked dictionary row")
+        local frets={}
+        for position in positions:gmatch("[^,]+") do
+          local fret=position == "x" and -1 or assert(tonumber(position),"Invalid indexed fret")
+          assert(fret >= -1 and math.floor(fret) == fret,"Invalid indexed fret")
+          frets[#frets+1]=fret
+        end
+        assert(#frets == (state.instrument == "Guitar" and 6 or 4),"Invalid indexed string count")
+        entries[key]=entries[key] or {}; entries[key][#entries[key]+1]=frets
+      end
+      dictionaries[state.instrument]=entries
+      return entries
+    end
     local asset=state.instrument == "Guitar" and "guitar_chords.json" or "ukulele_chords.json"
     local data,problem=json.decode(assert(platform.asset(asset),"Missing original chord dictionary"))
     assert(data,problem)

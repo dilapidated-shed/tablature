@@ -1,5 +1,10 @@
 # ChordReader implementation and acceptance ledger
 
+Sections before "Completion campaign" retain the accepted `86dc5406` fallback
+and earlier checkpoints. Their Lua ownership, version1001 and compiler refusals
+are historical, not claims about the managed candidate. The completion section
+below owns current source status; all new runtime gates remain pending until run.
+
 This branch replaces the application architecture from accepted master
 2179c276d88d91ba01642dde1a6c80a65103962f. It does not merge the retained Kotlin
 branch. The original sources/resources remain available for comparison.
@@ -192,7 +197,21 @@ error-exit repair at `e7e03fdc896d3740c735c603b5fed792e6172d83`; the canonical
 android-NDK DEX probe is pinned to that combined frontend. The unchanged parser
 is being requalified in
 [41330040829](https://github.com/dilapidated-shed/tablature/actions/runs/41330040829).
-It must finish before its capability can be claimed.
+It completed successfully: the unchanged parser emits a113300-byte DEX and
+baksmali independently decodes it. Its SHA-256 is
+`6aca097b707865cfd32a48f3a4a90039c0ea584a49f89d8f51f52486ff14ac9e`.
+The trailing undefined-main diagnostic disappears with the syntax repair.
+`evidence/chordreader/managed-parser-20261101.tsv` binds the exact inputs and
+retained archive. ART and application execution were NOT_RUN in this probe;
+it does not qualify the richer completion candidate.
+
+At key-declaration checkpoint `0234bbfc659cf7269408c4f76a79b043fa6af859`,
+[41330547712](https://github.com/dilapidated-shed/tablature/actions/runs/41330547712)
+passes378 host checks, all1049 retained music comparisons,2142 declared-key
+comparisons and application-state framing/restart tests. Its ARM native builds
+also complete. Packaging correctly refuses versionCode1001 in the manifest
+when1002 is requested. The completion source synchronizes manifest and build
+version1002; that repair still requires its own exact-head packaging result.
 
 The present change adds declared major/minor keys, explicitly distinct from
 pitch classes and chart spelling. Key.idric derives degree spellings from the

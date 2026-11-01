@@ -140,8 +140,8 @@ self_test = do
   require "Missing XML target fails" (button_position "save" "<node content-desc=\"save-elsewhere\"/>" ≟ Nothing)
   require "Invisible bounds fail" (button_position "save" "<node content-desc=\"save\" bounds=\"[0,0][0,0]\"/>" ≟ Nothing)
 
-accept : Target → Text → Text → Text → Text → IO ()
-accept target apk pitch_dex runner_dex nonce = do
+accept : Target → Text → Text → Text → Text → Text → IO ()
+accept target apk pitch_dex mutant_dex runner_dex nonce = do
   qemu ← remote target ["getprop", "ro.kernel.qemu"]
   require "Explicit emulator boundary" (trim qemu ≟ "1")
   abi ← remote target ["getprop", "ro.product.cpu.abi"]
@@ -152,6 +152,12 @@ accept target apk pitch_dex runner_dex nonce = do
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
   require "Checked DEX executes 33 retained and 5 managed ART assertions"
     (isInfixOf "33 retained checks and 5 managed parser/chart/key checks" art)
+  ignore (device target ["push", mutant_dex, "/data/local/tmp/chordreader-wrong-music.dex"])
+  (mutant_output, mutant_status) ← System.Escaped.run
+    ["timeout", "60", target.adb, "-s", target.serial, "shell", "-n",
+     "CLASSPATH=/data/local/tmp/chordreader-wrong-music.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
+  require "Original observer rejects a compiled mutation of Music.transpose_note"
+    (mutant_status ≟ 73 && isInfixOf "FAIL ChordReader checked DEX operation" mutant_output)
   let first_title = "Idric acceptance " ++ nonce ++ " First"
   let second_title = "Idric acceptance " ++ nonce ++ " Second"
   import_text target (first_title ++ ".txt") fixture_source
@@ -186,6 +192,23 @@ accept target apk pitch_dex runner_dex nonce = do
   sleep 2
   final ← stored target
   require "All saved songs survive another process restart" (isJust (find_song first_title final) && isJust (find_song second_title final))
+  before_replacement ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (device target ["install", "-r", apk])
+  after_replacement ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Replacement installation preserves exact private library bytes"
+    (before_replacement ≟ after_replacement)
+  package_path ← remote target ["pm", "path", package_name]
+  let installed_path = trim (pack (drop (length (unpack "package:")) (unpack (trim package_path))))
+  require "Installed package has one explicit base APK path"
+    (isPrefixOf "package:" (trim package_path) && not (isInfixOf "\n" (trim package_path)))
+  ignore (device target ["pull", installed_path, "build/exec/installed-chordreader.apk"])
+  installed_digest ← command ["sha256sum", "build/exec/installed-chordreader.apk"]
+  candidate_digest ← command ["sha256sum", apk]
+  require "Installed code bytes match the signer-verified candidate"
+    (head' (words installed_digest) ≟ head' (words candidate_digest))
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
   let setlist_name = "Acceptance " ++ nonce
   let setlist_source = first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n"
   click_matching target "text" setlist_name
@@ -282,5 +305,6 @@ main = do
   arguments ← getArgs
   case arguments of
     [_, "--self-test"] ⇒ self_test
-    [_, adb, serial, apk, pitch_dex, runner_dex, nonce] ⇒ accept (Android_target adb serial) apk pitch_dex runner_dex nonce
-    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX RUNNER_DEX NONCE"
+    [_, adb, serial, apk, pitch_dex, mutant_dex, runner_dex, nonce] ⇒
+      accept (Android_target adb serial) apk pitch_dex mutant_dex runner_dex nonce
+    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX MUTANT_DEX RUNNER_DEX NONCE"

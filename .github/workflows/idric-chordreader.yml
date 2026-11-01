@@ -135,6 +135,10 @@ jobs:
             build/exec/pitch-rows.tsv
             build/exec/library-fixture.txt
             build/exec/key-regressions.tsv
+            build/exec/dictionary-index.sha256
+            build/exec/unicode-minus-control.txt
+            build/exec/codegen-error-control.txt
+            build/exec/chordreader-mutant.dex
             build/exec/android-emulator.receipt.tsv
             build/acceptance-run/**/*.receipt.tsv
             build/exec/chordreader-pitch.dex

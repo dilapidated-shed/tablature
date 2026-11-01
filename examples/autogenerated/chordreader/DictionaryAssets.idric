@@ -1,0 +1,40 @@
+module DictionaryAssets
+
+import Data.Text
+import Dictionary
+import Music
+import System
+import System.File
+
+-- File acquisition/publication is the effectful build boundary. Musical
+-- dictionary parsing and written/sounding lookup keys remain pure Idriç.
+%default covering
+
+entry_rows : DictionaryEntry → Text
+entry_rows entry = case parse_chord entry.spelling of
+  Left _ ⇒ ""
+  Right chord ⇒ concat (map (\diagram ⇒ fingering_lookup_key chord ++ "\t" ++
+    joinBy "," (map position_text diagram.positions) ++ "\n") entry.diagrams)
+
+write_index : Text → Text → (Text → Either Text (List DictionaryEntry)) → IO ()
+write_index source_path output_path parser = do
+  Right source ← readFile source_path
+    | Left problem ⇒ do putStrLn ("Could not read dictionary: " ++ show problem); exitFailure
+  Right dictionary ← pure (parser source)
+    | Left problem ⇒ do putStrLn problem; exitFailure
+  Right () ← writeFile output_path
+    ("ChordReader/dictionary-index/1\n" ++ concat (map entry_rows dictionary))
+    | Left problem ⇒ do putStrLn ("Could not write dictionary index: " ++ show problem); exitFailure
+  let recognised = filter (\entry ⇒ case parse_chord entry.spelling of
+        Left _ ⇒ False; Right _ ⇒ True) dictionary
+  putStrLn ("PASS\t" ++ output_path ++ "\t" ++ show (length recognised) ++
+    " recognised of " ++ show (length dictionary) ++ " original spellings")
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, guitar_source, ukulele_source, guitar_output, ukulele_output] ⇒ do
+      write_index guitar_source guitar_output read_guitar_dictionary
+      write_index ukulele_source ukulele_output read_ukulele_dictionary
+    _ ⇒ do putStrLn "usage: dictionary-assets GUITAR_JSON UKULELE_JSON GUITAR_TSV UKULELE_TSV"; exitFailure

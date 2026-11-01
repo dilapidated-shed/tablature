@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.isomorphisms.chordreader.dev"
-    android:versionCode="1001" android:versionName="0.1-dev">
+    android:versionCode="1002" android:versionName="0.2-dev">
     <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="36" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:label="ChordReader Dev" android:icon="@mipmap/chord_reader_icon"

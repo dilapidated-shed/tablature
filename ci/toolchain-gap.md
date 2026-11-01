@@ -14,7 +14,9 @@ These files have the ordinary C ABI role; no Icky source is rewritten.
 
 The checked Idriç compiler is a separate language stage. Its retained bootstrap,
 typechecking and backend receipts are not counted as NDK musical execution.
-All musical decisions outside the executable DEX subset are labelled C+Lua.
+The accepted historical pitch-only candidate labelled its remaining decisions
+C+Lua. The completion candidate compiles Music, Chart, Key and Reader through
+the canonical managed DEX backend; its exact-head runtime gates remain pending.
 
 Grease was not installed on this host. No new shell launcher was authored.
 The fixed Make interfaces, the maintained Android-NDK packager, and an
