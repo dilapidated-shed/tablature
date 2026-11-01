@@ -179,6 +179,45 @@ import_text target name source = do
 find_song : Text → ReaderState → Maybe Song
 find_song title library = find (\song ⇒ song.document.title ≟ title) library.songs
 
+exercise_edit_and_share : Target → ReaderState → IO ()
+exercise_edit_and_share target upgraded = do
+  retained ← case find_song "Retained1001" upgraded of
+    Nothing ⇒ fail_check "Upgrade fixture is unavailable for real editing"
+    Just song ⇒ pure song
+  click target "library"
+  click target ("open:" ++ retained.identifier)
+  click target "edit"
+  form ← ui target
+  case matching_position "class" "android.widget.EditText" form of
+    Nothing ⇒ fail_check "Song title editor is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_MOVE_END"])
+      ignore (remote target ["input", "text", "%sEdited"])
+  click target "save"
+  edited ← stored target
+  require "Real editor replaces the existing song and preserves Unicode chart bytes"
+    (maybe False (\song ⇒ song.identifier ≟ retained.identifier &&
+      song.document.source ≟ retained.document.source) (find_song "Retained1001 Edited" edited))
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  reopened ← stored target
+  require "Actual edited title and source reopen after process death"
+    (maybe False (\song ⇒ song.identifier ≟ retained.identifier &&
+      song.document.source ≟ retained.document.source) (find_song "Retained1001 Edited" reopened))
+  click target "share"
+  activities ← remote target ["dumpsys", "activity", "activities"]
+  let resumed = filter (\row ⇒ isInfixOf "mResumedActivity:" row ||
+        isInfixOf "topResumedActivity=" row) (forget (Data.Text.split (== '\n') activities))
+  require "Share opens the real resumed Android chooser"
+    (any (isInfixOf "ChooserActivity") resumed)
+  ignore (remote target ["input", "keyevent", "KEYCODE_BACK"])
+  wait_for_application target 5
+  returned ← stored target
+  require "Dismissing sharing returns with every original chart unchanged"
+    (map (\song ⇒ (song.identifier, song.document.source)) returned.songs ≟
+      map (\song ⇒ (song.identifier, song.document.source)) reopened.songs)
+
 self_test : IO ()
 self_test = do
   require "XML target bounds" (button_position "save"
@@ -219,6 +258,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
       upgraded_state.settings.text_size ≟ old_state.settings.text_size &&
       upgraded_state.settings.scroll_speed ≟ old_state.settings.scroll_speed &&
       upgraded_state.settings.instrument ≟ old_state.settings.instrument)
+  exercise_edit_and_share target upgraded_state
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
@@ -247,9 +287,11 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "down"
   negative ← ui target
   require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
+  before_scroll ← stored target
   exercise_scroll target
   paused ← stored target
-  require "Actual auto-scroll advances the reading position" (paused.scroll_position > 0)
+  require "Actual auto-scroll advances beyond its saved starting position"
+    (paused.scroll_position > before_scroll.scroll_position)
   sleep 1
   click target "slower"
   stopped ← stored target
@@ -433,7 +475,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
     ("runtime\tmanaged Idric music/chart/reader with Lua presentation and native JNI\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
-     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\nmanaged_application_calls\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\ncompiled_music_mutant\tREJECTED\nmanaged_application_calls\tPASS\nlegacy_1001_to_1002_upgrade\tPASS\nreal_edit_reopen_and_share\tPASS\nactual_viewport_and_background_resume\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
   case receipt of
     Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
     Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"
