@@ -232,6 +232,18 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     platform->scroll_observed = 0;
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 64);
+    if (!screen->editable && platform->body_entry) {
+        /* Dismiss the form's keyboard while its window token is still attached.
+         * Replacing the EditText alone can leave the reader's viewport covered. */
+        jobject token = (*env)->CallObjectMethod(env, platform->body_entry,
+            method(env, platform->body_entry, "getWindowToken", "()Landroid/os/IBinder;"));
+        jobject input = (*env)->CallObjectMethod(env, platform->activity->clazz,
+            method(env, platform->activity->clazz, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
+            android_text(env, "input_method"));
+        if (token && input) (*env)->CallBooleanMethod(env, input,
+            method(env, input, "hideSoftInputFromWindow", "(Landroid/os/IBinder;I)Z"), token, 0);
+        report(env, "dismiss form keyboard");
+    }
     keep(env, &platform->title_entry, NULL);
     keep(env, &platform->body_entry, NULL);
     keep(env, &platform->scroll_view, NULL);
