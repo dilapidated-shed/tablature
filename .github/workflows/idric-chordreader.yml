@@ -18,6 +18,7 @@ jobs:
       DEX_REPO: ${{ github.workspace }}/deps/idric-arm-thumb
       ANDROID_NDK_REPO: ${{ github.workspace }}/deps/android-NDK
       AICI_REPO: ${{ github.workspace }}/deps/ai-ci
+      ANDROID_GREASE: ${{ github.workspace }}/deps/runtime/.build/grease/bin/grease
       LUA_SOURCE: ${{ github.workspace }}/build/lua-5.4.8/src
       ANDROID_KEYSTORE: ${{ github.workspace }}/deps/signer/_/build/app/wegert-debug.keystore
       ANDROID_KEYSTORE_TYPE: PKCS12
@@ -64,6 +65,24 @@ jobs:
           persist-credentials: false
       - name: Bootstrap dependencies
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip ripgrep
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: isomorphisms/catfood
+          ref: 609a9628d5a52860f956bf62e0914a0cd03292ae
+          path: deps/catfood
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: dilapidated-shed/grease
+          ref: f19c94c6df18cddbdc1e81463e5bd689533e3c13
+          path: deps/runtime/grease
+          submodules: true
+          persist-credentials: false
+      - name: Build and verify the maintained Grease packager runtime
+        env:
+          CATFOOD_ROOT: ${{ github.workspace }}/deps/runtime
+          CATFOOD_JOBS: '2'
+        run: sh deps/catfood/build-tools.sh
       - name: Restore exact checked frontend and library cache
         id: frontend_cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
