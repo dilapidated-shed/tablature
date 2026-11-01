@@ -162,6 +162,9 @@ jobs:
             build/exec/unicode-minus-control.txt
             build/exec/codegen-error-control.txt
             build/exec/chordreader-mutant.dex
+            build/managed-mutant-source/Music.idric
+            build/exec/chordreader-pitch.runtime.tsv
+            build/exec/managed-decoded/**
             build/exec/android-emulator.receipt.tsv
             build/acceptance-run/**/*.receipt.tsv
             build/exec/chordreader-pitch.dex

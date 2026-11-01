@@ -59,6 +59,12 @@ spellings through JNI during a diagram interaction. Original JSON remains
 retained for attribution and independent comparison. Generation and UI controls
 must succeed before the index is accepted.
 
+Custom fingering input also calls the checked Dictionary.custom_diagram through
+the managed boundary. Every token must denote a fret or mute and the exact
+instrument string count must match; invalid tokens cannot disappear from a Lua
+array and accidentally make an invalid input appear to have the right length.
+Lua receives only the checked chord spelling and transport positions.
+
 ### Values and domains
 
 Written notes carry a letter and an integral accidental. Pitch classes are a

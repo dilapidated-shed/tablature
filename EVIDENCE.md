@@ -231,8 +231,20 @@ The compiler pin advances to the already qualified android-NDK
 `6e1c9619a96f28494ad891a32a06edfb72f3e25b`, retaining the separate historical
 fuego-ironworks encoder for callback compatibility. Managed DEX generation must
 be byte-identical on repeat and independently decoded; the retained 33 ART
-checks are extended by five direct parser/chart/key checks. The installed
-process must log actual managed parsing, spans, rendering and state calls.
+checks are extended by seven direct parser/chart/key/fingering checks. The installed
+process must log actual managed parsing, spans, rendering, custom validation
+and state calls. Ordinary UI coverage also exercises auto-scroll/pause, speed,
+declared minor keys, capo, saved custom fingerings and actual viewport recovery.
+Native scroll restoration waits for Android layout and records getScrollY
+readback; stored position alone is not its viewport acceptance oracle.
+
+The combined frontend's literal Unicode subtraction and independent Idris
+compatibility fixtures execute and match their unchanged expected output in
+[41332766597](https://github.com/dilapidated-shed/tablature/actions/runs/41332766597).
+The following driver-error control stops at a missing explicit network package
+in its command line. The current command names both matching packages; that
+repair is pending its own executed control. This was a qualification harness
+dependency failure, not a managed musical runtime rejection.
 Existing 366 checks and 1,049 comparisons remain; new key tests and 2,142 live
 Idriç/Lua key comparisons are added. API29 and API34 each run the installed
 application harness and retain separate staged receipts. Version code advances

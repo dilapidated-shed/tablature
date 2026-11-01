@@ -26,6 +26,7 @@ struct Platform {
     jmethodID pitch_up, pitch_down, accidental_symbol, application_request;
     unsigned core_calls[4];
     unsigned char application_commands[256];
+    int scroll_pending, requested_scroll, scroll_observed;
     char *pending_export;
     size_t pending_export_size;
     void *reader;
@@ -227,6 +228,8 @@ static jobject diagram_image(Platform *platform, const UiScreen *screen) {
 }
 
 void platform_present(Platform *platform, const UiScreen *screen) {
+    platform->scroll_pending = 0;
+    platform->scroll_observed = 0;
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 64);
     keep(env, &platform->title_entry, NULL);
@@ -321,12 +324,28 @@ void platform_present(Platform *platform, const UiScreen *screen) {
 void platform_scroll(Platform *platform, int position) {
     if (!platform->scroll_view) return;
     JNIEnv *env = platform->activity->env;
+    platform->requested_scroll = position;
+    if (!(*env)->CallBooleanMethod(env, platform->scroll_view,
+            method(env, platform->scroll_view, "isLaidOut", "()Z"))) {
+        platform->scroll_pending = 1;
+        report(env, "wait for reader layout");
+        return;
+    }
     (*env)->CallVoidMethod(env, platform->scroll_view,
         method(env, platform->scroll_view, "scrollTo", "(II)V"), 0, position);
+    platform->scroll_pending = 0;
+    if (!platform->scroll_observed) {
+        int actual = (*env)->CallIntMethod(env, platform->scroll_view,
+            method(env, platform->scroll_view, "getScrollY", "()I"));
+        __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+            "SCROLL_POSITION_APPLIED desired=%d actual=%d", position, actual);
+        platform->scroll_observed = 1;
+    }
     report(env, "scroll");
 }
 int platform_scroll_position(Platform *platform) {
     if (!platform->scroll_view) return 0;
+    if (platform->scroll_pending) return platform->requested_scroll;
     JNIEnv *env = platform->activity->env;
     return (*env)->CallIntMethod(env, platform->scroll_view,
         method(env, platform->scroll_view, "getScrollY", "()I"));
@@ -710,8 +729,10 @@ static int timer_tick(int descriptor, int events, void *data) {
     (void)events;
     Platform *platform = data;
     uint64_t ticks;
-    if (read(descriptor, &ticks, sizeof ticks) == sizeof ticks && platform->reader)
-        reader_tick(platform->reader, (unsigned)(ticks * 20));
+    if (read(descriptor, &ticks, sizeof ticks) == sizeof ticks) {
+        if (platform->scroll_pending) platform_scroll(platform, platform->requested_scroll);
+        if (platform->reader) reader_tick(platform->reader, (unsigned)(ticks * 20));
+    }
     return 1;
 }
 static void resume_activity(ANativeActivity *activity) {

@@ -119,6 +119,10 @@ tests =
   , ("managed scrolling retains remainder", application_request
       ("e" ++ field "24" ++ field "10" ++ field "0") ≟ "10\t240")
   , ("managed reader imports original source", managed_reader_import)
+  , ("checked custom ukulele fingering", application_request
+      ("g" ++ field "Ukulele" ++ field "C" ++ field "0 0 0 3") ≟ "1C\t0,0,0,3")
+  , ("checked custom fingering rejects ignored tokens", isPrefixOf "0" (application_request
+      ("g" ++ field "Ukulele" ++ field "C" ++ field "0 wrong 0 0 3")))
   , ("diminished seventh", canonical "B°7" ≟ "B°7")
   , ("half diminished seventh", canonical "Bø7" ≟ "Bø7")
   , ("major seventh", canonical "FΔ7" ≟ "FΔ7")

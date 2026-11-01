@@ -11,6 +11,7 @@ import System.File
 import System.File.Buffer
 import Reader
 import Chart
+import Key
 
 %default covering
 
@@ -89,6 +90,18 @@ click_matching target field description = do
 click : Target → Text → IO ()
 click target = click_matching target "content-desc"
 
+enter_written_keys : Target → IO ()
+enter_written_keys target = do
+  xml ← ui target
+  case matching_position "class" "android.widget.EditText" xml of
+    Nothing ⇒ fail_check "Written-key source field is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "A%sminor"])
+      ignore (remote target ["input", "keyevent", "KEYCODE_TAB"])
+      ignore (remote target ["input", "text", "B%sminor"])
+  click target "save"
+
 finish_document_selection : Target → IO ()
 finish_document_selection target = do
   xml ← ui target
@@ -150,8 +163,8 @@ accept target apk pitch_dex mutant_dex runner_dex nonce = do
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
-  require "Checked DEX executes 33 retained and 5 managed ART assertions"
-    (isInfixOf "33 retained checks and 5 managed parser/chart/key checks" art)
+  require "Checked DEX executes 33 retained and 7 managed ART assertions"
+    (isInfixOf "33 retained checks and 7 managed parser/chart/key/fingering checks" art)
   ignore (device target ["push", mutant_dex, "/data/local/tmp/chordreader-wrong-music.dex"])
   (mutant_output, mutant_status) ← System.Escaped.run
     ["timeout", "60", target.adb, "-s", target.serial, "shell", "-n",
@@ -173,12 +186,51 @@ accept target apk pitch_dex mutant_dex runner_dex nonce = do
   click target "down"
   negative ← ui target
   require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
+  click target "scroll"
+  sleep 2
+  click target "scroll"
+  paused ← stored target
+  require "Actual auto-scroll advances the reading position" (paused.scroll_position > 0)
+  sleep 1
+  click target "slower"
+  stopped ← stored target
+  require "Pause holds the position while the speed control changes"
+    (stopped.scroll_position ≟ paused.scroll_position &&
+     stopped.settings.scroll_speed + 4 ≟ paused.settings.scroll_speed)
+  click target "faster"
   ignore (remote target ["am", "force-stop", package_name])
   ignore (remote target ["am", "start", "-n", activity_name])
   sleep 2
   reopened ← stored target
   require "Process restart keeps source and interval" (reopened.transpose_semitones ≟ -1 &&
+    reopened.scroll_position ≟ paused.scroll_position &&
     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title reopened))
+  restored_pid ← remote target ["pidof", package_name]
+  restored_log ← remote target ["logcat", "-d", "--pid", trim restored_pid, "-s", "ChordReader:I"]
+  require "Restart restores the actual Android viewport after layout"
+    (isInfixOf ("SCROLL_POSITION_APPLIED desired=" ++ show paused.scroll_position ++
+      " actual=" ++ show paused.scroll_position) restored_log)
+  click target "written-key"
+  enter_written_keys target
+  keyed ← stored target
+  require "Real key controls retain both minor declarations" (case keyed.declared_key_change of
+    Just change ⇒ print_key change.source_key ≟ "A minor" &&
+      print_key change.destination_key ≟ "B minor"
+    Nothing ⇒ False)
+  keyed_view ← ui target
+  require "Declared key transposition renders the written result" (isInfixOf "D♯7♭9" keyed_view)
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
+  key_reopened ← stored target
+  require "Declared key and original chart survive process death"
+    (key_reopened.transpose_semitones ≟ 2 && isJust key_reopened.declared_key_change &&
+     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title key_reopened))
+  click target "capo-up"
+  capo_view ← ui target
+  require "Actual capo control composes the written key interval" (isInfixOf "D7♭9" capo_view &&
+    isInfixOf "G♭Δ7" capo_view)
+  click target "capo-down"
   import_text target (second_title ++ ".txt") "Bø7\n"
   multiple ← stored target
   require "Two songs survive single-task intent delivery" (isJust (find_song first_title multiple) && isJust (find_song second_title multiple))
@@ -239,6 +291,30 @@ accept target apk pitch_dex mutant_dex runner_dex nonce = do
   click target "instrument"
   ukulele ← ui target
   require "Original ukulele dictionary opens a real diagram view" (isInfixOf "C — Ukulele" ukulele)
+  click target "custom"
+  custom_form ← ui target
+  case matching_position "class" "android.widget.EditText" custom_form of
+    Nothing ⇒ fail_check "Custom fingering input is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_TAB"])
+      ignore (remote target ["input", "text", "0%s0%s0%s3"])
+  click target "save"
+  custom_source ← device target ["exec-out", "run-as", package_name, "cat", "files/custom-ukulele.crd"]
+  require "Real custom fingering UI saves exact checked positions" (custom_source ≟ "C: 0-0-0-3\n")
+  custom_pid ← remote target ["pidof", package_name]
+  custom_log ← remote target ["logcat", "-d", "--pid", trim custom_pid, "-s", "ChordReader:I"]
+  require "Installed custom fingering validation executes checked Idriç"
+    (isInfixOf "IDRIC_APPLICATION_EXECUTED command=g" custom_log)
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
+  custom_reopened ← device target ["exec-out", "run-as", package_name, "cat", "files/custom-ukulele.crd"]
+  require "Custom fingering survives process death" (custom_reopened ≟ custom_source)
+  click target "chord:C"
+  custom_view ← ui target
+  require "Reopened custom fingering remains a usable diagram" (isInfixOf "C — Ukulele" custom_view &&
+    isInfixOf "Variation 1 of 1" custom_view)
   click target "settings"
   click target "font-up"
   preferences ← stored target
@@ -295,7 +371,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce = do
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
     ("runtime\tmanaged Idric music/chart/reader with Lua presentation and native JNI\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
-     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t38 PASS\nmanaged_application_calls\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\nmanaged_application_calls\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
   case receipt of
     Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
     Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"

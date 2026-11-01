@@ -6,6 +6,7 @@ import Key
 import Chart
 import Reader
 import AppPitch
+import Dictionary
 
 fields : Number → List Char → Either Text (List Text)
 fields count characters = case read_fields count characters of
@@ -88,6 +89,16 @@ request ('k' :: source) = do
   Right (show interval.letter_steps ++ "\t" ++ show interval.semitone_steps ++ "\t" ++
     print_key source_key ++ "\t" ++ print_key destination_key)
 request ('n' :: source) = map print_key (parse_key (pack source))
+request ('g' :: source) = do
+  [instrument, spelling, positions] ← fields 3 source
+    | _ ⇒ Left "Custom fingering requires instrument, chord and positions"
+  string_count ← case instrument of
+    "Guitar" ⇒ Right 6
+    "Ukulele" ⇒ Right 4
+    _ ⇒ Left "Choose Guitar or Ukulele"
+  chord ← parse_chord spelling
+  diagram ← custom_diagram string_count positions
+  Right (print_chord chord ++ "\t" ++ joinBy "," (map position_text diagram.positions))
 request ('v' :: source) = map encode_library (decode_library (pack source))
 request ('b' :: source) = map reader_text (decode_library (pack source))
 request ('e' :: source) = do

@@ -405,12 +405,22 @@ local function new(platform)
           if changed and save() then mode="setlists" end
         end
       elseif mode == "custom" then
-        local chord=music.parse(draft_title); local frets={}
-        for fret in draft_body:gmatch("%S+") do frets[#frets+1]=fret == "x" and -1 or tonumber(fret) end
-        local count=state.instrument == "Guitar" and 6 or 4
-        if not chord or #frets ~= count then notice="Enter a valid chord and one fret or x per string"
+        local spelling,frets=nil,{}
+        if platform.application_request then
+          local reply=assert(platform.application_request("g"..field(state.instrument)..field(draft_title)..field(draft_body)))
+          if reply:sub(1,1) == "1" then
+            local positions; spelling,positions=reply:sub(2):match("^([^\t]+)\t(.+)$")
+            assert(spelling,"Invalid checked fingering reply")
+            for fret in positions:gmatch("[^,]+") do frets[#frets+1]=fret == "x" and -1 or assert(tonumber(fret)) end
+          else notice=reply:sub(2) end
         else
-          local spelling=music.print(chord); custom[state.instrument]=custom[state.instrument] or {}
+          local chord=music.parse(draft_title)
+          for fret in draft_body:gmatch("%S+") do frets[#frets+1]=fret == "x" and -1 or tonumber(fret) end
+          if chord and #frets == (state.instrument == "Guitar" and 6 or 4) then spelling=music.print(chord)
+          else notice="Enter a valid chord and one fret or x per string" end
+        end
+        if spelling then
+          custom[state.instrument]=custom[state.instrument] or {}
           custom[state.instrument][spelling]={frets}; selected_chord=spelling; variation=1
           if save_custom() then mode="diagram" else notice="Custom fingering could not be saved" end
         end

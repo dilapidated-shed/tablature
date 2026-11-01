@@ -112,3 +112,18 @@ public export
 position_text : string_position → Text
 position_text muted = "x"
 position_text (at_fret fret) = show fret
+
+read_custom_position : Text → Either Text string_position
+read_custom_position "x" = Right muted
+read_custom_position "X" = Right muted
+read_custom_position source = case parsePositive {a=Number} source of
+  Just fret ⇒ Right (at_fret fret)
+  Nothing ⇒ Left "Use x or a nonnegative whole fret for every string"
+
+public export
+custom_diagram : Number → Text → Either Text ChordDiagram
+custom_diagram string_count source = do
+  positions ← traverse read_custom_position (words source)
+  if length positions ≟ string_count
+    then Right (Chord_diagram positions 1)
+    else Left "Enter one fret or x for every string"
