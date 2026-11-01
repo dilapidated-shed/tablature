@@ -29,7 +29,14 @@ record Target where
 command : List Text → IO Text
 command arguments = do
   (output, status) ← System.Escaped.run ("timeout" :: "60" :: arguments)
-  if status ≟ 0 then pure output else fail_check ("Command failed: " ++ unwords (take 4 arguments))
+  if status ≟ 0 then pure output else fail_check
+    ("Command failed: " ++ unwords (take 4 arguments) ++ " exit=" ++ show status ++ "\n" ++ output)
+
+retain : Text → Text → IO ()
+retain name content = do
+  Right () ← writeFile ("build/exec/" ++ name) content
+    | Left _ ⇒ fail_check ("Could not retain " ++ name)
+  pure ()
 
 device : Target → List Text → IO Text
 device target arguments = command ([target.adb, "-s", target.serial] ++ arguments)
@@ -69,8 +76,12 @@ fresh_ui target Z = fail_check "Android did not supply a fresh accessibility roo
 fresh_ui target (S remaining) = do
   ignore (remote target ["rm", "-f", "/sdcard/chordreader-acceptance.xml"])
   result ← remote target ["uiautomator", "dump", "/sdcard/chordreader-acceptance.xml"]
+  retain "android-ui-dump.txt" result
   case isInfixOf "dumped to:" result of
-    True ⇒ device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+    True ⇒ do
+      xml ← device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+      retain "android-last-ui.xml" xml
+      pure xml
     False ⇒ do
       sleep 1
       fresh_ui target remaining
@@ -89,6 +100,23 @@ click_matching target field description = do
 
 click : Target → Text → IO ()
 click target = click_matching target "content-desc"
+
+exercise_scroll : Target → IO ()
+exercise_scroll target = do
+  xml ← ui target
+  case button_position "scroll" xml of
+    Nothing ⇒ fail_check "Auto-scroll control is not visible"
+    Just (x, y) ⇒ do
+      -- Android's dump waits for accessibility idle, which continuous scrolling
+      -- deliberately prevents. The pause action occupies the same fixed button
+      -- bounds. Observe those bounds before motion and verify state after pause.
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 2
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+  paused_view ← ui target
+  require "Pause returns a fresh stable reader accessibility tree"
+    (isInfixOf "content-desc=\"scroll\"" paused_view)
 
 enter_written_keys : Target → IO ()
 enter_written_keys target = do
@@ -190,6 +218,8 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
+  retain "art-direct.txt" art
+  putStrLn art
   require "Checked DEX executes 33 retained and 7 managed ART assertions"
     (isInfixOf "33 retained checks and 7 managed parser/chart/key/fingering checks" art)
   ignore (device target ["push", mutant_dex, "/data/local/tmp/chordreader-wrong-music.dex"])
@@ -213,9 +243,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "down"
   negative ← ui target
   require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
-  click target "scroll"
-  sleep 2
-  click target "scroll"
+  exercise_scroll target
   paused ← stored target
   require "Actual auto-scroll advances the reading position" (paused.scroll_position > 0)
   sleep 1

@@ -209,6 +209,9 @@ jobs:
             build/exec/chordreader-pitch.runtime.tsv
             build/exec/managed-decoded/**
             build/exec/android-emulator.receipt.tsv
+            build/exec/android-last-ui.xml
+            build/exec/android-ui-dump.txt
+            build/exec/art-direct.txt
             build/acceptance-run/**/*.receipt.tsv
             build/exec/chordreader-pitch.dex
             build/exec/chordreader-runner.dex

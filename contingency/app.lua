@@ -1,5 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-or-later
--- Application state/presentation for the documented C+Lua contingency.
+-- Android presentation and transport; the candidate requires checked Idriç
+-- musical operations and reader transitions. The legacy host reference remains
+-- available only for retained comparison tests.
 local music=require("music")
 local json=require("json")
 local header="ChordReader/Idric/1\n"
