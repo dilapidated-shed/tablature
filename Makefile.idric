@@ -123,8 +123,10 @@ emulator-check:
 	cp "$(BASELINE_APK)" "$(ACCEPTANCE_RUN_DIR)/baseline.apk"
 	cp build/exec/chordreader-pitch.dex build/exec/chordreader-mutant.dex build/exec/chordreader-runner.dex "$(ACCEPTANCE_RUN_DIR)/"
 	rm -f build/exec/android-emulator.receipt.tsv
+	rm -f build/exec/chordreader-*.png
 	"$(ACCEPTANCE_RUN_DIR)/android-acceptance" "$(ADB)" "$(ANDROID_SERIAL)" "$(ACCEPTANCE_RUN_DIR)/candidate.apk" "$(ACCEPTANCE_RUN_DIR)/chordreader-pitch.dex" "$(ACCEPTANCE_RUN_DIR)/chordreader-mutant.dex" "$(ACCEPTANCE_RUN_DIR)/chordreader-runner.dex" "$(ACCEPTANCE_NONCE)" "$(ACCEPTANCE_RUN_DIR)/baseline.apk"
 	cp build/exec/android-emulator.receipt.tsv "$(ACCEPTANCE_RUN_DIR)/"
+	cp build/exec/chordreader-*.png "$(ACCEPTANCE_RUN_DIR)/"
 
 assets: dex callback
 	mkdir -p build/android/assets build/android/res

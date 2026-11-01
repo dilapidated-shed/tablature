@@ -215,5 +215,6 @@ jobs:
             build/exec/chordreader-*.png
             build/exec/art-direct.txt
             build/acceptance-run/**/*.receipt.tsv
+            build/acceptance-run/**/*.png
             build/exec/chordreader-pitch.dex
             build/exec/chordreader-runner.dex
