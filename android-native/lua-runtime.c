@@ -32,6 +32,10 @@ static int present(lua_State *lua) {
     lua_getfield(lua, 1, "size"); screen.text_size = (int)luaL_optinteger(lua, -1, 20); lua_pop(lua, 1);
     lua_getfield(lua, 1, "actions");
     screen.action_count = lua_rawlen(lua, -1);
+    lua_getfield(lua, 1, "fixed_actions");
+    lua_Integer fixed = luaL_optinteger(lua, -1, 0);
+    screen.fixed_action_count = fixed > 0 && (size_t)fixed <= screen.action_count ? (size_t)fixed : 0;
+    lua_pop(lua, 1);
     UiAction *actions = calloc(screen.action_count ? screen.action_count : 1, sizeof *actions);
     if (!actions) return luaL_error(lua, "Out of memory for View actions");
     for (size_t index = 0; index < screen.action_count; ++index) {

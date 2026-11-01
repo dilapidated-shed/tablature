@@ -253,13 +253,15 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     (*env)->CallVoidMethod(env, content, method(env, content, "setOrientation", "(I)V"), 1);
     jobject row = NULL;
     for (size_t index = 0; index < screen->action_count; ++index) {
-        if (index % 3 == 0) {
+        jobject action_parent = index < screen->fixed_action_count ? root : content;
+        size_t group_index = index < screen->fixed_action_count ? index : index - screen->fixed_action_count;
+        if (group_index % 3 == 0) {
             row = view(platform, "android/widget/LinearLayout");
-            add(env, content, row, -1, -2);
+            add(env, action_parent, row, -1, -2);
             (*env)->DeleteLocalRef(env, row);
-            row = (*env)->CallObjectMethod(env, content,
-                method(env, content, "getChildAt", "(I)Landroid/view/View;"),
-                (*env)->CallIntMethod(env, content, method(env, content, "getChildCount", "()I")) - 1);
+            row = (*env)->CallObjectMethod(env, action_parent,
+                method(env, action_parent, "getChildAt", "(I)Landroid/view/View;"),
+                (*env)->CallIntMethod(env, action_parent, method(env, action_parent, "getChildCount", "()I")) - 1);
         }
         jobject button = view(platform, "android/widget/Button");
         set_text(env, button, screen->actions[index].label);
@@ -272,7 +274,8 @@ void platform_present(Platform *platform, const UiScreen *screen) {
         add_equal_button(env, row, button);
         (*env)->DeleteLocalRef(env, tag);
         (*env)->DeleteLocalRef(env, button);
-        if (index % 3 == 2 || index + 1 == screen->action_count) (*env)->DeleteLocalRef(env, row);
+        if (group_index % 3 == 2 || index + 1 == screen->fixed_action_count ||
+                index + 1 == screen->action_count) (*env)->DeleteLocalRef(env, row);
     }
     if (screen->editable) {
         jobject title = view(platform, "android/widget/EditText");

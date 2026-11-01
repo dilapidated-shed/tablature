@@ -13,6 +13,7 @@ typedef struct {
     int editable, text_size;
     const UiAction *actions;
     size_t action_count;
+    size_t fixed_action_count;
     const UiSpan *spans;
     size_t span_count;
     const int *frets;
@@ -36,8 +37,8 @@ int platform_pitch_step(Platform *, int, int);
 char *platform_accidental_symbol(Platform *, const char *);
 char *platform_application_request(Platform *, const char *);
 
-/* Provider entry points. A future qualified Idriç implementation consumes the
- * same text/event boundary; a contingency must identify its actual runtime. */
+/* Presentation provider entry points. The candidate's musical/state operations
+ * require the checked managed Idriç export through JNI. */
 void *reader_start(Platform *);
 void reader_event(void *, const char *, const char *, const char *);
 void reader_tick(void *, unsigned);

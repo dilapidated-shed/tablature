@@ -285,11 +285,12 @@ local function new(platform)
         model.notice=model.notice.."\n"..music.print_key(state.key_interval.source_key).." → "..
           music.print_key(state.key_interval.destination_key)
       end
+      add(actions,"scroll",scrolling and "Pause" or "Auto scroll"); add(actions,"slower","Slower"); add(actions,"faster","Faster")
+      model.fixed_actions=#actions
       add(actions,"down","− semitone"); add(actions,"up","+ semitone"); add(actions,"edit","Edit")
       add(actions,"written-key","Transpose by key")
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
       add(actions,"export","Save file")
-      add(actions,"scroll",scrolling and "Pause" or "Auto scroll"); add(actions,"slower","Slower"); add(actions,"faster","Faster")
       if platform.application_request then
         capture_session()
         local reply=assert(platform.application_request("b"..encode(state)))
