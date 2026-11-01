@@ -139,7 +139,10 @@ enter_written_keys target = do
 finish_document_selection : Target → IO ()
 finish_document_selection target = do
   xml ← ui target
-  case matching_position "resource-id" "com.android.documentsui:id/action_menu_select" xml of
+  let selection = case matching_position "resource-id" "com.android.documentsui:id/action_menu_select" xml of
+        Just position ⇒ Just position
+        Nothing ⇒ matching_position "resource-id" "com.google.android.documentsui:id/action_menu_select" xml
+  case selection of
     Nothing ⇒ pure ()
     Just (x, y) ⇒ do
       ignore (remote target ["input", "tap", show x, show y])
@@ -462,7 +465,9 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click_matching target "text" setlist_name
   click target "export-setlist"
   picker ← ui target
-  require "Standard Android save picker is visible" (isInfixOf "com.android.documentsui" picker)
+  require "Standard Android save picker is visible"
+    (isInfixOf "package=\"com.android.documentsui\"" picker ||
+     isInfixOf "package=\"com.google.android.documentsui\"" picker)
   click_matching target "resource-id" "android:id/button1"
   wait_for_application target 5
   exported ← remote target ["cat", "/sdcard/Download/" ++ setlist_name ++ ".pl"]

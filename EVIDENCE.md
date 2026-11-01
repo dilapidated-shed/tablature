@@ -323,6 +323,21 @@ replacement and an edit of only the selected second list. Host and installed
 controls qualify removal, cancellation and repeated-reference cleanup. Actual
 pass claims remain attached to the source-specific workflow receipts.
 
+At `398f661fb1158492199b70bd935fbd5961bf8baf`,
+[41344081198](https://github.com/dilapidated-shed/tablature/actions/runs/41344081198)
+completes the entire installed API29 harness, including real song editing,
+share chooser, safe setlist-copy import, diagrams/custom persistence, invalid
+document refusal and actual managed parsing/state calls. Four actual PNG
+captures are retained in its API29 acceptance directory. On API34 the same APK
+passes upgrade, edit/share, ART/mutation, scrolling/viewport, declared keys,
+capo, repeated setlists and installed-byte identity. It then fails a harness
+package assumption: the actual system picker is com.google.android.documentsui,
+while the assertion required com.android.documentsui. The retained accessibility
+tree proves the Google package and android:id/button1 save control. The harness
+now recognizes both observed system implementations; exact document bytes and
+real result-callback assertions remain required. This checkpoint does not claim
+API34 document/diagram completion after that failed assertion.
+
 Independent exact-APK observation is maintained in
 [isomorphisms/ai-ci PR #334 — Independently qualify ChordReader managed music from signed APK assets on ART](https://github.com/isomorphisms/ai-ci/pull/334).
 Its nineteen independent literal assertions execute the DEX extracted from the
