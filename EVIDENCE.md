@@ -213,7 +213,7 @@ comparisons and application-state framing/restart tests. Its ARM native builds
 also complete. Packaging correctly refuses versionCode1001 in the manifest
 when1002 is requested. The completion source synchronizes manifest and build
 version1002. Its own signed ARM32/ARM64 packaging and central signer gates pass
-at `50046f7336123392790c6f0082cbc066b23312e2` in run41338214188.
+at `50046f7336123392790c6f0082cbc066b23312e2` in run 41338214188.
 
 The present change adds declared major/minor keys, explicitly distinct from
 pitch classes and chart spelling. Key.idric derives degree spellings from the
@@ -244,7 +244,7 @@ compatibility fixtures execute and match their unchanged expected output in
 [41332766597](https://github.com/dilapidated-shed/tablature/actions/runs/41332766597).
 The following driver-error control stopped at a missing explicit network package
 in its command line. The corrected command names both matching packages and
-executes the deliberate rejecting generator at head2051c4f8 in run41336558642:
+executes the deliberate rejecting generator at head2051c4f8 in run 41336558642:
 nonzero exit, exact diagnostic and no output executable all pass. The earlier
 failure was a harness dependency error, not a managed musical runtime rejection.
 Existing 366 checks and 1,049 comparisons remain; new key tests and 2,142 live
@@ -417,3 +417,19 @@ no authenticated transport, live capability/package/signer inventory or
 installed-byte/UI observation. No uninstall, merge, release or signer rotation
 is performed. The separate native ARM Text ABI refusal remains assigned to
 fuego-ironworks/idric-arm-thumb; it does not block the qualified managed core.
+
+### Actual managed caller reaches IB on API34
+
+Observer 8f77915 / [run 41350061080](https://github.com/isomorphisms/ai-ci/actions/runs/41350061080),
+job 124978187318 pairs this e6c84d64 ChordReader APK with IB 57e03521. Actual
+ChordReader SEARCH button, authenticated framework for-result caller, receiver
+invocation, spoofed/warm caller refusals and exact-once raw-query encoding pass.
+The independent Google original-range/digest proof and changed-byte/generation/
+request/identity controls pass. Actual first-party continuation touch is
+observed; its original committed range is independently verified and a changed
+byte rejected. It displays JavaScript-enabling instructions, so public result,
+clicked-result/navigation and return-to-ChordReader acceptance remain pending.
+The full search job FAILS at that required gate; the passing handoff does not
+supply working search. API29 pairing is still running and remains unqualified
+at this checkpoint. [Delivery receipts](candidates/QUALIFICATION.md#current-ib-boundary-observation)
+preserve these distinctions. No application source or signed APK changed.

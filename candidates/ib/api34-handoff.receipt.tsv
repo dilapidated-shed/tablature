@@ -1,0 +1,15 @@
+schema	ib-chordreader-handoff-v1
+api	34
+abi	x86_64
+ChordReader_source	e6c84d645ad7086a11ae2735258188a49e444d13
+no_caller_referrer_wrong_caller_warm_SEARCH	REJECTED
+caller_refusal_preserves_committed_index	PASS
+actual_ChordReader_search_button	PASS
+framework_for_result_caller	PASS
+exact_once_encoded_Google_request	PASS
+Google_results	NOT_RUN
+clicked_Google_result	NOT_RUN
+physical_TAB_P10	NOT_RUN
+independent_Google_original_range_digest	PASS
+Google_original_byte_generation_request_identity_mutations	REJECTED
+Google_raw_receipt_admission	NO
