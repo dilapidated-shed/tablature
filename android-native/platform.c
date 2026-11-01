@@ -236,6 +236,12 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     keep(env, &platform->body_entry, NULL);
     keep(env, &platform->scroll_view, NULL);
     jobject root = view(platform, "android/widget/LinearLayout");
+    if (screen->fixed_action_count) {
+        /* A selectable chart is focusable in touch mode. Give the reader root
+         * initial focus so ScrollView does not scroll to that child and replace
+         * the saved viewport while Android is attaching the window. */
+        (*env)->CallVoidMethod(env, root, method(env, root, "setFocusableInTouchMode", "(Z)V"), JNI_TRUE);
+    }
     (*env)->CallVoidMethod(env, root, method(env, root, "setOrientation", "(I)V"), 1);
     (*env)->CallVoidMethod(env, root, method(env, root, "setPadding", "(IIII)V"), 12, 10, 12, 10);
     (*env)->CallVoidMethod(env, root, method(env, root, "setFitsSystemWindows", "(Z)V"), JNI_TRUE);
@@ -320,6 +326,8 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     keep(env, &platform->scroll_view, scroll);
     (*env)->CallVoidMethod(env, platform->activity->clazz,
         method(env, platform->activity->clazz, "setContentView", "(Landroid/view/View;)V"), root);
+    if (screen->fixed_action_count)
+        (*env)->CallBooleanMethod(env, root, method(env, root, "requestFocus", "()Z"));
     report(env, "present platform Views");
     (*env)->PopLocalFrame(env, NULL);
 }

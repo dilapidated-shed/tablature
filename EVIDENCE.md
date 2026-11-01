@@ -288,6 +288,17 @@ chart and observes the pause action without demanding accessibility idle during
 motion. Subsequent per-run receipts own acceptance of that repair and the rest
 of the installed UI; earlier failures remain preserved.
 
+At `990b1f7e2d8058dbd82233752b4159c3c303b1c5`,
+[41339356948](https://github.com/dilapidated-shed/tablature/actions/runs/41339356948)
+passes actual auto-scroll advancement, pause, speed changes and stored-position
+recovery. The native viewport readback after restart fails separately. The
+following repair waits for both parent/content layout, clamps to the real
+content range, retries unsuccessful scroll application and gives the reader
+root initial touch focus so Android does not reveal the selectable chart child
+in place of the saved viewport. The harness also backgrounds the restored app
+and checks the position read from the actual native View on suspend. This source
+repair requires its own per-run execution; stored bytes alone never qualify it.
+
 Independent exact-APK observation is maintained in
 [isomorphisms/ai-ci PR #334 — Independently qualify ChordReader managed music from signed APK assets on ART](https://github.com/isomorphisms/ai-ci/pull/334).
 Its nineteen independent literal assertions execute the DEX extracted from the
