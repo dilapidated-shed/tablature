@@ -6,7 +6,7 @@ owns Android/JNI, storage, Views and intents; Lua retains presentation and
 transport records. The earlier C+Lua implementation remains a regression
 reference and an accepted historical fallback. It is not bundled as an
 automatic musical fallback in the new candidate. See EVIDENCE.md for the
-pending exact-source compiler, ART and installed-application gates.
+revision-bound compiler, ART and installed-application results.
 No Java/Kotlin application logic is added.
 
 The development package `org.isomorphisms.chordreader.dev` keeps the original

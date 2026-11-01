@@ -3,7 +3,8 @@
 Sections before "Completion campaign" retain the accepted `86dc5406` fallback
 and earlier checkpoints. Their Lua ownership, version1001 and compiler refusals
 are historical, not claims about the managed candidate. The completion section
-below owns current source status; all new runtime gates remain pending until run.
+defines the managed candidate and revision-bound checkpoints. The PR summary
+and per-run receipts identify the latest exact-head qualification.
 
 This branch replaces the application architecture from accepted master
 2179c276d88d91ba01642dde1a6c80a65103962f. It does not merge the retained Kotlin
@@ -195,7 +196,7 @@ was reached. The original refusal and workflow remain in history.
 The existing Unicode-subtraction PR now includes the checked compiler-driver
 error-exit repair at `e7e03fdc896d3740c735c603b5fed792e6172d83`; the canonical
 android-NDK DEX probe is pinned to that combined frontend. The unchanged parser
-is being requalified in
+was requalified in
 [41330040829](https://github.com/dilapidated-shed/tablature/actions/runs/41330040829).
 It completed successfully: the unchanged parser emits a113300-byte DEX and
 baksmali independently decodes it. Its SHA-256 is
@@ -211,7 +212,8 @@ passes378 host checks, all1049 retained music comparisons,2142 declared-key
 comparisons and application-state framing/restart tests. Its ARM native builds
 also complete. Packaging correctly refuses versionCode1001 in the manifest
 when1002 is requested. The completion source synchronizes manifest and build
-version1002; that repair still requires its own exact-head packaging result.
+version1002. Its own signed ARM32/ARM64 packaging and central signer gates pass
+at `50046f7336123392790c6f0082cbc066b23312e2` in run41338214188.
 
 The present change adds declared major/minor keys, explicitly distinct from
 pitch classes and chart spelling. Key.idric derives degree spellings from the
@@ -221,12 +223,11 @@ records while reading old files. Existing `K` intervals remain supported;
 inconsistent declarations refuse without overwriting the library. Explicit
 chromatic chart spellings are not respelled from a key guess.
 
-This addition is **PENDING qualification** until its exact-head host and Android
-jobs finish. ManagedCore calls the actual Music parser, Chart recognizer and
+ManagedCore calls the actual Music parser, Chart recognizer and
 renderer, Key contract and Reader transitions/framing. The APK's music.lua is
 now a transport-only adapter; the old musical contingency remains an unbundled
 host regression reference. The JNI export is required, with no retry through
-Lua semantics. Source integration is not yet a successful managed runtime claim.
+Lua semantics. Runtime claims remain bound to the exact tested source and APK.
 The compiler pin advances to the already qualified android-NDK
 `6e1c9619a96f28494ad891a32a06edfb72f3e25b`, retaining the separate historical
 fuego-ironworks encoder for callback compatibility. Managed DEX generation must
@@ -241,14 +242,64 @@ readback; stored position alone is not its viewport acceptance oracle.
 The combined frontend's literal Unicode subtraction and independent Idris
 compatibility fixtures execute and match their unchanged expected output in
 [41332766597](https://github.com/dilapidated-shed/tablature/actions/runs/41332766597).
-The following driver-error control stops at a missing explicit network package
-in its command line. The current command names both matching packages; that
-repair is pending its own executed control. This was a qualification harness
-dependency failure, not a managed musical runtime rejection.
+The following driver-error control stopped at a missing explicit network package
+in its command line. The corrected command names both matching packages and
+executes the deliberate rejecting generator at head2051c4f8 in run41336558642:
+nonzero exit, exact diagnostic and no output executable all pass. The earlier
+failure was a harness dependency error, not a managed musical runtime rejection.
 Existing 366 checks and 1,049 comparisons remain; new key tests and 2,142 live
 Idriç/Lua key comparisons are added. API29 and API34 each run the installed
 application harness and retain separate staged receipts. Version code advances
 to 1002; package and public test signer are unchanged.
+
+### Executed managed application checkpoints
+
+At `2051c4f8abcd29125dec236e66a328b9a70c2ad2`,
+[41336558642](https://github.com/dilapidated-shed/tablature/actions/runs/41336558642)
+passes 387 checked host cases, all 1,049 retained music comparisons, all 2,142
+declared-key comparisons, deterministic managed DEX generation, independent
+decoding, actual Dictionary preprocessing and all three native ABI builds.
+Packaging stops at the canonical packager's new verified-Grease requirement.
+The workflow now builds its exact maintained Grease source through the pinned
+Cat Food bootstrap; it does not substitute a shell for the Grease packager.
+
+At `50046f7336123392790c6f0082cbc066b23312e2`,
+[41338214188](https://github.com/dilapidated-shed/tablature/actions/runs/41338214188)
+also passes signed ARM32/ARM64/x86_64 packaging, central signer checks, all
+40 direct ART assertions, and the unchanged observer's rejection of the real
+compiled Music.transpose_note mutation. The managed DEX is SHA256
+`abc2767bcabafa78da57036ed4b5f1a90450c7556474cd476cb03369cebc2515`;
+the compiled mutant is
+`cdac973a57fd259cc6e492e8f4ef72260484069f5e8f8bd1dcfb58b266b39444`.
+Artifact13096326807 has archive SHA256
+`8e2942ffd8db5aea3841578ad1e64715f06cfa7f459c6f672d64fac4a588f97d`.
+Unicode import and upward/downward transposition execute in the installed app.
+That run then fails requesting accessibility idle during continuous scrolling;
+the later UI behavior is not accepted by this checkpoint.
+
+At `533071db37087135c628d4675f5d18c2616cb189`,
+[41339020449](https://github.com/dilapidated-shed/tablature/actions/runs/41339020449)
+actually installs the checksum-pinned accepted version1001 APK, creates a song
+and preferences in it, replaces it with version1002 using install -r, verifies
+the unchanged private library bytes and reopens source, selection, interval
+and settings. Those upgrade checks pass before the same scrolling observation
+fails. The source now keeps pause/speed/navigation controls outside the moving
+chart and observes the pause action without demanding accessibility idle during
+motion. Subsequent per-run receipts own acceptance of that repair and the rest
+of the installed UI; earlier failures remain preserved.
+
+Independent exact-APK observation is maintained in
+[isomorphisms/ai-ci PR #334 — Independently qualify ChordReader managed music from signed APK assets on ART](https://github.com/isomorphisms/ai-ci/pull/334).
+Its nineteen independent literal assertions execute the DEX extracted from the
+signed APK on API29/34; the same oracle must reject the compiled musical mutant
+with the exact exit and diagnostic. Its receipts remain separate from producer
+UI and physical acceptance.
+
+The bounded written-note contract is documented in
+[walnut-burgundy/tymoczko PR #5 — Define the bounded written-note and key-spelling contract for ChordReader](https://github.com/walnut-burgundy/tymoczko/pull/5).
+Music/Key remain the one executable application spelling model. No automatic
+harmonic inference, general OPTIC completion or recording-derived correction
+is claimed. Unknown function retains explicit source spelling.
 
 Physical target is SVITOO TAB_P10, Android15. No authenticated device endpoint
 or current package/signer inventory is available in this workspace:

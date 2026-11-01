@@ -1,7 +1,9 @@
 # Program attempt: ChordReader
 
-Status: historical checked host core and DEX/ART subset PASS; historical C+Lua
-songbook accepted. Current managed application integration PENDING qualification.
+Status: managed host/DEX/ART and signed packaging checkpoints PASS; actual
+version1001→1002 data-preserving replacement PASS at533071db. Installed UI
+qualification is revision-bound; consult EVIDENCE.md and per-run receipts.
+Historical fallback and failures below retain their original evidence scope.
 
 ## Purpose
 
@@ -27,7 +29,8 @@ pitch-class naming-table lookup. Chromatic chart notation remains source-owned.
 Reader persistence adds an optional `T` record while accepting existing files.
 All operations are pure; Android continues to own UTF-8 and atomic file writes.
 This slice needs ordinary choices, records, lists, checked integer arithmetic
-and Text parsing. Host/DEX/ART/application qualification is pending until run.
+and Text parsing. Host/DEX/ART/application qualification remains separate;
+executed managed checkpoints are recorded in EVIDENCE.md.
 
 ### Managed application boundary
 
@@ -44,7 +47,7 @@ baseline and prior APK; the new candidate has no automatic musical fallback.
 Commands cover parsing, fingering keys, chromatic intervals, chart recognition,
 written rendering, declared keys, library framing and reader transitions.
 Actual source generation, independent decoding, ART and installed UI execution
-are separate pending gates. The original AndroidCore parser probe remains an
+are separate required gates. The original AndroidCore parser probe remains an
 unchanged-source control rather than being replaced by this boundary.
 
 ### Original dictionary preprocessing
@@ -54,7 +57,7 @@ loaders, computes each key through Music.fingering_lookup_key, and writes a
 versioned TSV index of exact string positions. This is checked host execution
 over fixed application assets, not ART acceptance of the JSON/Double format
 boundary. The runtime transports that index and obtains the requested chord's
-lookup key from the managed musical core. It does not parse all12891 guitar
+lookup key from the managed musical core. It does not parse all 12,891 guitar
 spellings through JNI during a diagram interaction. Original JSON remains
 retained for attribution and independent comparison. Generation and UI controls
 must succeed before the index is accepted.

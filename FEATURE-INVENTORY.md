@@ -6,11 +6,11 @@ Kotlin implementation is merged into this architecture.
 
 | Original responsibility | Original sources | Replacement |
 | --- | --- | --- |
-| Chord syntax, recognition, note spelling, source spans | chords/* and chords/regex/* | Music.idric, Chart.idric via checked managed export; pending runtime qualification. The compared Lua music reference is not the candidate music asset. |
+| Chord syntax, recognition, note spelling, source spans | chords/* and chords/regex/* | Music.idric, Chart.idric via checked managed export; actual ART checkpoints in EVIDENCE.md. The compared Lua music reference is not the candidate music asset. |
 | Transposition and capo | helper/TransposeHelper.java, model/SongViewFragmentViewModel.java | WrittenInterval, distinct written note/pitch types; rendering leaves stored source intact |
 | Declared major/minor keys | Completion campaign | Key.idric retains tonic/mode and derives diatonic written notes; key control and persistence retain both declarations. Host checks and 2,142 independent reference comparisons pass at2051c4f8; Android qualification remains separate. Mode conversion refuses rather than inventing harmony. |
 | Web search and extraction | ui/WebSearchFragment.java, helper/WebPageExtractionHelper.java, ChordWebpage.java | Explicit ACTION_SEARCH to IB with original unescaped query, no generic browser fallback; separate HTTPS platform request and supported preformatted/Ultimate Guitar chart import. Live IB navigation is pending. |
-| Song saving, reopening, export and Android sharing | helper/SaveFileHelper.java, model/DataViewModel.java | Managed Reader transitions/framing, Lua presentation records, atomic private files, Android document picker and share sheet; pending exact-head acceptance |
+| Song saving, reopening, export and Android sharing | helper/SaveFileHelper.java, model/DataViewModel.java | Managed Reader transitions/framing, Lua presentation records, atomic private files, Android document picker and share sheet; per-run receipts bind installed acceptance |
 | Song/setlist lists, setlist editing and ordering | ui/ListFragment.java, ui/DraggableListFragment.java, adapters | Songs/Setlists screens; newline title editing preserves ordered repetitions; legacy .txt/.pl import/export |
 | Reader/editing/highlighting | ui/SongViewFragment.java, model/SongViewFragmentViewModel.java | Native platform Views; checked Idriç state transitions, chart recognition and scalar/UTF-8/UTF-16 offsets; Lua presentation/transport |
 | Guitar and ukulele variations, custom fingerings | helper/ChordDictionary.java, views/ChordVisualisationView.java, ui/ChordDictionaryEditFragment.java | Original JSON dictionaries processed by actual Dictionary.idric loader into bundled indices; ART spelling/shape keys and custom-position validation; C Canvas drawing and persistent custom fingerings |
@@ -30,3 +30,9 @@ the original .txt/.pl documents without modifying that package's data.
 The runtime/evidence ledger distinguishes implementation, host execution,
 Android emulator behavior and physical-device acceptance. Consult EVIDENCE.md
 and the executable AndroidAcceptance.idric receipt for the actual result.
+
+Version1001→1002 replacement without uninstalling has executed successfully at
+the 533071db checkpoint. The current candidate keeps the same development package
+and public test signer. Physical TAB_P10 acceptance is blocked by unavailable
+authenticated access; IB live acquisition/result navigation is a separate
+pending integration. Neither is inferred from the independent songbook tests.
