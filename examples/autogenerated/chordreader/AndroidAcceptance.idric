@@ -164,7 +164,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
     (isPrefixOf "077a2167a34542e91219a114da4db1f98bbcf7fc901dd7511ea646ce7ce9d83b " baseline_digest)
   ignore (device target ["install", "-r", baseline_apk])
   import_text target "Retained1001" "A/C♯  A♭\r\nOld source 🧪\n"
-  click target "transpose-up"
+  click target "up"
   click target "settings"
   click target "font-up"
   old_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
