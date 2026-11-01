@@ -77,10 +77,23 @@ jobs:
       - name: Bootstrap maintained checked compiler
         if: steps.frontend_cache.outputs.cache-hit != 'true'
         run: deps/Idric/edric bootstrap
+      - name: Restore matching installed compiler API and libraries
+        id: installed_api_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          key: chordreader-idric-api-e7e03fdc896d3740c735c603b5fed792e6172d83-ubuntu24-x86_64-v1
+          path: ~/.idris2
       - name: Regenerate source-owned compiler path metadata
         run: make -C deps/Idric/_ src/IdrisPaths.idr PREFIX="$IDRIC_REPO/_/bootstrap-build"
       - name: Install compiler API and libraries
+        if: steps.installed_api_cache.outputs.cache-hit != 'true'
         run: make -C deps/Idric/_ install-libs install-support install-api IDRIS2_BOOT="$IDRIC_REPO/_/build/exec/idris2"
+      - name: Preserve the exact installed compiler API before consumer qualification
+        if: steps.installed_api_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          key: ${{ steps.installed_api_cache.outputs.cache-primary-key }}
+          path: ~/.idris2
       - name: Preserve the exact compiler before consumer qualification
         if: steps.frontend_cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830

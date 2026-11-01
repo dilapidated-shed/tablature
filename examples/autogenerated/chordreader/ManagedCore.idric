@@ -121,6 +121,7 @@ request ('u' :: source) = do
     Nothing ⇒ Right (encode_library changed)
 request _ = Left "Unknown application request"
 
+export
 %export "dex:application_request"
 application_request : Text → Text
 application_request source = case request (unpack source) of
