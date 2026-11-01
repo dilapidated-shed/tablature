@@ -44,6 +44,12 @@ device target arguments = command ([target.adb, "-s", target.serial] ++ argument
 remote : Target → List Text → IO Text
 remote target arguments = device target ["shell", "-n", escapeCmd arguments]
 
+capture_screen : Target → Text → IO ()
+capture_screen target name = do
+  let filename = "chordreader-" ++ name ++ ".png"
+  ignore (remote target ["screencap", "-p", "/sdcard/" ++ filename])
+  ignore (device target ["pull", "/sdcard/" ++ filename, "build/exec/" ++ filename])
+
 after : List Char → List Char → Maybe (List Char)
 after needle [] = Nothing
 after needle remaining@(_ :: rest) =
@@ -287,6 +293,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "down"
   negative ← ui target
   require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
+  capture_screen target "reader"
   before_scroll ← stored target
   exercise_scroll target
   paused ← stored target
@@ -393,9 +400,11 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   if final.settings.instrument ≟ "Ukulele" then click target "instrument" else pure ()
   diagram ← ui target
   require "Original guitar dictionary opens a real diagram view" (isInfixOf "C — Guitar" diagram && isInfixOf "next-variation" diagram)
+  capture_screen target "guitar"
   click target "instrument"
   ukulele ← ui target
   require "Original ukulele dictionary opens a real diagram view" (isInfixOf "C — Ukulele" ukulele)
+  capture_screen target "ukulele"
   click target "custom"
   custom_form ← ui target
   case matching_position "class" "android.widget.EditText" custom_form of
@@ -419,6 +428,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   custom_view ← ui target
   require "Reopened custom fingering remains a usable diagram" (isInfixOf "C — Ukulele" custom_view &&
     isInfixOf "Variation 1 of 1" custom_view)
+  capture_screen target "custom"
   click target "settings"
   click target "font-up"
   preferences ← stored target
