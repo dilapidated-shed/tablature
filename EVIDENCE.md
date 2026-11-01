@@ -208,7 +208,7 @@ it does not qualify the richer completion candidate.
 
 At key-declaration checkpoint `0234bbfc659cf7269408c4f76a79b043fa6af859`,
 [41330547712](https://github.com/dilapidated-shed/tablature/actions/runs/41330547712)
-passes378 host checks, all1049 retained music comparisons,2142 declared-key
+passes378 host checks, all 1049 retained music comparisons, 2142 declared-key
 comparisons and application-state framing/restart tests. Its ARM native builds
 also complete. Packaging correctly refuses versionCode1001 in the manifest
 when1002 is requested. The completion source synchronizes manifest and build
@@ -355,3 +355,65 @@ Physical target is SVITOO TAB_P10, Android15. No authenticated device endpoint
 or current package/signer inventory is available in this workspace:
 `PHYSICAL_ACCEPTANCE_BLOCKED`. Historical MIRO results do not satisfy it.
 
+
+## Completed managed songbook qualification — source e6c84d64
+
+Application source `e6c84d645ad7086a11ae2735258188a49e444d13` passes the
+[PR workflow 41347983217](https://github.com/dilapidated-shed/tablature/actions/runs/41347983217),
+[push workflow 41347978719](https://github.com/dilapidated-shed/tablature/actions/runs/41347978719)
+and [unchanged-parser workflow 41347978741](https://github.com/dilapidated-shed/tablature/actions/runs/41347978741).
+The compiler inputs remain the reconciled frontend e7e03fd and canonical managed
+backend 6e1c961. Music.idric and AndroidCore.idric retain their preserved hashes.
+
+394 checked cases, all 1049 retained musical comparisons, 2142 key comparisons,
+Unicode/driver/type error controls, deterministic managed DEX and independent
+decode pass. Signed ARM32/ARM64/x86_64 construction and central signer checks
+pass. Both API29 and API34 run the complete actual installed application:
+40 direct ART assertions, rejection of the compiled Music mutant, Unicode
+import/transpose/highlighting, written minor keys/capo/restart, actual viewport
+readback, edit/reopen/share chooser, ordered repeated lists, legacy duplicate
+occurrence editing, confirmed/cancelled song/list deletion, exact file round
+trips, guitar/ukulele/custom diagrams, settings and invalid-import recovery.
+Actual 1001→1002 replacement and subsequent candidate replacement preserve
+private data; pulled installed APK bytes match the selected candidate.
+
+At 4635807f and 3aaf2011 the written-key visual assertion fails because the form's
+keyboard remains open and covers the chart. The current native platform
+dismisses InputMethodManager while the old editable View still has its window
+token. The unchanged musical display assertion then passes on both APIs.
+Earlier failed picker, scrolling and import assertions remain recorded rather
+than being rewritten as successes.
+
+Independent observer `c1e2d611672998f38495f5a901007d5a081ae047` in
+[ai-ci 41349486078](https://github.com/isomorphisms/ai-ci/actions/runs/41349486078)
+passes API29 job 124976372199 and API34 job 124976372318 against the actual DEX
+extracted from the selected signed APK. Its separate 19-literal oracle passes
+and rejects the actual compiled mutant with exit 93 and exact diagnostic.
+It independently verifies all three APK package/version/signer/managed-asset
+identities. It does not relabel producer UI evidence as independent UI review.
+
+The selected producer artifact 13100269370 is 4,285,589 bytes, archive SHA256
+`8bb0f7798d9ba8cdfc7a27d5cbda26d2d3f1b0e9fc35816ac2ae3430c4daee02`.
+ARM64 APK SHA256
+`12c1b228866f98e4eafa3be5b6f1f2a5136d0ac4def8e3751e986bff8aa3b2a3`;
+managed DEX SHA256
+`66f9dcf41ee7684ce2299187eb9ce9487e43cc850af9fe2e77b3f24bd377722e`.
+The [delivery qualification](candidates/QUALIFICATION.md) contains both APKs,
+package/native/DEX/signer receipts, per-API acceptance, independent receipts,
+actual screenshots and the feature/gap inventory. This delivery branch changes
+documentation and preserves producer bytes; it does not claim the delivery
+commit itself was the compiler input.
+
+IB qualification is separate. The attempted e6/FB9 replay 41349544024 was
+cancelled before emulator acceptance by the IB owner's new continuation.
+Observer 8f77915 preserves this exact managed caller and pairs IB 57e03521 in
+[41350061080](https://github.com/isomorphisms/ai-ci/actions/runs/41350061080).
+That pairing remains pending; historical 86dc/FB9 caller/query evidence is not
+attributed to e6. Actual old Google continuation produced JavaScript-enabling
+instructions, not public search results. No generic browser fallback is added.
+
+Physical SVITOO TAB_P10 acceptance remains PHYSICAL_ACCEPTANCE_BLOCKED:
+no authenticated transport, live capability/package/signer inventory or
+installed-byte/UI observation. No uninstall, merge, release or signer rotation
+is performed. The separate native ARM Text ABI refusal remains assigned to
+fuego-ironworks/idric-arm-thumb; it does not block the qualified managed core.
