@@ -8,6 +8,7 @@ import Chart
 import Reader
 import Dictionary
 import AppPitch
+import ManagedCore
 import System
 
 canonical : Text → Text
@@ -99,6 +100,21 @@ declared_keys_survive =
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
+  , ("managed boundary calls actual parser", application_request "pA/C#" ≟ "1A/C♯")
+  , ("managed boundary rejects invalid chords", isPrefixOf "0" (application_request "pAmazing"))
+  , ("managed boundary written minor second", application_request
+      ("r" ++ field "1" ++ field "1" ++ field "A/C♯") ≟ "1B♭/D")
+  , ("managed boundary retains Unicode spans", application_request "c🧪 [A/C♯] la\n" ≟
+      "13\t7\t6\t12\t4\t8\tA/C♯\t9|C|1\n")
+  , ("managed framing refuses truncation", isPrefixOf "0" (application_request "r20:x"))
+  , ("managed scrolling retains remainder", application_request
+      ("e" ++ field "24" ++ field "10" ++ field "0") ≟ "10\t240")
+  , ("managed reader imports original source", let reply = application_request
+      ("u" ++ field (encode_library initial_reader) ++ field "save-chart" ++ field "" ++
+       field "Managed" ++ field "A/C#\r\n")
+      in case decode_library (pack (drop 1 (unpack reply))) of
+        Right restored ⇒ map source (selected_document restored) ≟ Just "A/C#\r\n"
+        Left _ ⇒ False)
   , ("diminished seventh", canonical "B°7" ≟ "B°7")
   , ("half diminished seventh", canonical "Bø7" ≟ "Bø7")
   , ("major seventh", canonical "FΔ7" ≟ "FΔ7")

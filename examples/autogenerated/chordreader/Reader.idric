@@ -185,6 +185,7 @@ reader_text state = case selected_document state of
 ||| Persistence uses length-prefixed decoded text. Android must encode the
 ||| resulting Text as UTF-8 exactly once. Newlines, delimiters and empty songs
 ||| cannot collide with the framing. Legacy source files remain plain text.
+public export
 field : Text → Text
 field text = show (length (unpack text)) ++ ":" ++ text
 
@@ -242,6 +243,7 @@ read_field characters = do
     then Just (pack (take count rest), drop count rest)
     else Nothing
 
+public export
 read_fields : Number → List Char → Maybe (List Text, List Char)
 read_fields Z rest = Just ([], rest)
 read_fields (S count) characters = do

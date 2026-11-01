@@ -1,0 +1,120 @@
+module ManagedCore
+
+import Data.Text
+import Music
+import Key
+import Chart
+import Reader
+import AppPitch
+
+fields : Number → List Char → Either Text (List Text)
+fields count characters = case read_fields count characters of
+  Just (values, []) ⇒ Right values
+  _ ⇒ Left "Invalid application request framing"
+
+integer : Text → Either Text Integer
+integer source = maybe (Left "Expected a signed integer") Right (parseInteger source)
+
+number : Text → Either Text Number
+number source = maybe (Left "Expected a nonnegative whole number") Right (parsePositive source)
+
+position_row : PositionedChord → Text
+position_row located =
+  show located.beginning.scalar_offset ++ "\t" ++ show located.ending.scalar_offset ++ "\t" ++
+  show located.beginning.utf8_offset ++ "\t" ++ show located.ending.utf8_offset ++ "\t" ++
+  show located.beginning.utf16_offset ++ "\t" ++ show located.ending.utf16_offset ++ "\t" ++
+  print_chord located.chord ++ "\t" ++ fingering_lookup_key located.chord ++ "\n"
+
+unused_identifier : Number → Number → List Song → Text
+unused_identifier Z candidate songs = show candidate
+unused_identifier (S fuel) candidate songs =
+  if any (\song ⇒ song.identifier ≟ show candidate) songs
+    then unused_identifier fuel (S candidate) songs
+    else show candidate
+
+transition : Text → Text → Text → Text → ReaderState → Either Text ReaderState
+transition "save-chart" identifier title source state =
+  let selected = if identifier ≟ ""
+        then unused_identifier (S (length state.songs)) 1 state.songs else identifier
+  in Right (update_reader (import_song selected title source) state)
+transition "open" identifier _ _ state = Right (update_reader (open_song identifier) state)
+transition "remove" identifier _ _ state = Right (update_reader (remove_song identifier) state)
+transition "up" _ _ _ state = Right (update_reader (transpose_to (state.transpose_semitones + 1)) state)
+transition "down" _ _ _ state = Right (update_reader (transpose_to (state.transpose_semitones − 1)) state)
+transition "key" source destination _ state = do
+  source_key ← parse_key source
+  destination_key ← parse_key destination
+  Right (update_reader (transpose_between_declared_keys source_key destination_key) state)
+transition "capo-up" _ _ _ state = Right (update_reader (capo_to (S state.capo_fret)) state)
+transition "capo-down" _ _ _ state = Right (update_reader (capo_to (minus state.capo_fret 1)) state)
+transition "setlist" title identifiers previous state =
+  if not (previous ≟ "") && not (previous ≟ title) &&
+     any (\list ⇒ list.name ≟ title) state.setlists
+    then Left "A different setlist already has that name"
+    else let retained = if previous ≟ "" then state else
+               { setlists $= filter (\list ⇒ not (list.name ≟ previous)) } state
+         in Right (update_reader (save_setlist title (legacy_setlist identifiers)) retained)
+transition "position" source _ _ state = do
+  position ← number source
+  Right (update_reader (move_scroll_to position) state)
+transition "size" source _ _ state = do
+  size ← number source
+  Right (update_reader (change_text_size size) state)
+transition "speed" source _ _ state = do
+  speed ← number source
+  Right (update_reader (change_scroll_speed speed) state)
+transition "instrument" source _ _ state = Right (update_reader (choose_instrument source) state)
+transition _ _ _ _ _ = Left "Unknown reader transition"
+
+request : List Char → Either Text Text
+request ('p' :: source) = map print_chord (parse_chord (pack source))
+request ('f' :: source) = map fingering_lookup_key (parse_chord (pack source))
+request ('c' :: source) = Right (concat (map position_row (recognise_chart (pack source))))
+request ('i' :: source) = do
+  semitones ← integer (pack source)
+  Right (show (chromatic_interval semitones).letter_steps)
+request ('r' :: source) = do
+  [letters_text, semitones_text, chart] ← fields 3 source
+    | _ ⇒ Left "Written rendering requires three fields"
+  letters ← integer letters_text
+  semitones ← integer semitones_text
+  Right (render_transposition (Written_interval letters semitones) chart)
+request ('k' :: source) = do
+  [from, to] ← fields 2 source
+    | _ ⇒ Left "Key transposition requires two fields"
+  source_key ← parse_key from
+  destination_key ← parse_key to
+  interval ← interval_between_keys source_key destination_key
+  Right (show interval.letter_steps ++ "\t" ++ show interval.semitone_steps ++ "\t" ++
+    print_key source_key ++ "\t" ++ print_key destination_key)
+request ('n' :: source) = map print_key (parse_key (pack source))
+request ('v' :: source) = map encode_library (decode_library (pack source))
+request ('b' :: source) = map reader_text (decode_library (pack source))
+request ('e' :: source) = do
+  [speed_text, elapsed_text, remainder_text] ← fields 3 source
+    | _ ⇒ Left "Scrolling requires speed, elapsed time and remainder"
+  speed ← number speed_text
+  elapsed ← number elapsed_text
+  remainder ← number remainder_text
+  let state = { settings := Reader_settings 20 speed "Guitar", scrolling := True,
+                scroll_remainder := remainder } initial_reader
+  let moved = update_reader (elapsed_milliseconds elapsed) state
+  Right (show moved.scroll_position ++ "\t" ++ show moved.scroll_remainder)
+request ('u' :: source) = do
+  [library, event, first, second, third] ← fields 5 source
+    | _ ⇒ Left "Reader transition requires five fields"
+  state ← decode_library library
+  changed ← transition event first second third state
+  case changed.last_error of
+    Just problem ⇒ Left problem
+    Nothing ⇒ Right (encode_library changed)
+request _ = Left "Unknown application request"
+
+%export "dex:application_request"
+application_request : Text → Text
+application_request source = case request (unpack source) of
+  Left problem ⇒ "0" ++ problem
+  Right result ⇒ "1" ++ result
+
+main : IO ()
+main = pure ()

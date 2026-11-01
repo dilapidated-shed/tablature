@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: isomorphisms/android-NDK
-          ref: 6ab4818219efa7ea5eda137ca6b76976eb2a4d42
+          ref: 6e1c9619a96f28494ad891a32a06edfb72f3e25b
           path: deps/android-NDK
           persist-credentials: false
       - name: Qualify pinned ICK host compiler

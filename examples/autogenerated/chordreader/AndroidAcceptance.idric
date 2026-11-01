@@ -150,7 +150,8 @@ accept target apk pitch_dex runner_dex nonce = do
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
   art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
-  require "Checked DEX executes all 33 ART assertions" (isInfixOf "PASS ChordReader checked DEX:" art)
+  require "Checked DEX executes 33 retained and 5 managed ART assertions"
+    (isInfixOf "33 retained checks and 5 managed parser/chart/key checks" art)
   let first_title = "Idric acceptance " ++ nonce ++ " First"
   let second_title = "Idric acceptance " ++ nonce ++ " Second"
   import_text target (first_title ++ ".txt") fixture_source
@@ -262,11 +263,16 @@ accept target apk pitch_dex runner_dex nonce = do
   require "Missing IB search receiver retains ChordReader instead of external browser"
     (isInfixOf "IB search is unavailable" denied_search &&
      isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" denied_search)
+  application_pid ← remote target ["pidof", package_name]
+  application_log ← remote target ["logcat", "-d", "--pid", trim application_pid, "-s", "ChordReader:I"]
+  require "Actual installed process uses checked parsing, chart spans, rendering and reader state"
+    (all (\operation ⇒ isInfixOf ("IDRIC_APPLICATION_EXECUTED command=" ++ operation) application_log)
+      ["p", "c", "b", "u", "v"])
   fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
-    ("runtime\tC+Lua with checked Idric DEX\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
-     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t33 PASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+    ("runtime\tmanaged Idric music/chart/reader with Lua presentation and native JNI\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t38 PASS\nmanaged_application_calls\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
   case receipt of
     Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
     Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"

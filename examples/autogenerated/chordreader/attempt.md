@@ -29,6 +29,24 @@ All operations are pure; Android continues to own UTF-8 and atomic file writes.
 This slice needs ordinary choices, records, lists, checked integer arithmetic
 and Text parsing. Host/DEX/ART/application qualification is pending until run.
 
+### Managed application boundary
+
+`application_request : Text → Text` receives a command plus scalar-counted
+text fields and returns `1` followed by a result or `0` followed by a checked
+error. It calls the maintained Music, Chart, Key and Reader functions; it does
+not implement another parser. Musical objects and state stay managed inside
+ART. Lua's replacement music module decodes transport records only. The JNI
+boundary accepts ordinary UTF-8, converts to/from Android UTF-16, and invokes
+the checked String export. Native failures refuse the action without retrying
+the Lua musical implementation. The retained contingency stays outside the
+new candidate music asset until replacement qualification completes.
+
+Commands cover parsing, fingering keys, chromatic intervals, chart recognition,
+written rendering, declared keys, library framing and reader transitions.
+Actual source generation, independent decoding, ART and installed UI execution
+are separate pending gates. The original AndroidCore parser probe remains an
+unchanged-source control rather than being replaced by this boundary.
+
 ### Values and domains
 
 Written notes carry a letter and an integral accidental. Pitch classes are a

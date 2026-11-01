@@ -34,6 +34,7 @@ char *platform_asset(Platform *, const char *, size_t *);
 int platform_load_idric(Platform *);
 int platform_pitch_step(Platform *, int, int);
 char *platform_accidental_symbol(Platform *, const char *);
+char *platform_application_request(Platform *, const char *);
 
 /* Provider entry points. A future qualified Idriç implementation consumes the
  * same text/event boundary; a contingency must identify its actual runtime. */

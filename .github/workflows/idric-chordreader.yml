@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: isomorphisms/Idric
-          ref: 28c5755d37fb868f1b9c2f5d8fab1ce2b2ada663
+          ref: e7e03fdc896d3740c735c603b5fed792e6172d83
           path: deps/Idric
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: isomorphisms/android-NDK
-          ref: 84a4b44d4c87295f4c7479634552b1f6e3baa6d8
+          ref: 6e1c9619a96f28494ad891a32a06edfb72f3e25b
           path: deps/android-NDK
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

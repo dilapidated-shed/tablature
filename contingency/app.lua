@@ -112,7 +112,7 @@ local function online_chart(raw)
 end
 
 local function new(platform)
-  music.use_idric(platform.pitch_up,platform.pitch_down,platform.accidental_symbol)
+  music.use_idric(platform.pitch_up,platform.pitch_down,platform.accidental_symbol,platform.application_request)
   local state={songs={},setlists={},size=20,speed=24,instrument="Guitar"}
   local raw=platform.read("library.txt")
   local locked,notice=false,""
@@ -166,13 +166,34 @@ local function new(platform)
     for _,song in ipairs(state.songs) do if song.id == id then return song end end
   end
   local function selected_song() return song_by_id(selected) end
-  local function save()
-    if locked then return false end
+  local function capture_session()
     local screens={library="song_library",reader="reading_song",diagram="reading_song",settings="preferences",
       setlists="setlist_library",setlist="setlist_library",["setlist-edit"]="setlist_library",custom="reading_song",
       edit="editing_song",import="online_search"}
     state.session={id=selected,screen=screens[mode] or "song_library",shift=shift,capo=capo,scroll=scroll}
+  end
+  local function transition(event,first,second,third)
+    assert(platform.application_request,"Checked reader transitions are unavailable")
+    capture_session()
+    local reply=assert(platform.application_request("u"..field(encode(state))..field(event)..
+      field(first or "")..field(second or "")..field(third or "")))
+    assert(reply:sub(1,1) == "0" or reply:sub(1,1) == "1","Invalid checked reader reply")
+    if reply:sub(1,1) == "0" then notice=reply:sub(2); return false end
+    state=decode(reply:sub(2))
+    local session=assert(state.session,"Checked reader omitted its session")
+    selected=session.id ~= "" and session.id or nil
+    shift,capo,scroll=session.shift,session.capo,session.scroll
+    return true
+  end
+  local function save()
+    if locked then return false end
+    capture_session()
     local encoded=encode(state)
+    if platform.application_request then
+      local checked=assert(platform.application_request("v"..encoded))
+      if checked:sub(1,1) ~= "1" then notice=checked:sub(2); return false end
+      encoded=checked:sub(2)
+    end
     if encoded == raw then return true end
     if not platform.write("library.txt",encoded) then notice="Saving failed; existing data was retained"; return false end
     raw=encoded
@@ -246,10 +267,17 @@ local function new(platform)
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
       add(actions,"export","Save file")
       add(actions,"scroll",scrolling and "Pause" or "Auto scroll"); add(actions,"slower","Slower"); add(actions,"faster","Faster")
-      local interval=state.key_interval or music.interval(shift)
-      local capo_interval=music.interval(-capo)
-      model.body=music.render(song.source,{letters=interval.letters+capo_interval.letters,
-        semitones=interval.semitones-capo})
+      if platform.application_request then
+        capture_session()
+        local reply=assert(platform.application_request("b"..encode(state)))
+        assert(reply:sub(1,1) == "1",reply:sub(2))
+        model.body=reply:sub(2)
+      else
+        local interval=state.key_interval or music.interval(shift)
+        local capo_interval=music.interval(-capo)
+        model.body=music.render(song.source,{letters=interval.letters+capo_interval.letters,
+          semitones=interval.semitones-capo})
+      end
       model.spans={}
       local seen={}
       for _,located in ipairs(music.recognise(model.body)) do
@@ -315,7 +343,9 @@ local function new(platform)
     if id == "library" or id == "setlists" or id == "settings" then mode=id; scrolling=false
     elseif id == "new" or id == "import" then start_edit(id == "new" and "edit" or "import")
     elseif id:sub(1,5) == "open:" then
-      selected=id:sub(6); mode="reader"; shift=0; capo=0; scroll=0; scrolling=false; state.key_interval=nil
+      if platform.application_request then
+        if transition("open",id:sub(6)) then mode="reader"; scrolling=false end
+      else selected=id:sub(6); mode="reader"; shift=0; capo=0; scroll=0; scrolling=false; state.key_interval=nil end
     elseif id == "incoming" then
       if utf8.len(body) and not body:find("\0",1,true) then
         start_edit(title:lower():match("%.pl$") and "setlist-edit" or "import",basename(title),body)
@@ -327,9 +357,13 @@ local function new(platform)
     elseif id == "save" then
       if draft_title == "" then notice="Enter a title first"
       elseif mode == "written-key" then
-        local interval,problem=music.key_interval(draft_title,draft_body)
-        if interval then state.key_interval=interval; shift=interval.semitones; mode="reader"
-        else notice=problem end
+        if platform.application_request then
+          if transition("key",draft_title,draft_body) then mode="reader" end
+        else
+          local interval,problem=music.key_interval(draft_title,draft_body)
+          if interval then state.key_interval=interval; shift=interval.semitones; mode="reader"
+          else notice=problem end
+        end
       elseif mode == "setlist-edit" then
         local ids,problem={},nil
         for _,name in ipairs(lines(draft_body)) do
@@ -339,9 +373,15 @@ local function new(platform)
           ids[#ids+1]=found
         end
         if problem then notice=problem else
-          local list={name=draft_title,ids=ids}
-          if editing_id then state.setlists[editing_id]=list else state.setlists[#state.setlists+1]=list end
-          if save() then mode="setlists" end
+          local changed=true
+          if platform.application_request then
+            changed=transition("setlist",draft_title,table.concat(ids,"\n"),
+              editing_id and state.setlists[editing_id].name or "")
+          else
+            local list={name=draft_title,ids=ids}
+            if editing_id then state.setlists[editing_id]=list else state.setlists[#state.setlists+1]=list end
+          end
+          if changed and save() then mode="setlists" end
         end
       elseif mode == "custom" then
         local chord=music.parse(draft_title); local frets={}
@@ -354,13 +394,17 @@ local function new(platform)
           if save_custom() then mode="diagram" else notice="Custom fingering could not be saved" end
         end
       else
-        local song=editing_id and song_by_id(editing_id)
-        if not song then
-          local number=1; while song_by_id(tostring(number)) do number=number+1 end
-          song={id=tostring(number)}; state.songs[#state.songs+1]=song
+        local changed=true
+        if platform.application_request then changed=transition("save-chart",editing_id or "",draft_title,draft_body)
+        else
+          local song=editing_id and song_by_id(editing_id)
+          if not song then
+            local number=1; while song_by_id(tostring(number)) do number=number+1 end
+            song={id=tostring(number)}; state.songs[#state.songs+1]=song
+          end
+          song.title=draft_title; song.source=draft_body; selected=song.id
         end
-        song.title=draft_title; song.source=draft_body; selected=song.id
-        if save() then mode="reader"; scroll=0; shift=0; capo=0; state.key_interval=nil end
+        if changed and save() then mode="reader"; scroll=0; shift=0; capo=0; state.key_interval=nil end
       end
     elseif id == "fetch" then
       if platform.fetch(draft_body) then notice="Downloading chart…" else notice="Enter an HTTPS chart URL in the text box" end
@@ -381,16 +425,26 @@ local function new(platform)
       elseif not platform.search_ib(terms.." chords") then
         notice="IB search is unavailable on this phone; no external browser was opened"
       end
-    elseif id == "up" then shift=shift+1; state.key_interval=nil; scroll=platform.scroll_position()
-    elseif id == "down" then shift=shift-1; state.key_interval=nil; scroll=platform.scroll_position()
-    elseif id == "capo-up" then capo=capo+1; scroll=platform.scroll_position()
-    elseif id == "capo-down" then capo=math.max(0,capo-1); scroll=platform.scroll_position()
+    elseif id == "up" or id == "down" or id == "capo-up" or id == "capo-down" then
+      scroll=platform.scroll_position()
+      if platform.application_request then transition(id)
+      elseif id == "up" then shift=shift+1; state.key_interval=nil
+      elseif id == "down" then shift=shift-1; state.key_interval=nil
+      elseif id == "capo-up" then capo=capo+1
+      else capo=math.max(0,capo-1) end
     elseif id == "scroll" then scrolling=not scrolling; scroll=platform.scroll_position()
-    elseif id == "slower" then state.speed=math.max(0,state.speed-4); save()
-    elseif id == "faster" then state.speed=state.speed+4; save()
-    elseif id == "font-down" then state.size=math.max(8,state.size-2); save()
-    elseif id == "font-up" then state.size=math.min(96,state.size+2); save()
-    elseif id == "instrument" then state.instrument=state.instrument == "Guitar" and "Ukulele" or "Guitar"; variation=1; save()
+    elseif id == "slower" or id == "faster" then
+      local speed=math.max(0,state.speed+(id == "slower" and -4 or 4))
+      if platform.application_request then transition("speed",tostring(speed)) else state.speed=speed end
+      save()
+    elseif id == "font-down" or id == "font-up" then
+      local size=math.max(8,math.min(96,state.size+(id == "font-down" and -2 or 2)))
+      if platform.application_request then transition("size",tostring(size)) else state.size=size end
+      save()
+    elseif id == "instrument" then
+      local instrument=state.instrument == "Guitar" and "Ukulele" or "Guitar"
+      if platform.application_request then transition("instrument",instrument) else state.instrument=instrument end
+      variation=1; save()
     elseif id == "hand" then left_handed=not left_handed; platform.write("laterality.txt",left_handed and "left" or "right")
     elseif id == "share" then local song=assert(selected_song()); platform.share(song.title..".txt",song.source)
     elseif id == "export" then
@@ -430,9 +484,18 @@ local function new(platform)
   end
   local function tick(elapsed)
     if not locked and scrolling and mode == "reader" then
-      local distance=elapsed*state.speed+remainder
-      remainder=distance%1000
-      scroll=platform.scroll_position()+math.floor(distance/1000)
+      local distance
+      if platform.application_request then
+        local reply=assert(platform.application_request("e"..field(tostring(state.speed))..
+          field(tostring(elapsed))..field(tostring(remainder))))
+        assert(reply:sub(1,1) == "1",reply:sub(2))
+        local delta,retained=reply:sub(2):match("^(%d+)\t(%d+)$")
+        distance,remainder=assert(tonumber(delta)),assert(tonumber(retained))
+      else
+        local total=elapsed*state.speed+remainder
+        remainder=total%1000; distance=math.floor(total/1000)
+      end
+      scroll=platform.scroll_position()+distance
       platform.scroll(scroll)
     end
   end

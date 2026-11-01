@@ -203,8 +203,17 @@ inconsistent declarations refuse without overwriting the library. Explicit
 chromatic chart spellings are not respelled from a key guess.
 
 This addition is **PENDING qualification** until its exact-head host and Android
-jobs finish. The application still uses the documented contingency for parsing,
-chart recognition and state; no managed-parser integration is claimed yet.
+jobs finish. ManagedCore calls the actual Music parser, Chart recognizer and
+renderer, Key contract and Reader transitions/framing. The APK's music.lua is
+now a transport-only adapter; the old musical contingency remains an unbundled
+host regression reference. The JNI export is required, with no retry through
+Lua semantics. Source integration is not yet a successful managed runtime claim.
+The compiler pin advances to the already qualified android-NDK
+`6e1c9619a96f28494ad891a32a06edfb72f3e25b`, retaining the separate historical
+fuego-ironworks encoder for callback compatibility. Managed DEX generation must
+be byte-identical on repeat and independently decoded; the retained 33 ART
+checks are extended by five direct parser/chart/key checks. The installed
+process must log actual managed parsing, spans, rendering and state calls.
 Existing 366 checks and 1,049 comparisons remain; new key tests and 2,142 live
 Idriç/Lua key comparisons are added. API29 and API34 each run the installed
 application harness and retain separate staged receipts. Version code advances

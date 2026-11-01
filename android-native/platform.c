@@ -23,8 +23,9 @@ struct Platform {
     ANativeActivity *activity;
     jobject title_entry, body_entry, scroll_view, listener;
     jclass idric_class;
-    jmethodID pitch_up, pitch_down, accidental_symbol;
-    unsigned core_calls[3];
+    jmethodID pitch_up, pitch_down, accidental_symbol, application_request;
+    unsigned core_calls[4];
+    unsigned char application_commands[256];
     char *pending_export;
     size_t pending_export_size;
     void *reader;
@@ -407,7 +408,9 @@ int platform_load_idric(Platform *platform) {
             platform->pitch_up = (*env)->GetStaticMethodID(env, generated, "pitch_up", "(I)I");
             platform->pitch_down = (*env)->GetStaticMethodID(env, generated, "pitch_down", "(I)I");
             platform->accidental_symbol = (*env)->GetStaticMethodID(env, generated, "accidental_symbol", "(Ljava/lang/String;)Ljava/lang/String;");
-            if (!(*env)->ExceptionCheck(env) && platform->pitch_up && platform->pitch_down && platform->accidental_symbol)
+            platform->application_request = (*env)->GetStaticMethodID(env, generated, "application_request", "(Ljava/lang/String;)Ljava/lang/String;");
+            if (!(*env)->ExceptionCheck(env) && platform->pitch_up && platform->pitch_down &&
+                platform->accidental_symbol && platform->application_request)
                 platform->idric_class = (*env)->NewGlobalRef(env, generated);
         }
     }
@@ -439,6 +442,30 @@ char *platform_accidental_symbol(Platform *platform, const char *source) {
     if (output) (*env)->DeleteLocalRef(env, output);
     if (result && !platform->core_calls[2]++) __android_log_print(ANDROID_LOG_INFO, "ChordReader",
         "IDRIC_CORE_EXECUTED operation=accidental_symbol");
+    return result;
+}
+char *platform_application_request(Platform *platform, const char *source) {
+    if (!platform->idric_class) return NULL;
+    JNIEnv *env = platform->activity->env;
+    jstring input = android_text(env, source);
+    if (!input || (*env)->ExceptionCheck(env)) {
+        report(env, "prepare checked application request");
+        if (input) (*env)->DeleteLocalRef(env, input);
+        return NULL;
+    }
+    jstring output = (*env)->CallStaticObjectMethod(env, platform->idric_class,
+        platform->application_request, input);
+    char *result = NULL;
+    if (!(*env)->ExceptionCheck(env) && output) result = native_text(env, output);
+    report(env, "execute checked application request");
+    (*env)->DeleteLocalRef(env, input);
+    if (output) (*env)->DeleteLocalRef(env, output);
+    if (result) {
+        ++platform->core_calls[3];
+        unsigned char command = (unsigned char)source[0];
+        if (!platform->application_commands[command]++)
+            __android_log_print(ANDROID_LOG_INFO, "ChordReader", "IDRIC_APPLICATION_EXECUTED command=%c", command);
+    }
     return result;
 }
 char *platform_read(Platform *platform, const char *name) {

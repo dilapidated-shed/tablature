@@ -1,10 +1,13 @@
 # Chord Reader 2
 
-The development replacement uses a compiled, tested Idriç music and reader
-core. Its Android runtime is explicitly **C+Lua with checked Idriç DEX**:
-the maintained Android backends cannot yet execute the complete typed parser
-and state machine. The executable Idriç pitch and accidental operations run
-through ART. No Java/Kotlin application logic is added.
+The development candidate moves music, chart processing and reader transitions
+to checked Idriç executing through the canonical managed DEX runtime. Native C
+owns Android/JNI, storage, Views and intents; Lua retains presentation and
+transport records. The earlier C+Lua implementation remains a regression
+reference and an accepted historical fallback. It is not bundled as an
+automatic musical fallback in the new candidate. See EVIDENCE.md for the
+pending exact-source compiler, ART and installed-application gates.
+No Java/Kotlin application logic is added.
 
 The development package `org.isomorphisms.chordreader.dev` keeps the original
 application and its data separate. Signed ARM32/API19 and ARM64/API21 APKs,

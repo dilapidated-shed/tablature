@@ -101,6 +101,11 @@ static int accidental_symbol(lua_State *lua) {
     if (!result) return luaL_error(lua, "Idriç DEX accidental operation failed");
     lua_pushstring(lua, result); free(result); return 1;
 }
+static int application_request(lua_State *lua) {
+    char *result = platform_application_request(reader(lua)->platform, luaL_checkstring(lua, 1));
+    if (!result) return luaL_error(lua, "Checked Idriç application request failed; no contingency retry");
+    lua_pushstring(lua, result); free(result); return 1;
+}
 static int asset_searcher(lua_State *lua) {
     const char *name = luaL_checkstring(lua, 1);
     if (strchr(name, '/') || strchr(name, '.') || strchr(name, '\\')) return luaL_error(lua, "Invalid bundled module name");
@@ -161,10 +166,11 @@ void *reader_start(Platform *platform) {
     bind(lua, instance, "export", export_file); bind(lua, instance, "choose_file", choose_file);
     bind(lua, instance, "pitch_up", pitch_up); bind(lua, instance, "pitch_down", pitch_down);
     bind(lua, instance, "accidental_symbol", accidental_symbol);
+    bind(lua, instance, "application_request", application_request);
     if (lua_pcall(lua, 1, 1, 0) != LUA_OK) { failed(instance, "start application"); return instance; }
     instance->application = luaL_ref(lua, LUA_REGISTRYINDEX);
     lua_settop(lua, 0);
-    __android_log_print(ANDROID_LOG_INFO, "ChordReader", "APPLICATION_STARTED runtime=C+Lua checked_Idric_DEX=bound");
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader", "APPLICATION_STARTED runtime=managed_Idric musical_contingency=none presentation=Lua");
     return instance;
 }
 static int application_function(Reader *instance, const char *name) {
