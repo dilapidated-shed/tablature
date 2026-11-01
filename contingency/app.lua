@@ -131,6 +131,8 @@ local function new(platform)
   local shift,capo,scrolling,scroll,remainder=session.shift or 0,session.capo or 0,false,session.scroll or 0,0
   local draft_title,draft_body,editing_id="","",nil
   local selected_chord,variation=nil,1
+  local pending_song_delete,pending_setlist_delete=nil,nil
+  local pending_setlist_delete_name=nil
   local dictionaries,custom={},{}
   local function custom_name(instrument) return instrument == "Guitar" and "custom-guitar.crd" or "custom-ukulele.crd" end
   for _,instrument in ipairs {"Guitar","Ukulele"} do
@@ -171,7 +173,8 @@ local function new(platform)
   local function capture_session()
     local screens={library="song_library",reader="reading_song",diagram="reading_song",settings="preferences",
       setlists="setlist_library",setlist="setlist_library",["setlist-edit"]="setlist_library",custom="reading_song",
-      edit="editing_song",import="online_search"}
+      edit="editing_song",import="online_search",["confirm-delete-song"]="reading_song",
+      ["confirm-delete-setlist"]="setlist_library"}
     state.session={id=selected,screen=screens[mode] or "song_library",shift=shift,capo=capo,scroll=scroll}
   end
   local function transition(event,first,second,third)
@@ -291,6 +294,7 @@ local function new(platform)
       add(actions,"written-key","Transpose by key")
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
       add(actions,"export","Save file")
+      if platform.application_request then add(actions,"delete-song","Delete song") end
       if platform.application_request then
         capture_session()
         local reply=assert(platform.application_request("b"..encode(state)))
@@ -328,7 +332,18 @@ local function new(platform)
       if not list then mode="setlists"; return present() end
       model.title=list.name; add(actions,"edit-setlist","Edit setlist"); add(actions,"share-setlist","Share .pl")
       add(actions,"export-setlist","Save .pl file")
+      if platform.application_request then add(actions,"delete-setlist","Delete setlist") end
       for _,id in ipairs(list.ids) do local song=song_by_id(id); if song then add(actions,"open:"..id,song.title) end end
+    elseif mode == "confirm-delete-song" then
+      local song=song_by_id(pending_song_delete)
+      if not song then mode="library"; return present() end
+      model.title="Delete song"
+      model.body="Delete this song from the songbook and remove its setlist entries?\n\n"..song.title
+      add(actions,"confirm-delete-song","Delete"); add(actions,"cancel-delete-song","Cancel")
+    elseif mode == "confirm-delete-setlist" then
+      model.title="Delete setlist"
+      model.body="Delete this setlist? Its songs will stay saved.\n\n"..assert(pending_setlist_delete_name)
+      add(actions,"confirm-delete-setlist","Delete"); add(actions,"cancel-delete-setlist","Cancel")
     elseif mode == "settings" then
       model.body=string.format("Text size: %d\nScroll speed: %d px/s\nInstrument: %s\nHand: %s\n\nOriginal ChordReader resources and GPLv3+ attribution are retained.",state.size,state.speed,state.instrument,left_handed and "left" or "right")
       add(actions,"font-down","Smaller text"); add(actions,"font-up","Larger text"); add(actions,"instrument",state.instrument)
@@ -400,7 +415,7 @@ local function new(platform)
           local changed=true
           if platform.application_request then
             changed=transition("setlist",draft_title,table.concat(ids,"\n"),
-              editing_id and state.setlists[editing_id].name or "")
+              editing_id and tostring(editing_id) or "")
           else
             local list={name=draft_title,ids=ids}
             if editing_id then state.setlists[editing_id]=list else state.setlists[#state.setlists+1]=list end
@@ -480,6 +495,24 @@ local function new(platform)
       if platform.application_request then transition("instrument",instrument) else state.instrument=instrument end
       variation=1; save()
     elseif id == "hand" then left_handed=not left_handed; platform.write("laterality.txt",left_handed and "left" or "right")
+    elseif id == "delete-song" and mode == "reader" then
+      pending_song_delete=assert(selected_song()).id; scrolling=false; mode="confirm-delete-song"
+    elseif id == "cancel-delete-song" and mode == "confirm-delete-song" then
+      pending_song_delete=nil; mode="reader"
+    elseif id == "confirm-delete-song" and mode == "confirm-delete-song" then
+      if transition("remove",pending_song_delete) then
+        pending_song_delete=nil; scrolling=false; mode="library"; notice="Song deleted"
+      end
+    elseif id == "delete-setlist" and mode == "setlist" then
+      pending_setlist_delete=current_setlist
+      pending_setlist_delete_name=assert(state.setlists[current_setlist]).name; mode="confirm-delete-setlist"
+    elseif id == "cancel-delete-setlist" and mode == "confirm-delete-setlist" then
+      pending_setlist_delete=nil; pending_setlist_delete_name=nil; mode="setlist"
+    elseif id == "confirm-delete-setlist" and mode == "confirm-delete-setlist" then
+      if transition("remove-setlist",tostring(pending_setlist_delete)) then
+        pending_setlist_delete=nil; pending_setlist_delete_name=nil
+        current_setlist=nil; mode="setlists"; notice="Setlist deleted"
+      end
     elseif id == "share" then local song=assert(selected_song()); platform.share(song.title..".txt",song.source)
     elseif id == "export" then
       local song=assert(selected_song())

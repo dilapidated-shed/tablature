@@ -40,6 +40,9 @@ transition "save-chart" identifier title source state =
   in Right (update_reader (import_song selected title source) state)
 transition "open" identifier _ _ state = Right (update_reader (open_song identifier) state)
 transition "remove" identifier _ _ state = Right (update_reader (remove_song identifier) state)
+transition "remove-setlist" selected _ _ state = do
+  ordinal ← number selected
+  Right (remove_setlist_at ordinal state)
 transition "up" _ _ _ state = Right (update_reader (transpose_to (state.transpose_semitones + 1)) state)
 transition "down" _ _ _ state = Right (update_reader (transpose_to (state.transpose_semitones − 1)) state)
 transition "key" source destination _ state = do
@@ -48,15 +51,11 @@ transition "key" source destination _ state = do
   Right (update_reader (transpose_between_declared_keys source_key destination_key) state)
 transition "capo-up" _ _ _ state = Right (update_reader (capo_to (S state.capo_fret)) state)
 transition "capo-down" _ _ _ state = Right (update_reader (capo_to (minus state.capo_fret 1)) state)
-transition "setlist" title identifiers previous state =
-  if trim title ≟ "" then Left "Give the setlist a name"
-  else if not (previous ≟ "") && not (previous ≟ title) &&
-     any (\list ⇒ list.name ≟ title) state.setlists
-    then Left "A different setlist already has that name"
-    else let retained = if previous ≟ "" then state else
-               { setlists $= filter (\list ⇒ not (list.name ≟ previous)) } state
-             chosen_title = if previous ≟ "" then available_setlist_name title state.setlists else title
-         in Right (update_reader (save_setlist chosen_title (legacy_setlist identifiers)) retained)
+transition "setlist" title identifiers selected state =
+  if selected ≟ "" then Right (create_setlist title (legacy_setlist identifiers) state)
+    else do
+      ordinal ← number selected
+      Right (edit_setlist_at ordinal title (legacy_setlist identifiers) state)
 transition "position" source _ _ state = do
   position ← number source
   Right (update_reader (move_scroll_to position) state)

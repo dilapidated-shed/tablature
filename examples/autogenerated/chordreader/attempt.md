@@ -38,9 +38,24 @@ New setlist imports use `available_setlist_name : Text → List Setlist → Text
 in checked Reader state. Existing names are preserved; an imported copy receives
 an unused suffix. The search is bounded by the number of existing names, so it
 does not require unbounded effects or a second UI-owned state model. Explicit
-edits retain their existing identity and refuse a conflicting rename. The
+edits preserve their collection position and refuse a conflicting rename. The
 managed host regression deliberately uses different repeated-song orders for
 the original and imported lists so an overwrite cannot appear to pass.
+
+Legacy libraries can contain identically named setlists. The checked
+`edit_setlist_at` and `remove_setlist_at` operations select the actual occurrence
+in the submitted ordered library, rather than treating its display name as a
+unique identity. This preserves other legacy occurrences and collection order
+without changing the persistence format. Host controls retain different song
+orders in the identically named lists. Android qualification creates those
+duplicates in the accepted version1001 app, verifies their replacement/reopen
+preservation, and edits only the selected second occurrence.
+
+Song and setlist deletion use explicit confirmation/cancellation screens in the
+presentation layer. Checked Reader operations own the mutations. Real Android
+controls require cancellation to preserve exact library bytes, song removal to
+clean every repeated reference while preserving all other charts, and setlist
+removal to preserve every song and other list. No exported chart file is deleted.
 
 `application_request : Text → Text` receives a command plus scalar-counted
 text fields and returns `1` followed by a result or `0` followed by a checked

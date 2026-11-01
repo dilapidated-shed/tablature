@@ -185,6 +185,27 @@ import_text target name source = do
 find_song : Text → ReaderState → Maybe Song
 find_song title library = find (\song ⇒ song.document.title ≟ title) library.songs
 
+exercise_legacy_setlist_edit : Target → ReaderState → IO ()
+exercise_legacy_setlist_edit target original = do
+  click target "setlists"
+  click target "setlist:2"
+  click target "edit-setlist"
+  form ← ui target
+  case matching_position "class" "android.widget.EditText" form of
+    Nothing ⇒ fail_check "Legacy setlist title editor is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_MOVE_END"])
+      ignore (remote target ["input", "text", "%sEdited"])
+  click target "save"
+  edited ← stored target
+  require "Editing one identically named legacy setlist preserves both occurrences and their order"
+    (case (original.setlists, edited.setlists) of
+      ([old_first, old_second], [first, second]) ⇒ first.name ≟ old_first.name &&
+        first.song_identifiers ≟ old_first.song_identifiers &&
+        second.name ≟ (old_second.name ++ " Edited") && second.song_identifiers ≟ old_second.song_identifiers
+      _ ⇒ False)
+
 exercise_edit_and_share : Target → ReaderState → IO ()
 exercise_edit_and_share target upgraded = do
   retained ← case find_song "Retained1001" upgraded of
@@ -224,6 +245,57 @@ exercise_edit_and_share target upgraded = do
     (map (\song ⇒ (song.identifier, song.document.source)) returned.songs ≟
       map (\song ⇒ (song.identifier, song.document.source)) reopened.songs)
 
+exercise_removal : Target → Text → Text → ReaderState → IO ()
+exercise_removal target nonce first_title original = do
+  first ← case find_song first_title original of
+    Nothing ⇒ fail_check "Original song missing before removal controls"
+    Just song ⇒ pure song
+  let disposable_title = "Disposable " ++ nonce
+  let disposable_list = "Deletion " ++ nonce
+  import_text target (disposable_title ++ ".txt") "F𝄪m\n"
+  with_disposable ← stored target
+  disposable ← case find_song disposable_title with_disposable of
+    Nothing ⇒ fail_check "Disposable song was not actually saved"
+    Just song ⇒ pure song
+  import_text target (disposable_list ++ ".pl")
+    (disposable_title ++ ".txt\n" ++ first_title ++ ".txt\n" ++ disposable_title ++ ".txt\n")
+  click target "library"
+  click target ("open:" ++ disposable.identifier)
+  before_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  click target "delete-song"
+  confirmation ← ui target
+  require "Song deletion names the selected chart before confirmation"
+    (isInfixOf disposable_title confirmation && isInfixOf "confirm-delete-song" confirmation)
+  click target "cancel-delete-song"
+  after_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Cancelling song deletion preserves exact library bytes" (after_cancel ≟ before_cancel)
+  click target "delete-song"
+  click target "confirm-delete-song"
+  removed ← stored target
+  require "Confirmed song deletion preserves every other source and title"
+    (map (\song ⇒ (song.identifier, song.document.title, song.document.source)) removed.songs ≟
+      map (\song ⇒ (song.identifier, song.document.title, song.document.source)) original.songs)
+  require "Deletion removes repeated references without disturbing other setlists"
+    (map (\list ⇒ list.song_identifiers) (find (\list ⇒ list.name ≟ disposable_list) removed.setlists) ≟
+      Just [first.identifier] &&
+     map (\list ⇒ (list.name, list.song_identifiers)) (filter (\list ⇒ not (list.name ≟ disposable_list)) removed.setlists) ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) original.setlists)
+  click target "setlists"
+  click_matching target "text" disposable_list
+  before_list_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  click target "delete-setlist"
+  click target "cancel-delete-setlist"
+  after_list_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Cancelling setlist deletion preserves exact library bytes" (after_list_cancel ≟ before_list_cancel)
+  click target "delete-setlist"
+  click target "confirm-delete-setlist"
+  list_removed ← stored target
+  require "Confirmed setlist deletion keeps other lists, repetitions and all songs"
+    (map (\list ⇒ (list.name, list.song_identifiers)) list_removed.setlists ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) original.setlists &&
+     map (\song ⇒ (song.identifier, song.document.source)) list_removed.songs ≟
+      map (\song ⇒ (song.identifier, song.document.source)) original.songs)
+
 self_test : IO ()
 self_test = do
   require "XML target bounds" (button_position "save"
@@ -245,8 +317,15 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "up"
   click target "settings"
   click target "font-up"
+  import_text target "Upgrade list.pl" "Retained1001.txt\nRetained1001.txt\n"
+  import_text target "Upgrade list.pl" "Retained1001.txt\nRetained1001.txt\n"
   old_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
   old_state ← stored target
+  require "Accepted old app supplies real duplicate-name legacy setlists"
+    (case old_state.setlists of
+      [first, second] ⇒ first.name ≟ "Upgrade list" && second.name ≟ first.name &&
+        length first.song_identifiers ≟ 2 && second.song_identifiers ≟ first.song_identifiers
+      _ ⇒ False)
   require "Accepted old app actually saved the upgrade fixture"
     (map (\song ⇒ song.document.source) (find_song "Retained1001" old_state) ≟
       Just "A/C♯  A♭\r\nOld source 🧪\n")
@@ -264,6 +343,10 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
       upgraded_state.settings.text_size ≟ old_state.settings.text_size &&
       upgraded_state.settings.scroll_speed ≟ old_state.settings.scroll_speed &&
       upgraded_state.settings.instrument ≟ old_state.settings.instrument)
+  require "Replacement preserves both identically named legacy setlists"
+    (map (\list ⇒ (list.name, list.song_identifiers)) upgraded_state.setlists ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) old_state.setlists)
+  exercise_legacy_setlist_edit target upgraded_state
   exercise_edit_and_share target upgraded_state
   ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
   ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
@@ -353,6 +436,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   lists ← stored target
   require "Legacy setlist order and repeated songs" (any (\list ⇒ length list.song_identifiers ≟ 3 &&
     head' list.song_identifiers ≟ last' list.song_identifiers) lists.setlists)
+  exercise_removal target nonce first_title lists
   ignore (remote target ["am", "force-stop", package_name])
   start_application target
   final ← stored target
@@ -485,7 +569,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   apk_digest ← command ["sha256sum", apk]
   receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
     ("runtime\tmanaged Idric music/chart/reader with Lua presentation and native JNI\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
-     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\ncompiled_music_mutant\tREJECTED\nmanaged_application_calls\tPASS\nlegacy_1001_to_1002_upgrade\tPASS\nreal_edit_reopen_and_share\tPASS\nactual_viewport_and_background_resume\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\ncompiled_music_mutant\tREJECTED\nmanaged_application_calls\tPASS\nlegacy_1001_to_1002_upgrade\tPASS\nlegacy_duplicate_setlist_edit\tPASS\nreal_edit_reopen_and_share\tPASS\nremoval_and_cancellation\tPASS\nactual_viewport_and_background_resume\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
   case receipt of
     Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
     Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"

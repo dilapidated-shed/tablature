@@ -115,6 +115,34 @@ available_setlist_name title lists =
     then available_setlist_suffix (S (length lists)) 2 title lists
     else title
 
+known_setlist_songs : List Text → List Song → Bool
+known_setlist_songs identifiers songs =
+  all (\identifier ⇒ any (\song ⇒ song.identifier ≟ identifier) songs) identifiers
+
+public export
+edit_setlist_at : Number → Text → List Text → ReaderState → ReaderState
+edit_setlist_at ordinal title identifiers state =
+  if ordinal ≟ 0 then { last_error := Just "Choose a saved setlist" } state
+  else case drop (minus ordinal 1) state.setlists of
+    [] ⇒ { last_error := Just "Choose a saved setlist" } state
+    original :: _ ⇒
+      if trim title ≟ "" then { last_error := Just "Give the setlist a name" } state
+      else if not (known_setlist_songs identifiers state.songs)
+        then { last_error := Just "A setlist contains an unknown song" } state
+      else if not (original.name ≟ title) && any (\list ⇒ list.name ≟ title) state.setlists
+        then { last_error := Just "A different setlist already has that name" } state
+      else { setlists := take (minus ordinal 1) state.setlists ++
+               [Setlist_value title identifiers] ++ drop ordinal state.setlists,
+             changed := True, last_error := Nothing } state
+
+public export
+remove_setlist_at : Number → ReaderState → ReaderState
+remove_setlist_at ordinal state =
+  if ordinal ≟ 0 || ordinal > length state.setlists
+    then { last_error := Just "Choose a saved setlist" } state
+    else { setlists := take (minus ordinal 1) state.setlists ++ drop ordinal state.setlists,
+           changed := True, last_error := Nothing } state
+
 modify_selected : (SongDocument → SongDocument) → ReaderState → ReaderState
 modify_selected change state = case state.selected_song of
   Nothing ⇒ { last_error := Just "Open a song first" } state
@@ -179,12 +207,18 @@ update_reader (choose_instrument instrument) state =
     { settings := { instrument := instrument } state.settings, changed := True } state
   else { last_error := Just "Choose Guitar or Ukulele" } state
 update_reader (save_setlist name identifiers) state =
-  if all (\identifier ⇒ any (\song ⇒ song.identifier ≟ identifier) state.songs) identifiers
+  if known_setlist_songs identifiers state.songs
     then { setlists := replace_setlist (Setlist_value name identifiers) state.setlists,
            changed := True, last_error := Nothing } state
     else { last_error := Just "A setlist contains an unknown song" } state
 update_reader saved_successfully state = { changed := False, last_error := Nothing } state
 update_reader (platform_failed message) state = { last_error := Just message } state
+
+public export
+create_setlist : Text → List Text → ReaderState → ReaderState
+create_setlist title identifiers state =
+  if trim title ≟ "" then { last_error := Just "Give the setlist a name" } state
+    else update_reader (save_setlist (available_setlist_name title state.setlists) identifiers) state
 
 public export
 reader_text : ReaderState → Text

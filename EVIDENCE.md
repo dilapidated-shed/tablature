@@ -308,10 +308,20 @@ ordered repeated setlists, candidate replacement/installed-byte identity and
 exact .pl document export. Re-import then fails the preserved count assertion:
 the checked save operation replaced the existing identically named setlist.
 New imports now choose an unused name in Reader.idric, retaining the existing
-list and both repeated-song orders. Explicit edits continue to address the
-existing name. The original failing import assertion remains unchanged; host
+list and both repeated-song orders. The original failing import assertion remains unchanged; host
 controls additionally exercise the actual managed transition, occupied copy
 names and refusal of unusable blank names. Later receipts qualify this repair.
+
+Completion also exposes explicit song/setlist deletion with cancel/confirm
+controls. Those mutations execute in checked Reader state. Existing libraries
+may have identically named setlists; edits/removals now select the actual
+occurrence in the submitted ordered library and preserve the other occurrence,
+its song order and every unrelated chart. No persistence format migration or
+silent renaming of old lists is introduced. The Android harness creates real
+duplicates in the accepted version1001 package and verifies data-preserving
+replacement and an edit of only the selected second list. Host and installed
+controls qualify removal, cancellation and repeated-reference cleanup. Actual
+pass claims remain attached to the source-specific workflow receipts.
 
 Independent exact-APK observation is maintained in
 [isomorphisms/ai-ci PR #334 — Independently qualify ChordReader managed music from signed APK assets on ART](https://github.com/isomorphisms/ai-ci/pull/334).

@@ -119,6 +119,61 @@ managed_setlist_copy =
       Left _ ⇒ False
     _ ⇒ False
 
+managed_song_removal : Bool
+managed_song_removal =
+  case unpack (application_request ("u" ++ field (encode_library with_setlist) ++
+    field "remove" ++ field "two" ++ field "" ++ field "")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ case (restored.songs, restored.setlists) of
+        ([song], [list]) ⇒ song.identifier ≟ "one" &&
+          song.document.source ≟ "C#7b9\tFΔ7\r\nA song in Am\n" &&
+          list.song_identifiers ≟ ["one"] && isNothing restored.selected_song
+        _ ⇒ False
+      Left _ ⇒ False
+    _ ⇒ False
+
+managed_setlist_removal : Bool
+managed_setlist_removal =
+  case unpack (application_request ("u" ++ field (encode_library with_setlist) ++
+    field "remove-setlist" ++ field "1" ++ field "" ++ field "")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ null restored.setlists && restored.selected_song ≟ with_setlist.selected_song &&
+        map (\song ⇒ (song.identifier, song.document.source)) restored.songs ≟
+        map (\song ⇒ (song.identifier, song.document.source)) with_setlist.songs
+      Left _ ⇒ False
+    _ ⇒ False
+
+legacy_duplicate_lists : ReaderState
+legacy_duplicate_lists = { setlists :=
+  [Setlist_value "Practice" ["one", "two", "one"],
+   Setlist_value "Practice" ["two", "one", "two"], Setlist_value "Encore" ["two"]] } two_songs
+
+managed_legacy_setlist_edit : Bool
+managed_legacy_setlist_edit =
+  case unpack (application_request ("u" ++ field (encode_library legacy_duplicate_lists) ++
+    field "setlist" ++ field "Second practice" ++ field "two\none\n" ++ field "2")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ case restored.setlists of
+        [first, second, third] ⇒ first.name ≟ "Practice" &&
+          first.song_identifiers ≟ ["one", "two", "one"] && second.name ≟ "Second practice" &&
+          second.song_identifiers ≟ ["two", "one"] && third.name ≟ "Encore" &&
+          third.song_identifiers ≟ ["two"]
+        _ ⇒ False
+      Left _ ⇒ False
+    _ ⇒ False
+
+managed_legacy_setlist_removal : Bool
+managed_legacy_setlist_removal =
+  case unpack (application_request ("u" ++ field (encode_library legacy_duplicate_lists) ++
+    field "remove-setlist" ++ field "2" ++ field "" ++ field "")) of
+    '1' :: encoded ⇒ case decode_library (pack encoded) of
+      Right restored ⇒ case restored.setlists of
+        [first, second] ⇒ first.name ≟ "Practice" && first.song_identifiers ≟ ["one", "two", "one"] &&
+          second.name ≟ "Encore" && second.song_identifiers ≟ ["two"]
+        _ ⇒ False
+      Left _ ⇒ False
+    _ ⇒ False
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -133,6 +188,10 @@ tests =
       ("e" ++ field "24" ++ field "10" ++ field "0") ≟ "10\t240")
   , ("managed reader imports original source", managed_reader_import)
   , ("new setlist import preserves the existing list and repeated order", managed_setlist_copy)
+  , ("managed song removal preserves other sources and cleans repeated references", managed_song_removal)
+  , ("managed setlist removal preserves every saved song", managed_setlist_removal)
+  , ("editing one legacy duplicate preserves both lists and their collection order", managed_legacy_setlist_edit)
+  , ("removing one legacy duplicate preserves the other occurrence", managed_legacy_setlist_removal)
   , ("setlist import skips existing copy names", available_setlist_name "Practice"
       [Setlist_value "Practice" [], Setlist_value "Practice (2)" []] ≟ "Practice (3)")
   , ("new setlist requires a usable name", isPrefixOf "0" (application_request
