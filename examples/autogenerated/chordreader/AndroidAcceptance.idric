@@ -152,6 +152,11 @@ package_name = "org.isomorphisms.chordreader.dev"
 activity_name : Text
 activity_name = package_name ++ "/org.isomorphisms.NativeViewActivity"
 
+start_application : Target → IO ()
+start_application target = do
+  ignore (remote target ["am", "start", "-n", activity_name])
+  wait_for_application target 5
+
 stored : Target → IO ReaderState
 stored target = do
   raw ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
@@ -204,8 +209,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   ignore (device target ["install", "-r", apk])
   retained_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
   require "Version1001 to1002 replacement preserves private library bytes" (retained_library ≟ old_library)
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   upgraded_state ← stored target
   require "Managed app reopens old source, selection, written interval and preferences"
     (map (\song ⇒ (song.identifier, song.document.title, song.document.source)) upgraded_state.songs ≟
@@ -254,8 +258,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
      stopped.settings.scroll_speed + 4 ≟ paused.settings.scroll_speed)
   click target "faster"
   ignore (remote target ["am", "force-stop", package_name])
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   reopened ← stored target
   require "Process restart keeps source and interval" (reopened.transpose_semitones ≟ -1 &&
     reopened.scroll_position ≟ paused.scroll_position &&
@@ -272,8 +275,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   backgrounded ← stored target
   require "Suspending the restored View reads back its actual retained position"
     (backgrounded.scroll_position ≟ paused.scroll_position)
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   click target "written-key"
   enter_written_keys target
   keyed ← stored target
@@ -284,8 +286,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   keyed_view ← ui target
   require "Declared key transposition renders the written result" (isInfixOf "D♯7♭9" keyed_view)
   ignore (remote target ["am", "force-stop", package_name])
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   key_reopened ← stored target
   require "Declared key and original chart survive process death"
     (key_reopened.transpose_semitones ≟ 2 && isJust key_reopened.declared_key_change &&
@@ -304,8 +305,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   require "Legacy setlist order and repeated songs" (any (\list ⇒ length list.song_identifiers ≟ 3 &&
     head' list.song_identifiers ≟ last' list.song_identifiers) lists.setlists)
   ignore (remote target ["am", "force-stop", package_name])
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   final ← stored target
   require "All saved songs survive another process restart" (isJust (find_song first_title final) && isJust (find_song second_title final))
   before_replacement ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
@@ -323,8 +323,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   candidate_digest ← command ["sha256sum", apk]
   require "Installed code bytes match the signer-verified candidate"
     (head' (words installed_digest) ≟ head' (words candidate_digest))
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   let setlist_name = "Acceptance " ++ nonce
   let setlist_source = first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n"
   click_matching target "text" setlist_name
@@ -371,8 +370,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   require "Installed custom fingering validation executes checked Idriç"
     (isInfixOf "IDRIC_APPLICATION_EXECUTED command=g" custom_log)
   ignore (remote target ["am", "force-stop", package_name])
-  ignore (remote target ["am", "start", "-n", activity_name])
-  sleep 2
+  start_application target
   custom_reopened ← device target ["exec-out", "run-as", package_name, "cat", "files/custom-ukulele.crd"]
   require "Custom fingering survives process death" (custom_reopened ≟ custom_source)
   click target "chord:C"
