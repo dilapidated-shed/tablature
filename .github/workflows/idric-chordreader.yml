@@ -211,6 +211,7 @@ jobs:
             build/exec/android-emulator.receipt.tsv
             build/exec/android-last-ui.xml
             build/exec/android-ui-dump.txt
+            build/exec/android-restored.log
             build/exec/art-direct.txt
             build/acceptance-run/**/*.receipt.tsv
             build/exec/chordreader-pitch.dex

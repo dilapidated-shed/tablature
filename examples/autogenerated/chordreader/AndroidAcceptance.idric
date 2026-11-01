@@ -262,9 +262,18 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title reopened))
   restored_pid ← remote target ["pidof", package_name]
   restored_log ← remote target ["logcat", "-d", "--pid", trim restored_pid, "-s", "ChordReader:I"]
+  retain "android-restored.log" restored_log
+  putStrLn restored_log
   require "Restart restores the actual Android viewport after layout"
     (isInfixOf ("SCROLL_POSITION_APPLIED desired=" ++ show paused.scroll_position ++
       " actual=" ++ show paused.scroll_position) restored_log)
+  ignore (remote target ["input", "keyevent", "KEYCODE_HOME"])
+  sleep 1
+  backgrounded ← stored target
+  require "Suspending the restored View reads back its actual retained position"
+    (backgrounded.scroll_position ≟ paused.scroll_position)
+  ignore (remote target ["am", "start", "-n", activity_name])
+  sleep 2
   click target "written-key"
   enter_written_keys target
   keyed ← stored target

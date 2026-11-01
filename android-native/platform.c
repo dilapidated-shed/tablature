@@ -329,19 +329,41 @@ void platform_scroll(Platform *platform, int position) {
     JNIEnv *env = platform->activity->env;
     platform->requested_scroll = position;
     if (!(*env)->CallBooleanMethod(env, platform->scroll_view,
-            method(env, platform->scroll_view, "isLaidOut", "()Z"))) {
+            method(env, platform->scroll_view, "isLaidOut", "()Z")) ||
+            (*env)->CallBooleanMethod(env, platform->scroll_view,
+            method(env, platform->scroll_view, "isLayoutRequested", "()Z"))) {
         platform->scroll_pending = 1;
         report(env, "wait for reader layout");
         return;
     }
+    jobject content = (*env)->CallObjectMethod(env, platform->scroll_view,
+        method(env, platform->scroll_view, "getChildAt", "(I)Landroid/view/View;"), 0);
+    if (!content) { platform->scroll_pending = 1; return; }
+    int content_height = (*env)->CallIntMethod(env, content, method(env, content, "getHeight", "()I"));
+    int viewport_height = (*env)->CallIntMethod(env, platform->scroll_view,
+        method(env, platform->scroll_view, "getHeight", "()I"));
+    int padding = (*env)->CallIntMethod(env, platform->scroll_view,
+        method(env, platform->scroll_view, "getPaddingTop", "()I")) +
+        (*env)->CallIntMethod(env, platform->scroll_view,
+        method(env, platform->scroll_view, "getPaddingBottom", "()I"));
+    int content_pending = (*env)->CallBooleanMethod(env, content, method(env, content, "isLayoutRequested", "()Z"));
+    (*env)->DeleteLocalRef(env, content);
+    if (content_pending || content_height <= 0 || viewport_height <= 0) {
+        platform->scroll_pending = 1;
+        return;
+    }
+    int maximum = content_height - (viewport_height - padding);
+    if (maximum < 0) maximum = 0;
+    int desired = position < 0 ? 0 : position > maximum ? maximum : position;
     (*env)->CallVoidMethod(env, platform->scroll_view,
-        method(env, platform->scroll_view, "scrollTo", "(II)V"), 0, position);
-    platform->scroll_pending = 0;
-    if (!platform->scroll_observed) {
-        int actual = (*env)->CallIntMethod(env, platform->scroll_view,
-            method(env, platform->scroll_view, "getScrollY", "()I"));
+        method(env, platform->scroll_view, "scrollTo", "(II)V"), 0, desired);
+    int actual = (*env)->CallIntMethod(env, platform->scroll_view,
+        method(env, platform->scroll_view, "getScrollY", "()I"));
+    platform->scroll_pending = actual != desired;
+    platform->requested_scroll = desired;
+    if (!platform->scroll_pending && !platform->scroll_observed) {
         __android_log_print(ANDROID_LOG_INFO, "ChordReader",
-            "SCROLL_POSITION_APPLIED desired=%d actual=%d", position, actual);
+            "SCROLL_POSITION_APPLIED desired=%d actual=%d", desired, actual);
         platform->scroll_observed = 1;
     }
     report(env, "scroll");
