@@ -1,0 +1,6 @@
+-1
+5
+8
+Keep − in text
+19
+Keep − in Idris text

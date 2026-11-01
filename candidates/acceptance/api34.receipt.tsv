@@ -1,0 +1,14 @@
+runtime	managed Idric music/chart/reader with Lua presentation and native JNI
+physical_device	NOT_VERIFIED
+serial	emulator-5554
+fingerprint	google/sdk_gphone64_x86_64/emu64xa:14/UE1A.230829.050/12077443:userdebug/dev-keys
+ART_assertions	40 PASS
+compiled_music_mutant	REJECTED
+managed_application_calls	PASS
+legacy_1001_to_1002_upgrade	PASS
+legacy_duplicate_setlist_edit	PASS
+real_edit_reopen_and_share	PASS
+removal_and_cancellation	PASS
+actual_viewport_and_background_resume	PASS
+UI_and_persistence	PASS
+apk_sha256	808786b3783a769c1692783efdac14e0d97bb4c3bb71970fee3677c5e247853b  /home/runner/work/tablature/tablature/build/acceptance-run/41347983217-api34/candidate.apk

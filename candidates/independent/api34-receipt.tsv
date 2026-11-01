@@ -1,0 +1,8 @@
+schema	aici-chordreader-managed-art-v1
+api	34
+abi	x86_64
+APK_asset_identity	PASS
+independent_ART_assertions	19 PASS
+compiled_music_mutant	REJECTED
+physical_TAB_P10	NOT_RUN
+installed_UI	PRODUCER_OWNED_SEPARATE_GATE

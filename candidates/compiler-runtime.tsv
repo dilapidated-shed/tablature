@@ -1,0 +1,707 @@
+route	checked-platform
+capability	closures	{csegen:1}
+capability	managed-values	{csegen:1}
+capability	closures	{csegen:3}
+capability	managed-values	{csegen:3}
+capability	text-concatenation	{{csegen:3}:0}
+capability	closures	{csegen:11}
+capability	closures	{csegen:12}
+capability	closures	{csegen:13}
+capability	managed-values	{csegen:13}
+capability	closures	{csegen:14}
+capability	managed-values	{csegen:14}
+capability	closures	{csegen:16}
+capability	managed-values	{csegen:16}
+capability	closures	{csegen:33}
+capability	managed-values	{csegen:33}
+capability	closures	{csegen:48}
+capability	managed-values	{csegen:48}
+capability	closures	{csegen:53}
+capability	managed-values	{csegen:53}
+capability	closures	{csegen:57}
+capability	managed-values	{csegen:57}
+capability	closures	ManagedCore.unused_identifier
+capability	managed-values	ManagedCore.{unused_identifier:0}
+capability	managed-values	ManagedCore.transition
+capability	closures	ManagedCore.transition
+capability	managed-values	ManagedCore.{transition:6}
+capability	managed-values	ManagedCore.{transition:5}
+capability	managed-values	ManagedCore.{transition:4}
+capability	managed-values	ManagedCore.{transition:3}
+capability	closures	ManagedCore.{transition:2}
+capability	managed-values	ManagedCore.{transition:1}
+capability	managed-values	ManagedCore.{transition:0}
+capability	managed-values	ManagedCore.request
+capability	closures	ManagedCore.request
+capability	managed-values	ManagedCore.{request:21}
+capability	closures	ManagedCore.{request:21}
+capability	closures	ManagedCore.{request:20}
+capability	managed-values	ManagedCore.{request:19}
+capability	managed-values	ManagedCore.{request:18}
+capability	closures	ManagedCore.{request:18}
+capability	closures	ManagedCore.{request:17}
+capability	closures	ManagedCore.{request:16}
+capability	managed-values	ManagedCore.{request:15}
+capability	text-concatenation	ManagedCore.{request:15}
+capability	managed-values	ManagedCore.{request:14}
+capability	closures	ManagedCore.{request:14}
+capability	closures	ManagedCore.{request:13}
+capability	closures	ManagedCore.{request:12}
+capability	managed-values	ManagedCore.{request:11}
+capability	closures	ManagedCore.{request:11}
+capability	text-concatenation	ManagedCore.{request:11}
+capability	managed-values	ManagedCore.{request:9}
+capability	closures	ManagedCore.{request:9}
+capability	closures	ManagedCore.{request:8}
+capability	closures	ManagedCore.{request:7}
+capability	managed-values	ManagedCore.{request:6}
+capability	text-concatenation	ManagedCore.{request:6}
+capability	managed-values	ManagedCore.{request:5}
+capability	closures	ManagedCore.{request:5}
+capability	closures	ManagedCore.{request:4}
+capability	managed-values	ManagedCore.{request:3}
+capability	managed-values	ManagedCore.{request:2}
+capability	managed-values	ManagedCore.position_row
+capability	text-concatenation	ManagedCore.position_row
+capability	closures	ManagedCore.number
+capability	managed-values	ManagedCore.{number:1}
+capability	managed-values	ManagedCore.{number:0}
+capability	closures	ManagedCore.integer
+capability	managed-values	ManagedCore.{integer:1}
+capability	managed-values	ManagedCore.{integer:0}
+capability	managed-values	ManagedCore.fields
+capability	managed-values	ManagedCore.application_request
+capability	text-concatenation	ManagedCore.application_request
+capability	managed-values	Dictionary.read_custom_position
+capability	managed-values	Dictionary.position_text
+capability	closures	Dictionary.custom_diagram
+capability	managed-values	Dictionary.custom_diagram
+capability	managed-values	Dictionary.{custom_diagram:4}
+capability	managed-values	Dictionary.{custom_diagram:2}
+capability	closures	Dictionary.{custom_diagram:2}
+capability	managed-values	Dictionary.{custom_diagram:1}
+capability	managed-values	Dictionary.{custom_diagram:0}
+capability	closures	Dictionary.{custom_diagram:0}
+capability	managed-values	Music.case block in case block in case block in parse_characters
+capability	managed-values	Music.case block in case block in parse_characters
+capability	managed-values	Music.case block in parse_characters
+capability	text-concatenation	Music.case block in parse_characters
+capability	managed-values	Music.case block in canonical_structure
+capability	managed-values	Music.case block in case block in case block in read_modifiers
+capability	managed-values	Music.case block in read_modifiers
+capability	text-concatenation	Music.case block in read_modifiers
+capability	managed-values	Music.case block in case block in read_modifiers
+capability	managed-values	Music.case block in read_changed_degree
+capability	closures	Music.case block in read_changed_degree
+capability	managed-values	Music.{case block in read_changed_degree (4311):0}
+capability	managed-values	Music.case block in print_chord
+capability	managed-values	Music.transpose_note
+capability	managed-values	Music.transpose_chord
+capability	closures	Music.transpose_chord
+capability	managed-values	Music.sounding_pitch
+capability	managed-values	Music.read_quality
+capability	managed-values	Music.read_note
+capability	closures	Music.read_note
+capability	managed-values	Music.{read_note:0}
+capability	managed-values	Music.read_modifiers
+capability	managed-values	Music.read_letter
+capability	managed-values	Music.read_degree
+capability	managed-values	Music.read_accidentals
+capability	managed-values	Music.print_note
+capability	text-concatenation	Music.print_note
+capability	managed-values	Music.print_chord
+capability	closures	Music.print_chord
+capability	text-concatenation	Music.print_chord
+capability	text-concatenation	Music.{print_chord:9}
+capability	text-concatenation	Music.{print_chord:5}
+capability	text-concatenation	Music.{print_chord:3}
+capability	managed-values	Music.parse_note
+capability	text-concatenation	Music.parse_note
+capability	closures	Music.parse_chord
+capability	managed-values	Music.normalise_groups
+capability	managed-values	Music.interval_between_notes
+capability	managed-values	Music.fingering_lookup_key
+capability	closures	Music.fingering_lookup_key
+capability	text-concatenation	Music.fingering_lookup_key
+capability	managed-values	Music.degree_text
+capability	text-concatenation	Music.degree_text
+capability	managed-values	Music.chromatic_interval
+capability	managed-values	Music.canonical_structure
+capability	managed-values	Music.accidental_text
+capability	managed-values	Data.String.with block in parseInteger,parseIntTrimmed
+capability	closures	Data.String.with block in parseInteger,parseIntTrimmed
+capability	managed-values	Data.String.{with block in parseInteger,parseIntTrimmed (10337):1}
+capability	closures	Data.String.{with block in parseInteger,parseIntTrimmed (10337):1}
+capability	managed-values	Data.String.{with block in parseInteger,parseIntTrimmed (10337):0}
+capability	closures	Data.String.{with block in parseInteger,parseIntTrimmed (10337):0}
+capability	managed-values	Data.String.with block in parsePositive,parsePosTrimmed
+capability	managed-values	Data.String.with block in ltrim
+capability	closures	Data.String.with block in ltrim
+capability	managed-values	Data.String.with block in asList
+capability	closures	Data.String.with block in asList
+capability	managed-values	Data.String.3885:9630:wordsHelper
+capability	managed-values	Data.String.3885:9629:words'
+capability	managed-values	Data.String.3990:9729:linesHelp
+capability	managed-values	Data.String.words
+capability	closures	Data.String.words
+capability	managed-values	Data.String.strM
+capability	managed-values	Data.String.parseNumWithoutSign
+capability	managed-values	Data.String.lines'
+capability	managed-values	Data.String.lines
+capability	closures	Data.String.lines
+capability	closures	Data.String.joinBy
+capability	managed-values	Data.Maybe.isJust
+capability	managed-values	Data.Maybe.fromMaybe
+capability	closures	Data.Maybe.fromMaybe
+capability	closures	Prelude.Basics.flip
+capability	managed-values	Prelude.Types.traverse
+capability	closures	Prelude.Types.traverse
+capability	managed-values	Prelude.Types.{traverse_Traversable_List:0}
+capability	managed-values	Prelude.Types.null
+capability	managed-values	Prelude.Types.map
+capability	closures	Prelude.Types.map
+capability	managed-values	Prelude.Types.foldr
+capability	closures	Prelude.Types.foldr
+capability	managed-values	Prelude.Types.foldl
+capability	closures	Prelude.Types.foldl
+capability	closures	Prelude.Types.foldlM
+capability	managed-values	Prelude.Types.foldlM
+capability	managed-values	Prelude.Types.{foldlM_Foldable_List:1}
+capability	closures	Prelude.Types.{foldlM_Foldable_List:1}
+capability	closures	Prelude.Types.foldMap
+capability	managed-values	Prelude.Types.foldMap
+capability	managed-values	Prelude.Types.{foldMap_Foldable_List:0}
+capability	closures	Prelude.Types.{foldMap_Foldable_List:0}
+capability	managed-values	Prelude.Types.>>=
+capability	closures	Prelude.Types.>>=
+capability	managed-values	Prelude.Types.==
+capability	closures	Prelude.Types.==
+capability	managed-values	Prelude.Types.List.reverseOnto
+capability	managed-values	Prelude.Types.List.reverse
+capability	managed-values	Prelude.Types.maybe
+capability	closures	Prelude.Types.maybe
+capability	managed-values	Prelude.Types.List.mapMaybeAppend
+capability	closures	Prelude.Types.List.mapMaybeAppend
+capability	managed-values	Prelude.Types.List.mapAppend
+capability	closures	Prelude.Types.List.mapAppend
+capability	managed-values	Prelude.Types.List.lengthPlus
+capability	managed-values	Prelude.Types.List.filterAppend
+capability	closures	Prelude.Types.List.filterAppend
+capability	unicode-unpack	Prelude.Types.fastUnpack
+capability	unicode-pack	Prelude.Types.fastPack
+capability	managed-values	Prelude.Types.elemBy
+capability	closures	Prelude.Types.elemBy
+capability	managed-values	Prelude.Types.elem
+capability	managed-values	Prelude.Types.SnocList.(<>>)
+capability	unicode-text-order	Prelude.EqOrd.==
+capability	managed-values	Prelude.Show.show
+capability	closures	Prelude.Show.showPrec
+capability	managed-values	Prelude.Show.compare
+capability	text-concatenation	Prelude.Show.showParens
+capability	closures	Prelude.Show.primNumShow
+capability	managed-values	Prelude.Show.primNumShow
+capability	managed-values	Prelude.Show.precCon
+capability	closures	Prelude.Show.firstCharIs
+capability	managed-values	Data.List.7787:8509:splitRec
+capability	closures	Data.List.7787:8509:splitRec
+capability	managed-values	Data.List.{7787:8509:splitRec:0}
+capability	closures	Data.List.{7787:8509:splitRec:0}
+capability	closures	Data.List.7787:8508:split
+capability	managed-values	Data.List.take
+capability	managed-values	Data.List.sortBy
+capability	managed-values	Data.List.replicateTR
+capability	managed-values	Data.List.mergeReplicate
+capability	managed-values	Data.List.mergeBy
+capability	closures	Data.List.mergeBy
+capability	managed-values	Data.List.intersperse
+capability	managed-values	Data.List.find
+capability	closures	Data.List.find
+capability	managed-values	Data.List.drop
+capability	managed-values	Reader.case block in case block in read_library_records
+capability	managed-values	Reader.case block in read_library_records
+capability	closures	Reader.case block in read_library_records
+capability	closures	Reader.{case block in read_library_records (11010):2}
+capability	closures	Reader.{case block in read_library_records (11010):1}
+capability	managed-values	Reader.{case block in read_library_records (11010):0}
+capability	managed-values	Reader.{case block in read_library_records (10476):0}
+capability	managed-values	Reader.case block in case block in case block in read_library_records
+capability	managed-values	Reader.{case block in read_library_records (9998):0}
+capability	managed-values	Reader.case block in encode_library
+capability	text-concatenation	Reader.case block in encode_library
+capability	managed-values	Reader.update_reader
+capability	closures	Reader.update_reader
+capability	managed-values	Reader.{update_reader:5}
+capability	closures	Reader.{update_reader:5}
+capability	managed-values	Reader.{update_reader:3}
+capability	managed-values	Reader.{update_reader:2}
+capability	managed-values	Reader.{update_reader:1}
+capability	managed-values	Reader.{update_reader:0}
+capability	managed-values	Reader.selected_document
+capability	closures	Reader.selected_document
+capability	closures	Reader.{selected_document:2}
+capability	managed-values	Reader.{selected_document:2}
+capability	managed-values	Reader.{selected_document:1}
+capability	managed-values	Reader.{selected_document:0}
+capability	managed-values	Reader.replace_song
+capability	managed-values	Reader.replace_setlist
+capability	managed-values	Reader.remove_setlist_at
+capability	managed-values	Reader.reader_text
+capability	closures	Reader.reader_text
+capability	managed-values	Reader.{reader_text:0}
+capability	managed-values	Reader.read_screen
+capability	managed-values	Reader.read_number
+capability	managed-values	Reader.read_library_records
+capability	managed-values	Reader.read_fields
+capability	closures	Reader.read_fields
+capability	managed-values	Reader.{read_fields:1}
+capability	closures	Reader.{read_fields:1}
+capability	managed-values	Reader.{read_fields:0}
+capability	closures	Reader.read_field
+capability	managed-values	Reader.{read_field:0}
+capability	managed-values	Reader.modify_selected
+capability	closures	Reader.modify_selected
+capability	managed-values	Reader.{modify_selected:0}
+capability	closures	Reader.{modify_selected:0}
+capability	closures	Reader.known_setlist_songs
+capability	closures	Reader.{known_setlist_songs:1}
+capability	managed-values	Reader.{known_setlist_songs:0}
+capability	managed-values	Reader.initial_reader
+capability	text-concatenation	Reader.field
+capability	managed-values	Reader.encode_song
+capability	text-concatenation	Reader.encode_song
+capability	managed-values	Reader.encode_setlist
+capability	closures	Reader.encode_setlist
+capability	text-concatenation	Reader.encode_setlist
+capability	managed-values	Reader.encode_library
+capability	closures	Reader.encode_library
+capability	text-concatenation	Reader.encode_library
+capability	managed-values	Reader.edit_setlist_at
+capability	closures	Reader.edit_setlist_at
+capability	managed-values	Reader.{edit_setlist_at:0}
+capability	managed-values	Reader.decode_library
+capability	managed-values	Reader.create_setlist
+capability	text-concatenation	Reader.available_setlist_suffix
+capability	closures	Reader.available_setlist_suffix
+capability	managed-values	Reader.{available_setlist_suffix:0}
+capability	closures	Reader.available_setlist_name
+capability	managed-values	Reader.{available_setlist_name:0}
+capability	managed-values	Chart.tokens
+capability	managed-values	Chart.separator
+capability	closures	Chart.separator
+capability	managed-values	Chart.replace_spans
+capability	text-concatenation	Chart.replace_spans
+capability	managed-values	Chart.recognise_line
+capability	closures	Chart.recognise_line
+capability	managed-values	Chart.recognise_chart
+capability	closures	Chart.recognise_chart
+capability	managed-values	Chart.{recognise_chart:2}
+capability	closures	Chart.{recognise_chart:1}
+capability	managed-values	Chart.{recognise_chart:0}
+capability	managed-values	Chart.read_token
+capability	managed-values	Chart.line_chords
+capability	managed-values	Chart.legacy_setlist
+capability	closures	Chart.legacy_setlist
+capability	managed-values	Chart.bracketed
+capability	closures	Chart.bracketed
+capability	managed-values	Chart.{bracketed:0}
+capability	managed-values	Chart.advance_position
+capability	managed-values	Key.print_key
+capability	text-concatenation	Key.print_key
+capability	managed-values	Key.parse_key
+capability	managed-values	Key.interval_between_keys
+method	__idricApply
+method	__idricChar
+method	__idricIntExact
+method	__idricLongExact
+method	__idricManaged0
+method	__idricManaged1
+method	__idricManaged10
+method	__idricManaged100
+method	__idricManaged101
+method	__idricManaged102
+method	__idricManaged103
+method	__idricManaged104
+method	__idricManaged105
+method	__idricManaged106
+method	__idricManaged107
+method	__idricManaged108
+method	__idricManaged109
+method	__idricManaged11
+method	__idricManaged110
+method	__idricManaged111
+method	__idricManaged112
+method	__idricManaged113
+method	__idricManaged114
+method	__idricManaged115
+method	__idricManaged116
+method	__idricManaged117
+method	__idricManaged118
+method	__idricManaged119
+method	__idricManaged12
+method	__idricManaged120
+method	__idricManaged121
+method	__idricManaged122
+method	__idricManaged123
+method	__idricManaged124
+method	__idricManaged125
+method	__idricManaged126
+method	__idricManaged127
+method	__idricManaged128
+method	__idricManaged129
+method	__idricManaged13
+method	__idricManaged130
+method	__idricManaged131
+method	__idricManaged132
+method	__idricManaged133
+method	__idricManaged134
+method	__idricManaged135
+method	__idricManaged136
+method	__idricManaged137
+method	__idricManaged138
+method	__idricManaged139
+method	__idricManaged14
+method	__idricManaged140
+method	__idricManaged141
+method	__idricManaged142
+method	__idricManaged143
+method	__idricManaged144
+method	__idricManaged145
+method	__idricManaged146
+method	__idricManaged147
+method	__idricManaged148
+method	__idricManaged149
+method	__idricManaged15
+method	__idricManaged150
+method	__idricManaged151
+method	__idricManaged152
+method	__idricManaged153
+method	__idricManaged154
+method	__idricManaged155
+method	__idricManaged156
+method	__idricManaged157
+method	__idricManaged158
+method	__idricManaged159
+method	__idricManaged16
+method	__idricManaged160
+method	__idricManaged161
+method	__idricManaged162
+method	__idricManaged163
+method	__idricManaged164
+method	__idricManaged165
+method	__idricManaged166
+method	__idricManaged167
+method	__idricManaged168
+method	__idricManaged169
+method	__idricManaged17
+method	__idricManaged170
+method	__idricManaged171
+method	__idricManaged172
+method	__idricManaged173
+method	__idricManaged174
+method	__idricManaged175
+method	__idricManaged176
+method	__idricManaged177
+method	__idricManaged178
+method	__idricManaged179
+method	__idricManaged18
+method	__idricManaged180
+method	__idricManaged181
+method	__idricManaged182
+method	__idricManaged183
+method	__idricManaged184
+method	__idricManaged185
+method	__idricManaged186
+method	__idricManaged187
+method	__idricManaged188
+method	__idricManaged189
+method	__idricManaged19
+method	__idricManaged190
+method	__idricManaged191
+method	__idricManaged192
+method	__idricManaged193
+method	__idricManaged194
+method	__idricManaged195
+method	__idricManaged196
+method	__idricManaged197
+method	__idricManaged198
+method	__idricManaged199
+method	__idricManaged2
+method	__idricManaged20
+method	__idricManaged200
+method	__idricManaged201
+method	__idricManaged202
+method	__idricManaged203
+method	__idricManaged204
+method	__idricManaged205
+method	__idricManaged206
+method	__idricManaged207
+method	__idricManaged208
+method	__idricManaged209
+method	__idricManaged21
+method	__idricManaged210
+method	__idricManaged211
+method	__idricManaged212
+method	__idricManaged213
+method	__idricManaged214
+method	__idricManaged215
+method	__idricManaged216
+method	__idricManaged217
+method	__idricManaged218
+method	__idricManaged219
+method	__idricManaged22
+method	__idricManaged220
+method	__idricManaged221
+method	__idricManaged222
+method	__idricManaged223
+method	__idricManaged224
+method	__idricManaged225
+method	__idricManaged226
+method	__idricManaged227
+method	__idricManaged228
+method	__idricManaged229
+method	__idricManaged23
+method	__idricManaged230
+method	__idricManaged231
+method	__idricManaged232
+method	__idricManaged233
+method	__idricManaged234
+method	__idricManaged235
+method	__idricManaged236
+method	__idricManaged237
+method	__idricManaged238
+method	__idricManaged239
+method	__idricManaged24
+method	__idricManaged240
+method	__idricManaged241
+method	__idricManaged242
+method	__idricManaged243
+method	__idricManaged244
+method	__idricManaged245
+method	__idricManaged246
+method	__idricManaged247
+method	__idricManaged248
+method	__idricManaged249
+method	__idricManaged25
+method	__idricManaged250
+method	__idricManaged251
+method	__idricManaged252
+method	__idricManaged253
+method	__idricManaged254
+method	__idricManaged255
+method	__idricManaged256
+method	__idricManaged257
+method	__idricManaged258
+method	__idricManaged259
+method	__idricManaged26
+method	__idricManaged260
+method	__idricManaged261
+method	__idricManaged262
+method	__idricManaged263
+method	__idricManaged264
+method	__idricManaged265
+method	__idricManaged266
+method	__idricManaged267
+method	__idricManaged268
+method	__idricManaged269
+method	__idricManaged27
+method	__idricManaged270
+method	__idricManaged271
+method	__idricManaged272
+method	__idricManaged273
+method	__idricManaged274
+method	__idricManaged275
+method	__idricManaged276
+method	__idricManaged277
+method	__idricManaged278
+method	__idricManaged279
+method	__idricManaged28
+method	__idricManaged280
+method	__idricManaged281
+method	__idricManaged282
+method	__idricManaged283
+method	__idricManaged284
+method	__idricManaged285
+method	__idricManaged286
+method	__idricManaged287
+method	__idricManaged288
+method	__idricManaged289
+method	__idricManaged29
+method	__idricManaged290
+method	__idricManaged291
+method	__idricManaged292
+method	__idricManaged293
+method	__idricManaged294
+method	__idricManaged295
+method	__idricManaged296
+method	__idricManaged297
+method	__idricManaged298
+method	__idricManaged299
+method	__idricManaged3
+method	__idricManaged30
+method	__idricManaged300
+method	__idricManaged301
+method	__idricManaged302
+method	__idricManaged303
+method	__idricManaged304
+method	__idricManaged305
+method	__idricManaged306
+method	__idricManaged307
+method	__idricManaged308
+method	__idricManaged309
+method	__idricManaged31
+method	__idricManaged310
+method	__idricManaged311
+method	__idricManaged312
+method	__idricManaged313
+method	__idricManaged314
+method	__idricManaged315
+method	__idricManaged316
+method	__idricManaged317
+method	__idricManaged318
+method	__idricManaged319
+method	__idricManaged32
+method	__idricManaged320
+method	__idricManaged321
+method	__idricManaged322
+method	__idricManaged323
+method	__idricManaged324
+method	__idricManaged325
+method	__idricManaged326
+method	__idricManaged327
+method	__idricManaged328
+method	__idricManaged329
+method	__idricManaged33
+method	__idricManaged330
+method	__idricManaged331
+method	__idricManaged332
+method	__idricManaged333
+method	__idricManaged334
+method	__idricManaged335
+method	__idricManaged336
+method	__idricManaged337
+method	__idricManaged338
+method	__idricManaged339
+method	__idricManaged34
+method	__idricManaged340
+method	__idricManaged341
+method	__idricManaged342
+method	__idricManaged343
+method	__idricManaged344
+method	__idricManaged345
+method	__idricManaged346
+method	__idricManaged35
+method	__idricManaged36
+method	__idricManaged37
+method	__idricManaged38
+method	__idricManaged39
+method	__idricManaged4
+method	__idricManaged40
+method	__idricManaged41
+method	__idricManaged42
+method	__idricManaged43
+method	__idricManaged44
+method	__idricManaged45
+method	__idricManaged46
+method	__idricManaged47
+method	__idricManaged48
+method	__idricManaged49
+method	__idricManaged5
+method	__idricManaged50
+method	__idricManaged51
+method	__idricManaged52
+method	__idricManaged53
+method	__idricManaged54
+method	__idricManaged55
+method	__idricManaged56
+method	__idricManaged57
+method	__idricManaged58
+method	__idricManaged59
+method	__idricManaged6
+method	__idricManaged60
+method	__idricManaged61
+method	__idricManaged62
+method	__idricManaged63
+method	__idricManaged64
+method	__idricManaged65
+method	__idricManaged66
+method	__idricManaged67
+method	__idricManaged68
+method	__idricManaged69
+method	__idricManaged7
+method	__idricManaged70
+method	__idricManaged71
+method	__idricManaged72
+method	__idricManaged73
+method	__idricManaged74
+method	__idricManaged75
+method	__idricManaged76
+method	__idricManaged77
+method	__idricManaged78
+method	__idricManaged79
+method	__idricManaged8
+method	__idricManaged80
+method	__idricManaged81
+method	__idricManaged82
+method	__idricManaged83
+method	__idricManaged84
+method	__idricManaged85
+method	__idricManaged86
+method	__idricManaged87
+method	__idricManaged88
+method	__idricManaged89
+method	__idricManaged9
+method	__idricManaged90
+method	__idricManaged91
+method	__idricManaged92
+method	__idricManaged93
+method	__idricManaged94
+method	__idricManaged95
+method	__idricManaged96
+method	__idricManaged97
+method	__idricManaged98
+method	__idricManaged99
+method	__idricMatchFailure
+method	__idricRecursiveGroup___idricManaged124
+method	__idricRecursiveGroup___idricManaged148
+method	__idricRecursiveGroup___idricManaged168
+method	__idricRecursiveGroup___idricManaged174
+method	__idricRecursiveGroup___idricManaged240
+method	__idricRecursiveGroup___idricManaged245
+method	__idricRecursiveGroup___idricManaged246
+method	__idricRecursiveGroup___idricManaged248
+method	__idricRecursiveGroup___idricManaged249
+method	__idricRecursiveGroup___idricManaged285
+method	__idricRecursiveGroup___idricManaged286
+method	__idricRecursiveGroup___idricManaged324
+method	__idricRecursiveGroup___idricManaged326
+method	__idricRecursiveGroup___idricManaged337
+method	__idricRecursiveGroup___idricManaged340
+method	__idricTailGroup___idricManaged105
+method	__idricTailGroup___idricManaged140
+method	__idricTailGroup___idricManaged145
+method	__idricTailGroup___idricManaged155
+method	__idricTailGroup___idricManaged175
+method	__idricTailGroup___idricManaged186
+method	__idricTailGroup___idricManaged190
+method	__idricTailGroup___idricManaged194
+method	__idricTailGroup___idricManaged195
+method	__idricTailGroup___idricManaged197
+method	__idricTailGroup___idricManaged199
+method	__idricTailGroup___idricManaged204
+method	__idricTailGroup___idricManaged236
+method	__idricTailGroup___idricManaged237
+method	__idricTailGroup___idricManaged241
+method	__idricTailGroup___idricManaged247
+method	__idricTailGroup___idricManaged251
+method	__idricTailGroup___idricManaged252
+method	__idricTailGroup___idricManaged262
+method	__idricTailGroup___idricManaged291
+method	__idricTailGroup___idricManaged30
+method	__idricTailGroup___idricManaged319
+method	__idricTailGroup___idricManaged84
+method	__idricTextCompare
+method	__idricTextInteger
+method	accidental_symbol
+method	application_request
+method	pitch_down
+method	pitch_up

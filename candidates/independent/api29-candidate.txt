@@ -1,0 +1,1 @@
+PASS independent ChordReader managed ART: 19 assertions
