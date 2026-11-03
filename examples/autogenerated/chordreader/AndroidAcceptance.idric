@@ -174,7 +174,7 @@ stored target = do
     Right library ⇒ pure library
 
 fixture_source : Text
-fixture_source = "C#7b9 FΔ7 A/C♯ C\r\nA song in Am\n" ++
+fixture_source = "C#7b9 FΔ7 A/C♯ C A♭\r\nA song in Am\n" ++
   concatMap (\number ⇒ "Lyrics line " ++ show number ++ " stays unchanged\n") [1 .. 45]
 
 import_text : Target → Text → Text → IO ()
@@ -374,11 +374,11 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   require "Unicode, lyrics and CRLF survive real Android storage" (first.document.source ≟ fixture_source)
   click target "up"
   displayed ← ui target
-  require "Real View displays the written upward interval" (isInfixOf "C♯♯7♭9" displayed && isInfixOf "A♯/C♯♯" displayed)
+  require "Installed semitone button favors simple, chord-consistent spellings"\n    (isInfixOf "D7♭9 F♯Δ7 B♭/D C♯ A" displayed && not (isInfixOf "♯♯" displayed))
   click target "down"
   click target "down"
   negative ← ui target
-  require "Real View displays negative transposition" (isInfixOf "C7♭9" negative && isInfixOf "A♭/C" negative)
+  require "Installed negative semitone does not stack flats on A-flat"\n    (isInfixOf "C7♭9 EΔ7 A♭/C B G" negative && not (isInfixOf "♭♭" negative))\n  click target "down"\n  two_down ← ui target\n  require "Second negative semitone re-spells the original A-flat as G-flat"\n    (isInfixOf "G♭" two_down && not (isInfixOf "♭♭" two_down))\n  click target "up"
   capture_screen target "reader"
   before_scroll ← stored target
   exercise_scroll target
