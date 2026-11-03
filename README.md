@@ -1,4 +1,9 @@
-# Chord Reader 2
+# Tablature
+
+Tablature is the development name of this native Android chord-chart reader.
+Its quiet, six-string sheet icon is a separate resource from the original
+ChordReader 2 icon. The development package ID and signer are unchanged,
+so existing development installs retain their data when upgraded.
 
 The development candidate moves music, chart processing and reader transitions
 to checked Idriç executing through the canonical managed DEX runtime. Native C

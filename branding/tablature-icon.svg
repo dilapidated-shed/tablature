@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>Tablature app icon</title>
+  <rect width="256" height="256" fill="#202a33"/>
+  <!-- A plain chart sheet with a turned corner. The six rules suggest tablature. -->
+  <path d="M70 46 H166 L206 86 V190 Q206 206 190 206 H70 Q50 206 50 186 V66 Q50 46 70 46 Z" fill="#ebe5db"/>
+  <path d="M166 46 V74 Q166 86 180 86 H206" fill="none" stroke="#202a33" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M172 46 L206 80 H180 Q172 80 172 72 Z" fill="#ebe5db"/>
+  <g stroke="#29353e" stroke-width="3.5" stroke-linecap="round">
+    <path d="M76 111 H180 M76 125 H180 M76 139 H180 M76 153 H180 M76 167 H180 M76 181 H180"/>
+  </g>
+  <g fill="#29353e"><circle cx="151" cy="125" r="6"/><circle cx="109" cy="167" r="6"/></g>
+</svg>
