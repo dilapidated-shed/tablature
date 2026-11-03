@@ -224,12 +224,13 @@ public export
 reader_text : ReaderState → Text
 reader_text state = case selected_document state of
   Nothing ⇒ ""
-  Just document ⇒
-    let interval = fromMaybe (chromatic_interval state.transpose_semitones) state.key_interval
-        capo_interval = chromatic_interval (negate (cast state.capo_fret))
-    in render_transposition (Written_interval
-      (interval.letter_steps + capo_interval.letter_steps)
-      (interval.semitone_steps + capo_interval.semitone_steps)) document.source
+  Just document ⇒ case state.key_interval of
+    Nothing ⇒ render_chromatic
+      (state.transpose_semitones − cast state.capo_fret) document.source
+    Just interval ⇒
+      let written = render_transposition interval document.source
+      in if state.capo_fret ≟ 0 then written
+         else render_chromatic (negate (cast state.capo_fret)) written
 
 ||| Persistence uses length-prefixed decoded text. Android must encode the
 ||| resulting Text as UTF-8 exactly once. Newlines, delimiters and empty songs
