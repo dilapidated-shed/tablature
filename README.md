@@ -1,8 +1,8 @@
-# Tablature
+# Chord Changes
 
-Tablature is the development name of this native Android chord-chart reader.
-Its quiet, six-string sheet icon is a separate resource from the original
-ChordReader 2 icon. The development package ID and signer are unchanged,
+Chord Changes is the development name of the native Android chord-chart reader.
+Its icon depicts an actual C-major to G-major fingering change, not a staff,
+note symbol, or folded page. The development package ID and signer are unchanged,
 so existing development installs retain their data when upgraded.
 
 The development candidate moves music, chart processing and reader transitions
