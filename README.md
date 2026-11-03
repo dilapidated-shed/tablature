@@ -1,8 +1,9 @@
 # Chord Changes
 
 Chord Changes is the development name of the native Android chord-chart reader.
-Its icon depicts an actual C-major to G-major fingering change, not a staff,
-note symbol, or folded page. The development package ID and signer are unchanged,
+Its icon depicts two anonymous six-string fingering patterns separated by a
+change arrow, without chord names, notes, a staff, or a page motif. Finger
+markers sit in the spaces between fret wires. The development package ID and signer are unchanged,
 so existing development installs retain their data when upgraded.
 
 The development candidate moves music, chart processing and reader transitions
