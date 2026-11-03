@@ -135,6 +135,23 @@ render_transposition : WrittenInterval → Text → Text
 render_transposition interval source =
   replace_spans 0 (unpack source) (recognise_chart source) interval
 
+||| Ordinary semitone/capo display is computed afresh from original chart
+||| chords, never from a previous displayed spelling.
+replace_chromatic_spans : Number → List Char → List PositionedChord → Integer → Text
+replace_chromatic_spans offset remaining [] semitones = pack remaining
+replace_chromatic_spans offset remaining (positioned :: rest) semitones =
+  let prefix_length = minus positioned.beginning.scalar_offset offset
+      chord_length = minus positioned.ending.scalar_offset positioned.beginning.scalar_offset
+      prefix = take prefix_length remaining
+      after = drop (prefix_length + chord_length) remaining
+  in pack prefix ++ print_chord (transpose_chromatic_chord semitones positioned.chord) ++
+     replace_chromatic_spans positioned.ending.scalar_offset after rest semitones
+
+public export
+render_chromatic : Integer → Text → Text
+render_chromatic semitones source =
+  replace_chromatic_spans 0 (unpack source) (recognise_chart source) semitones
+
 ||| Source preservation is separate from canonical rendering. Saving an unedited
 ||| chart writes this original text; merely highlighting/transposing changes none
 ||| of its whitespace, line endings, spelling or trailing newline bytes.
