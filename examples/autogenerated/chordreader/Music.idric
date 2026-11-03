@@ -114,6 +114,52 @@ transpose_chord interval chord =
   { root := transpose_note interval chord.root,
     bass := map (transpose_note interval) chord.bass } chord
 
+||| A semitone button supplies a pitch change, not a written letter interval.
+||| Choose one short, coherent spelling for the whole chord relative to the
+||| immutable source. The same candidate interval is used for root and bass,
+||| so A/C♯ +1 is B♭/D, while A/D♭ retains a distinct written interval.
+||| Unlike explicit key transposition, this heuristic favors small accidentals.
+chromatic_prefer_flats : Integer → WrittenChord → Bool
+chromatic_prefer_flats shift chord =
+  if chord.root.accidental < 0 then True
+  else if chord.root.accidental > 0 then False
+  else case chord.bass of
+    Just bass ⇒ if bass.accidental < 0 then True
+                  else if bass.accidental > 0 then False else shift < 0
+    Nothing ⇒ shift < 0
+
+chromatic_note_cost : Bool → WrittenNote → Integer
+chromatic_note_cost prefer_flats note =
+  abs note.accidental × 10 +
+    (if (if prefer_flats then note.accidental > 0 else note.accidental < 0)
+       then 1 else 0)
+
+chromatic_chord_cost : Bool → WrittenChord → Integer
+chromatic_chord_cost prefer_flats chord =
+  chromatic_note_cost prefer_flats chord.root +
+    maybe 0 (chromatic_note_cost prefer_flats) chord.bass
+
+chromatic_better : Bool → WrittenChord → WrittenChord → WrittenChord
+chromatic_better prefer_flats best candidate =
+  if chromatic_chord_cost prefer_flats candidate < chromatic_chord_cost prefer_flats best
+    then candidate else best
+
+public export
+transpose_chromatic_chord : Integer → WrittenChord → WrittenChord
+transpose_chromatic_chord semitones chord =
+  if wrap 12 semitones ≟ 0 then chord else
+    let shift = if semitones < 0
+          then negate (wrap 12 (abs semitones))
+          else wrap 12 semitones
+        steps : List Integer
+        steps = if shift < 0 then [-6 .. 0] else [0 .. 6]
+        prefer_flats = chromatic_prefer_flats shift chord
+        candidates = map (\letters ⇒
+          transpose_chord (Written_interval letters shift) chord) steps
+    in case candidates of
+      [] ⇒ chord
+      first :: rest ⇒ foldl (chromatic_better prefer_flats) first rest
+
 ||| The ascending written interval between two key tonics. Preserve both the
 ||| letter distance and accidental distance, including enharmonic unisons.
 public export
