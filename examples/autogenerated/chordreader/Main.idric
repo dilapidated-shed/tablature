@@ -194,23 +194,24 @@ chromatic_pitch_and_shape shift source = case parse_chord source of
     let moved = transpose_chromatic_chord shift original
         expected_root = Music.wrap 12 ((sounding_pitch original.root).semitone + shift)
         expected_bass = map (\note ⇒ Music.wrap 12 ((sounding_pitch note).semitone + shift)) original.bass
+        accidental_limit = if isNothing original.bass then 1 else 2
         same_shape = { root := original.root, bass := original.bass } moved
     in (sounding_pitch moved.root).semitone ≟ expected_root &&
        map (\note ⇒ (sounding_pitch note).semitone) moved.bass ≟ expected_bass &&
-       abs moved.root.accidental <= 1 &&
-       maybe True (\note ⇒ abs note.accidental <= 1) moved.bass &&
+       abs moved.root.accidental <= accidental_limit &&
+       maybe True (\note ⇒ abs note.accidental <= accidental_limit) moved.bass &&
        print_chord same_shape ≟ print_chord original
 
 chromatic_navigation : Text → Bool
-chromatic_navigation source =
-  let original = update_reader (import_song "navigation" "Navigation" (source ++ "\r\n")) initial_reader
+chromatic_navigation input =
+  let original = update_reader (import_song "navigation" "Navigation" (input ++ "\r\n")) initial_reader
       raised = foldl (\state, _ ⇒ update_reader (transpose_to (state.transpose_semitones + 1)) state)
         original [1 .. 12]
       lowered = foldl (\state, _ ⇒ update_reader (transpose_to (state.transpose_semitones − 1)) state)
         raised [1 .. 12]
   in reader_text raised ≟ reader_text original &&
      reader_text lowered ≟ reader_text original &&
-     map source (selected_document lowered) ≟ Just (source ++ "\r\n") &&
+     map source (selected_document lowered) ≟ Just (input ++ "\r\n") &&
      case decode_library (encode_library lowered) of
        Left _ ⇒ False
        Right reopened ⇒ reader_text reopened ≟ reader_text original
