@@ -389,6 +389,14 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   displayed ← ui target
   require "Installed semitone button favors simple, chord-consistent spellings"
     (isInfixOf "D7♭9 F♯Δ7 B♭/D C♯ A" displayed && not (isInfixOf "♯♯" displayed))
+  click target "chord:A"
+  transposed_diagram ← ui target
+  require "Transposed A-flat opens the sounding A fingering"
+    (isInfixOf ("A — " ++ zero_state.settings.instrument) transposed_diagram &&
+     isInfixOf "Variation " transposed_diagram &&
+     not (isInfixOf "No stored fingering" transposed_diagram))
+  capture_screen target "transposed-fingering"
+  click target "back-reader"
   click target "down"
   click target "down"
   negative ← ui target
