@@ -139,9 +139,17 @@ chromatic_chord_cost prefer_flats chord =
   chromatic_note_cost prefer_flats chord.root +
     maybe 0 (chromatic_note_cost prefer_flats) chord.bass
 
+chromatic_accidental_bound : WrittenChord → Integer
+chromatic_accidental_bound chord =
+  max (abs chord.root.accidental) (maybe 0 (\note ⇒ abs note.accidental) chord.bass)
+
 chromatic_better : Bool → WrittenChord → WrittenChord → WrittenChord
 chromatic_better prefer_flats best candidate =
-  if chromatic_chord_cost prefer_flats candidate < chromatic_chord_cost prefer_flats best
+  let candidate_bound = chromatic_accidental_bound candidate
+      best_bound = chromatic_accidental_bound best
+  in if candidate_bound < best_bound ||
+        (candidate_bound ≟ best_bound &&
+         chromatic_chord_cost prefer_flats candidate < chromatic_chord_cost prefer_flats best)
     then candidate else best
 
 public export

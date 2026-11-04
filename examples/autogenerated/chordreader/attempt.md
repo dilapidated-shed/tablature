@@ -268,3 +268,11 @@ binding is historical until explicitly updated to a successful new artifact.
 The required compiler operation is unchanged; current host, DEX, installed UI
 and signing results must be read from the exact producer run rather than
 inferred from this account. There is no newly established Idriç language gap.
+
+The B-sharp/D-flat edge cases then exposed another real failure in run
+41748455730 at source 37878b7bc850766a103c01c2942a8ef1c3a1b541:
+shifts -16, -4, 8 and 20 favored a triple accidental on one note over a single
+plus double accidental. The flat/sharp preference broke a tie in the sum of
+accidental magnitudes. Candidate selection now first minimizes the largest
+accidental magnitude, then the existing sum/preference cost. The deliberately
+written root/bass interval still moves together; the test bound is not relaxed.
