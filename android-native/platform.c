@@ -2,6 +2,7 @@
  * Android platform adapter; ordinary C is deliberately confined to this ABI.
  */
 #include "platform.h"
+#include "native/presentation/charcoal.h"
 #include <android/asset_manager.h>
 #include <android/log.h>
 #include <android/looper.h>
@@ -196,8 +197,8 @@ static jobject diagram_image(Platform *platform, const UiScreen *screen) {
         (*env)->GetMethodID(env, canvas_type, "<init>", "(Landroid/graphics/Bitmap;)V"), bitmap);
     jclass paint_type = (*env)->FindClass(env, "android/graphics/Paint");
     jobject paint = (*env)->NewObject(env, paint_type, (*env)->GetMethodID(env, paint_type, "<init>", "(I)V"), 1);
-    (*env)->CallVoidMethod(env, canvas, method(env, canvas, "drawColor", "(I)V"), (jint)0xfffafafa);
-    (*env)->CallVoidMethod(env, paint, method(env, paint, "setColor", "(I)V"), (jint)0xff183456);
+    (*env)->CallVoidMethod(env, canvas, method(env, canvas, "drawColor", "(I)V"), (jint)CHARCOAL_BACKGROUND);
+    (*env)->CallVoidMethod(env, paint, method(env, paint, "setColor", "(I)V"), (jint)CHARCOAL_TEXT);
     (*env)->CallVoidMethod(env, paint, method(env, paint, "setStrokeWidth", "(F)V"), 2.0f);
     (*env)->CallVoidMethod(env, paint, method(env, paint, "setTextSize", "(F)V"), 20.0f);
     jmethodID line = method(env, canvas, "drawLine", "(FFFFLandroid/graphics/Paint;)V");
@@ -248,6 +249,7 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     keep(env, &platform->body_entry, NULL);
     keep(env, &platform->scroll_view, NULL);
     jobject root = view(platform, "android/widget/LinearLayout");
+    (*env)->CallVoidMethod(env, root, method(env, root, "setBackgroundColor", "(I)V"), (jint)CHARCOAL_BACKGROUND);
     if (screen->fixed_action_count) {
         /* A selectable chart is focusable in touch mode. Give the reader root
          * initial focus so ScrollView does not scroll to that child and replace
@@ -324,7 +326,7 @@ void platform_present(Platform *platform, const UiScreen *screen) {
             jclass colour_type = (*env)->FindClass(env, "android/text/style/ForegroundColorSpan");
             for (size_t index = 0; index < screen->span_count; ++index) {
                 jobject colour = (*env)->NewObject(env, colour_type,
-                    (*env)->GetMethodID(env, colour_type, "<init>", "(I)V"), (jint)0xff1559aa);
+                    (*env)->GetMethodID(env, colour_type, "<init>", "(I)V"), (jint)CHARCOAL_SECONDARY);
                 (*env)->CallVoidMethod(env, styled, method(env, styled, "setSpan", "(Ljava/lang/Object;III)V"),
                     colour, screen->spans[index].beginning, screen->spans[index].ending, 33);
                 (*env)->DeleteLocalRef(env, colour);

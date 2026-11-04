@@ -18,6 +18,7 @@ jobs:
       IDRIC_REPO: ${{ github.workspace }}/deps/Idric
       DEX_REPO: ${{ github.workspace }}/deps/idric-arm-thumb
       ANDROID_NDK_REPO: ${{ github.workspace }}/deps/android-NDK
+      CHARCOAL_REPO: ${{ github.workspace }}/deps/charcoal
       AICI_REPO: ${{ github.workspace }}/deps/ai-ci
       ANDROID_GREASE: ${{ github.workspace }}/deps/runtime/.build/grease/bin/grease
       LUA_SOURCE: ${{ github.workspace }}/build/lua-5.4.8/src
@@ -49,6 +50,12 @@ jobs:
           repository: isomorphisms/android-NDK
           ref: 6e1c9619a96f28494ad891a32a06edfb72f3e25b
           path: deps/android-NDK
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: isomorphisms/android-NDK
+          ref: 3e682fb1175beef5625dbd2418730220e49fc9bd
+          path: deps/charcoal
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

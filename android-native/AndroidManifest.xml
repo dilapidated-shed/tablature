@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:label="Chord Changes" android:icon="@mipmap/chord_changes_icon"
         android:hasCode="true" android:debuggable="true" android:allowBackup="true" android:extractNativeLibs="true"
-        android:theme="@android:style/Theme.Holo.Light.NoActionBar">
+        android:theme="@style/Theme.Charcoal">
         <activity android:name="org.isomorphisms.NativeViewActivity" android:exported="true" android:launchMode="singleTask"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <meta-data android:name="android.app.lib_name" android:value="chordreader" />
