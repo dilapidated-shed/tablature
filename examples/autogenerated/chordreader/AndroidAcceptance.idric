@@ -372,6 +372,19 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
     Nothing ⇒ fail_check "Imported song missing from Android storage"
     Just song ⇒ pure song
   require "Unicode, lyrics and CRLF survive real Android storage" (first.document.source ≟ fixture_source)
+  ignore (traverse (\_ ⇒ click target "up") [1 .. 12])
+  octave_view ← ui target
+  require "Twelve installed semitone increments restore source spelling"
+    (isInfixOf "C♯7♭9 FΔ7 A/C♯ C A♭" octave_view)
+  ignore (traverse (\_ ⇒ click target "down") [1 .. 12])
+  click target "up"
+  click target "down"
+  zero_view ← ui target
+  zero_state ← stored target
+  require "Opposite installed steps restore display and preserve source"
+    (zero_state.transpose_semitones ≟ 0 &&
+     isInfixOf "C♯7♭9 FΔ7 A/C♯ C A♭" zero_view &&
+     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title zero_state))
   click target "up"
   displayed ← ui target
   require "Installed semitone button favors simple, chord-consistent spellings"
