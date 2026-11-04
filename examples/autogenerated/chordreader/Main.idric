@@ -187,6 +187,34 @@ chromatic_buttons =
      application_request ("b" ++ encode_library once) ≟ "1G\n" &&
      application_request ("b" ++ encode_library twice) ≟ "1G♭\n"
 
+chromatic_pitch_and_shape : Integer → Text → Bool
+chromatic_pitch_and_shape shift source = case parse_chord source of
+  Left _ ⇒ False
+  Right original ⇒
+    let moved = transpose_chromatic_chord shift original
+        expected_root = Music.wrap 12 ((sounding_pitch original.root).semitone + shift)
+        expected_bass = map (\note ⇒ Music.wrap 12 ((sounding_pitch note).semitone + shift)) original.bass
+        same_shape = { root := original.root, bass := original.bass } moved
+    in (sounding_pitch moved.root).semitone ≟ expected_root &&
+       map (\note ⇒ (sounding_pitch note).semitone) moved.bass ≟ expected_bass &&
+       abs moved.root.accidental <= 1 &&
+       maybe True (\note ⇒ abs note.accidental <= 1) moved.bass &&
+       print_chord same_shape ≟ print_chord original
+
+chromatic_navigation : Text → Bool
+chromatic_navigation source =
+  let original = update_reader (import_song "navigation" "Navigation" (source ++ "\r\n")) initial_reader
+      raised = foldl (\state, _ ⇒ update_reader (transpose_to (state.transpose_semitones + 1)) state)
+        original [1 .. 12]
+      lowered = foldl (\state, _ ⇒ update_reader (transpose_to (state.transpose_semitones − 1)) state)
+        raised [1 .. 12]
+  in reader_text raised ≟ reader_text original &&
+     reader_text lowered ≟ reader_text original &&
+     map source (selected_document lowered) ≟ Just (source ++ "\r\n") &&
+     case decode_library (encode_library lowered) of
+       Left _ ⇒ False
+       Right reopened ⇒ reader_text reopened ≟ reader_text original
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -332,7 +360,14 @@ tests =
    ("DEX ABI text preservation", accidental_symbol "𝄪" ≟ "𝄪")] ++
   concat (map (\source ⇒ map (\shift ⇒
     ("inverse " ++ source ++ " " ++ show shift, inverse_law shift source))
-    [-36 .. 36]) ["A/C♯", "C♭m7", "F♯♯7♭9", "Gø7/B♭"])
+    [-36 .. 36]) ["A/C♯", "C♭m7", "F♯♯7♭9", "Gø7/B♭"]) ++
+  concatMap (\root ⇒ concatMap (\suffix ⇒ map (\shift ⇒
+    ("chromatic pitch/shape " ++ root ++ suffix ++ " " ++ show shift,
+      chromatic_pitch_and_shape shift (root ++ suffix)))
+    [-24 .. 24]) ["", "m", "°7", "+", "sus4", "Δ7", "7♭9♯11", "/C♯", "/D♭"])
+    ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"] ++
+  map (\source ⇒ ("twelve actual reader steps and inverse " ++ source, chromatic_navigation source))
+    ["A♭", "B", "C", "A/C♯", "A/D♭", "F♯♯m"]
 
 run_test : (Text, Bool) → IO Bool
 run_test (name, passed) = do
