@@ -234,3 +234,37 @@ RejectBroken.idric is an intentionally invalid negative control: its declared
 Int32 answer is supplied Text. The strict build must reject it before producing
 an executable. This checks the actual -Werror frontend behavior rather than
 assuming a successful command means its diagnostics were empty.
+
+## Semitone navigation completion, November 3, 2026
+
+The regression domain keeps original chart Text, WrittenChord, PitchClass,
+signed Integer chromatic displacement, WrittenInterval letter/semitone
+displacements, declared key/mode, and slash-bass identity separate. The central
+operations remain transpose_chromatic_chord : Integer → WrittenChord →
+WrittenChord and reader_text : ReaderState → Text. Host tests compute sounding
+pitch expectations modulo twelve, preserve every non-note chord field, and
+exercise ReaderState serialization. Installed acceptance drives real controls,
+checks octave and opposite-step restoration, opens the transposed A fingering,
+and retains the existing process-death, key, capo and upgrade assertions.
+
+The initial supplied Android acceptance source contained literal backslash-n
+tokens between statements; producer run 41569015318 stopped at
+AndroidAcceptance.idric before signing or emulator execution. They were
+converted to real source newlines without changing string fixture bytes.
+
+The expanded matrix at source 4372c1ea143a63028082b2548d306483b625ce6c
+found fourteen failures in producer run 41747907398: A-flat with each of seven
+qualities at shifts -11 and -23. Music.transpose_chromatic_chord searched only
+six descending letter steps. A-flat minus eleven semitones needs the natural A
+one written octave lower, requiring seven letter steps. The repair includes
+both octave endpoints (-7 and +7); B-sharp and C-flat cases protect the opposite
+edge. Intentional slash intervals may need double accidentals, so their bound
+is two; ordinary single-root navigation has bound one in this matrix.
+
+All attempts remain checked Idriç. No alternative musical engine or language
+fallback was introduced. The separate ai-ci observer uses literal musical
+expectations through the packaged application's export; its old producer
+binding is historical until explicitly updated to a successful new artifact.
+The required compiler operation is unchanged; current host, DEX, installed UI
+and signing results must be read from the exact producer run rather than
+inferred from this account. There is no newly established Idriç language gap.

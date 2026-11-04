@@ -366,7 +366,7 @@ tests =
     ("chromatic pitch/shape " ++ root ++ suffix ++ " " ++ show shift,
       chromatic_pitch_and_shape shift (root ++ suffix)))
     [-24 .. 24]) ["", "m", "°7", "+", "sus4", "Δ7", "7♭9♯11", "/C♯", "/D♭"])
-    ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"] ++
+    ["C", "C♯", "C♭", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B", "B♯"] ++
   map (\source ⇒ ("twelve actual reader steps and inverse " ++ source, chromatic_navigation source))
     ["A♭", "B", "C", "A/C♯", "A/D♭", "F♯♯m"]
 
