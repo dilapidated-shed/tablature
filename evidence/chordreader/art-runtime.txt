@@ -1,0 +1,1 @@
+PASS ChordReader checked DEX: 24 pitch steps, 4 invalid inputs, 5 Unicode/alias cases

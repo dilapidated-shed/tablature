@@ -1,0 +1,32 @@
+module AppPitch
+
+%noinline
+add_checked_inputs : Int32 → Int32 → Int32
+add_checked_inputs first second = first + second
+
+||| A deliberately bounded platform ABI for one UI step, not a representation
+||| of written spelling. Inputs outside the twelve sounding classes are refused
+||| with -1. The application retains written letters and intervals separately.
+export
+%export "dex:pitch_up"
+pitch_up : Int32 → Int32
+pitch_up pitch =
+  if pitch < 0 then -1 else
+  if pitch < 12 then (if pitch < 11 then add_checked_inputs pitch 1 else 0) else -1
+
+export
+%export "dex:pitch_down"
+pitch_down : Int32 → Int32
+pitch_down pitch =
+  if pitch < 0 then -1 else
+  if pitch < 12 then (if pitch < 1 then 11 else pitch − 1) else -1
+
+export
+%export "dex:accidental_symbol"
+accidental_symbol : Text → Text
+accidental_symbol supplied =
+  if supplied ≟ "#" then "♯" else
+  if supplied ≟ "b" then "♭" else supplied
+
+main : IO ()
+main = pure ()

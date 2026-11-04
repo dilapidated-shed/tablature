@@ -1,0 +1,4 @@
+build_id	target	toolchain	ick_revision	ick_status	ick_evidence
+android-platform-and-lua32	armeabi-v7a-api19	ndk	fbe86e23d55cfec2000c08e61deea2a407fd7175	gap:No current JNI and foreign Lua Android qualification receipt at the evaluated ICK revision	ci/toolchain-gap.md
+android-platform-and-lua64	arm64-v8a-api21	ndk	fbe86e23d55cfec2000c08e61deea2a407fd7175	gap:No current JNI and foreign Lua Android qualification receipt at the evaluated ICK revision	ci/toolchain-gap.md
+foreign-lua-and-shared-verifier	linux-x86_64	ndk	fbe86e23d55cfec2000c08e61deea2a407fd7175	gap:This run has no qualified ICK host artifact and declares the executed NDK host compiler	ci/toolchain-gap.md

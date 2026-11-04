@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<title>Chord Changes: two anonymous fretboard shapes and a transition arrow</title>
+<rect width="256" height="256" fill="#182834"/>
+<line x1="32" y1="65" x2="32" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="47" y1="65" x2="47" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="62" y1="65" x2="62" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="77" y1="65" x2="77" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="92" y1="65" x2="92" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="107" y1="65" x2="107" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="32" y1="65" x2="107" y2="65" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="32" y1="96" x2="107" y2="96" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="32" y1="127" x2="107" y2="127" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="32" y1="158" x2="107" y2="158" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="32" y1="189" x2="107" y2="189" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<circle cx="47" cy="80.5" r="7.8" fill="#EBA86F"/>
+<circle cx="62" cy="142.5" r="7.8" fill="#EBA86F"/>
+<circle cx="92" cy="111.5" r="7.8" fill="#EBA86F"/>
+<line x1="149" y1="65" x2="149" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="164" y1="65" x2="164" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="179" y1="65" x2="179" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="194" y1="65" x2="194" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="209" y1="65" x2="209" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="224" y1="65" x2="224" y2="189" stroke="#E6E8E2" stroke-width="2.7" stroke-linecap="round"/>
+<line x1="149" y1="65" x2="224" y2="65" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="149" y1="96" x2="224" y2="96" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="149" y1="127" x2="224" y2="127" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="149" y1="158" x2="224" y2="158" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<line x1="149" y1="189" x2="224" y2="189" stroke="#B6C4C8" stroke-width="3.0" stroke-linecap="round"/>
+<circle cx="164" cy="111.5" r="7.8" fill="#EBA86F"/>
+<circle cx="194" cy="80.5" r="7.8" fill="#EBA86F"/>
+<circle cx="209" cy="142.5" r="7.8" fill="#EBA86F"/>
+<path d="M119 127 H137 M130 119 L138 127 L130 135" fill="none" stroke="#EBA86F" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

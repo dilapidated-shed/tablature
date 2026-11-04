@@ -1,0 +1,15 @@
+/workspace/scratch/c09acdbd327d/idric-arm-thumb/build/exec/chordreader-pitch.dex: 1 file pushed, 0 skipped. 6.1 MB/s (872 bytes in 0.000s)
+/workspace/scratch/c09acdbd327d/idric-arm-thumb/build/chordreader-runner.dex: 1 file pushed, 0 skipped. 12.2 MB/s (1376 bytes in 0.000s)
+Warning: Activity not started, intent has been delivered to currently running top-most instance.
+Warning: Activity not started, intent has been delivered to currently running top-most instance.
+PASS	Explicit emulator boundary
+PASS	Expected x86_64 emulator ABI
+PASS	Checked DEX executes all 33 ART assertions
+PASS	Unicode, lyrics and CRLF survive real Android storage
+PASS	Real View displays the written upward interval
+PASS	Real View displays negative transposition
+PASS	Process restart keeps source and interval
+PASS	Two songs survive single-task intent delivery
+PASS	Legacy setlist order and repeated songs
+PASS	All saved songs survive another process restart
+PASS	Android application acceptance; emulator evidence only

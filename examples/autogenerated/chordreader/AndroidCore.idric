@@ -1,0 +1,12 @@
+module AndroidCore
+
+import Music
+
+%export "dex:canonical_chord"
+canonical_chord : Text → Text
+canonical_chord source = case parse_chord source of
+  Left _ ⇒ source
+  Right chord ⇒ print_chord chord
+
+main : IO ()
+main = pure ()

@@ -1,0 +1,373 @@
+module Reader
+
+import Data.Text
+import Data.Maybe
+import Data.Nat
+import Music
+import Key
+import Chart
+
+public export
+record Song where
+  constructor Saved_song
+  identifier : Text
+  document : SongDocument
+
+public export
+record Setlist where
+  constructor Setlist_value
+  name : Text
+  song_identifiers : List Text
+
+public export
+choice reader_screen one_of
+  song_library
+  reading_song
+  editing_song
+  setlist_library
+  preferences
+  online_search
+
+public export
+record ReaderSettings where
+  constructor Reader_settings
+  text_size : Number
+  scroll_speed : Number
+  instrument : Text
+
+public export
+record ReaderState where
+  constructor Reader_state
+  songs : List Song
+  setlists : List Setlist
+  selected_song : Maybe Text
+  screen : reader_screen
+  settings : ReaderSettings
+  transpose_semitones : Integer
+  key_interval : Maybe WrittenInterval
+  declared_key_change : Maybe KeyChange
+  capo_fret : Number
+  scroll_position : Number
+  scroll_remainder : Number
+  scrolling : Bool
+  changed : Bool
+  last_error : Maybe Text
+
+public export
+initial_reader : ReaderState
+initial_reader = Reader_state [] [] Nothing song_library
+  (Reader_settings 20 24 "Guitar") 0 Nothing Nothing 0 0 0 False False Nothing
+
+public export
+choice reader_event one_of
+  import_song Text Text Text
+  open_song Text
+  edit_song Text
+  rename_song Text
+  remove_song Text
+  show_screen reader_screen
+  transpose_to Integer
+  transpose_between_keys WrittenNote WrittenNote
+  transpose_between_declared_keys WrittenKey WrittenKey
+  capo_to Number
+  toggle_scrolling
+  elapsed_milliseconds Number
+  move_scroll_to Number
+  change_scroll_speed Number
+  change_text_size Number
+  choose_instrument Text
+  save_setlist Text (List Text)
+  saved_successfully
+  platform_failed Text
+
+public export
+selected_document : ReaderState → Maybe SongDocument
+selected_document state = do
+  requested ← state.selected_song
+  song ← find (\song ⇒ song.identifier ≟ requested) state.songs
+  Just song.document
+
+replace_song : Song → List Song → List Song
+replace_song replacement [] = [replacement]
+replace_song replacement (song :: rest) =
+  if song.identifier ≟ replacement.identifier
+    then replacement :: rest
+    else song :: replace_song replacement rest
+
+replace_setlist : Setlist → List Setlist → List Setlist
+replace_setlist replacement [] = [replacement]
+replace_setlist replacement (list :: rest) =
+  if list.name ≟ replacement.name then replacement :: rest
+  else list :: replace_setlist replacement rest
+
+available_setlist_suffix : Number → Number → Text → List Setlist → Text
+available_setlist_suffix Z suffix title lists = title ++ " (" ++ show suffix ++ ")"
+available_setlist_suffix (S fuel) suffix title lists =
+  let candidate = title ++ " (" ++ show suffix ++ ")"
+  in if any (\list ⇒ list.name ≟ candidate) lists
+       then available_setlist_suffix fuel (S suffix) title lists
+       else candidate
+
+public export
+available_setlist_name : Text → List Setlist → Text
+available_setlist_name title lists =
+  if any (\list ⇒ list.name ≟ title) lists
+    then available_setlist_suffix (S (length lists)) 2 title lists
+    else title
+
+known_setlist_songs : List Text → List Song → Bool
+known_setlist_songs identifiers songs =
+  all (\identifier ⇒ any (\song ⇒ song.identifier ≟ identifier) songs) identifiers
+
+public export
+edit_setlist_at : Number → Text → List Text → ReaderState → ReaderState
+edit_setlist_at ordinal title identifiers state =
+  if ordinal ≟ 0 then { last_error := Just "Choose a saved setlist" } state
+  else case drop (minus ordinal 1) state.setlists of
+    [] ⇒ { last_error := Just "Choose a saved setlist" } state
+    original :: _ ⇒
+      if trim title ≟ "" then { last_error := Just "Give the setlist a name" } state
+      else if not (known_setlist_songs identifiers state.songs)
+        then { last_error := Just "A setlist contains an unknown song" } state
+      else if not (original.name ≟ title) && any (\list ⇒ list.name ≟ title) state.setlists
+        then { last_error := Just "A different setlist already has that name" } state
+      else { setlists := take (minus ordinal 1) state.setlists ++
+               [Setlist_value title identifiers] ++ drop ordinal state.setlists,
+             changed := True, last_error := Nothing } state
+
+public export
+remove_setlist_at : Number → ReaderState → ReaderState
+remove_setlist_at ordinal state =
+  if ordinal ≟ 0 || ordinal > length state.setlists
+    then { last_error := Just "Choose a saved setlist" } state
+    else { setlists := take (minus ordinal 1) state.setlists ++ drop ordinal state.setlists,
+           changed := True, last_error := Nothing } state
+
+modify_selected : (SongDocument → SongDocument) → ReaderState → ReaderState
+modify_selected change state = case state.selected_song of
+  Nothing ⇒ { last_error := Just "Open a song first" } state
+  Just requested ⇒
+    { songs $= map (\song ⇒ if song.identifier ≟ requested
+        then { document $= change } song else song),
+      changed := True, last_error := Nothing } state
+
+public export
+update_reader : reader_event → ReaderState → ReaderState
+update_reader (import_song identifier title source) state =
+  if identifier ≟ "" then { last_error := Just "A song needs an identifier" } state
+  else { songs := replace_song (Saved_song identifier (Song_document title source)) state.songs,
+         selected_song := Just identifier, screen := reading_song,
+         changed := True, last_error := Nothing, scroll_position := 0, scroll_remainder := 0,
+         transpose_semitones := 0, key_interval := Nothing, declared_key_change := Nothing,
+         capo_fret := 0, scrolling := False } state
+update_reader (open_song identifier) state =
+  if any (\song ⇒ song.identifier ≟ identifier) state.songs
+    then { selected_song := Just identifier, screen := reading_song,
+           scroll_position := 0, scroll_remainder := 0, transpose_semitones := 0, capo_fret := 0,
+           scrolling := False, key_interval := Nothing, declared_key_change := Nothing,
+           last_error := Nothing } state
+    else { last_error := Just "Song not found" } state
+update_reader (edit_song source) state = modify_selected ({ source := source }) state
+update_reader (rename_song title) state = modify_selected ({ title := title }) state
+update_reader (remove_song identifier) state =
+  { songs $= filter (\song ⇒ not (song.identifier ≟ identifier)),
+    setlists $= map (\list ⇒ { song_identifiers $= filter
+      (\candidate ⇒ not (candidate ≟ identifier)) } list),
+    selected_song := if state.selected_song ≟ Just identifier then Nothing else state.selected_song,
+    changed := True, scrolling := False, last_error := Nothing } state
+update_reader (show_screen screen) state = { screen := screen, scrolling := False } state
+update_reader (transpose_to semitones) state =
+  { transpose_semitones := semitones, key_interval := Nothing, declared_key_change := Nothing } state
+update_reader (transpose_between_keys source destination) state =
+  let interval = interval_between_notes source destination
+  in { transpose_semitones := interval.semitone_steps, key_interval := Just interval,
+       declared_key_change := Nothing } state
+update_reader (transpose_between_declared_keys source destination) state =
+  case interval_between_keys source destination of
+    Left problem ⇒ { last_error := Just problem } state
+    Right interval ⇒
+      { transpose_semitones := interval.semitone_steps, key_interval := Just interval,
+        declared_key_change := Just (Key_change source destination), last_error := Nothing } state
+update_reader (capo_to fret) state = { capo_fret := fret } state
+update_reader toggle_scrolling state =
+  { scrolling := not state.scrolling && isJust (selected_document state) } state
+update_reader (elapsed_milliseconds elapsed) state =
+  if state.scrolling then
+    let distance = elapsed × state.settings.scroll_speed + state.scroll_remainder
+    in { scroll_position := state.scroll_position + distance `div` 1000,
+         scroll_remainder := distance `mod` 1000 } state
+  else state
+update_reader (move_scroll_to position) state = { scroll_position := position } state
+update_reader (change_scroll_speed speed) state =
+  { settings := { scroll_speed := speed } state.settings, changed := True } state
+update_reader (change_text_size size) state =
+  { settings := { text_size := max 8 (min 96 size) } state.settings, changed := True } state
+update_reader (choose_instrument instrument) state =
+  if elem instrument ["Guitar", "Ukulele"] then
+    { settings := { instrument := instrument } state.settings, changed := True } state
+  else { last_error := Just "Choose Guitar or Ukulele" } state
+update_reader (save_setlist name identifiers) state =
+  if known_setlist_songs identifiers state.songs
+    then { setlists := replace_setlist (Setlist_value name identifiers) state.setlists,
+           changed := True, last_error := Nothing } state
+    else { last_error := Just "A setlist contains an unknown song" } state
+update_reader saved_successfully state = { changed := False, last_error := Nothing } state
+update_reader (platform_failed message) state = { last_error := Just message } state
+
+public export
+create_setlist : Text → List Text → ReaderState → ReaderState
+create_setlist title identifiers state =
+  if trim title ≟ "" then { last_error := Just "Give the setlist a name" } state
+    else update_reader (save_setlist (available_setlist_name title state.setlists) identifiers) state
+
+public export
+reader_text : ReaderState → Text
+reader_text state = case selected_document state of
+  Nothing ⇒ ""
+  Just document ⇒ case state.key_interval of
+    Nothing ⇒ render_chromatic
+      (state.transpose_semitones − cast state.capo_fret) document.source
+    Just interval ⇒
+      let written = render_transposition interval document.source
+      in if state.capo_fret ≟ 0 then written
+         else render_chromatic (negate (cast state.capo_fret)) written
+
+||| Persistence uses length-prefixed decoded text. Android must encode the
+||| resulting Text as UTF-8 exactly once. Newlines, delimiters and empty songs
+||| cannot collide with the framing. Legacy source files remain plain text.
+public export
+field : Text → Text
+field text = show (length (unpack text)) ++ ":" ++ text
+
+encode_song : Song → Text
+encode_song song = "S" ++ field song.identifier ++ field song.document.title ++ field song.document.source
+
+encode_setlist : Setlist → Text
+encode_setlist list = "L" ++ field list.name ++ field (show (length list.song_identifiers)) ++
+  concat (map field list.song_identifiers)
+
+screen_name : reader_screen → Text
+screen_name song_library = "song_library"
+screen_name reading_song = "reading_song"
+screen_name editing_song = "editing_song"
+screen_name setlist_library = "setlist_library"
+screen_name preferences = "preferences"
+screen_name online_search = "online_search"
+
+read_screen : Text → Maybe reader_screen
+read_screen "song_library" = Just song_library
+read_screen "reading_song" = Just reading_song
+read_screen "editing_song" = Just editing_song
+read_screen "setlist_library" = Just setlist_library
+read_screen "preferences" = Just preferences
+read_screen "online_search" = Just online_search
+read_screen _ = Nothing
+
+public export
+encode_library : ReaderState → Text
+encode_library state = "ChordReader/Idric/1\n" ++
+  "P" ++ field (show state.settings.text_size) ++ field (show state.settings.scroll_speed) ++
+  field state.settings.instrument ++
+  concat (map encode_song state.songs) ++ concat (map encode_setlist state.setlists) ++
+  "R" ++ field (fromMaybe "" state.selected_song) ++ field (screen_name state.screen) ++
+  field (show state.transpose_semitones) ++ field (show state.capo_fret) ++ field (show state.scroll_position) ++
+  (case state.key_interval of
+    Nothing ⇒ ""
+    Just interval ⇒ "K" ++ field (show interval.letter_steps) ++ field (show interval.semitone_steps)) ++
+  (case state.declared_key_change of
+    Nothing ⇒ ""
+    Just change ⇒ "T" ++ field (print_key change.source_key) ++ field (print_key change.destination_key))
+
+read_number : List Char → Number → Maybe (Number, List Char)
+read_number [] value = Nothing
+read_number (':' :: rest) value = Just (value, rest)
+read_number (character :: rest) value =
+  if character >= '0' && character <= '9'
+    then read_number rest (value × 10 + cast (ord character − ord '0'))
+    else Nothing
+
+read_field : List Char → Maybe (Text, List Char)
+read_field characters = do
+  (count, rest) ← read_number characters 0
+  if count <= length rest
+    then Just (pack (take count rest), drop count rest)
+    else Nothing
+
+public export
+read_fields : Number → List Char → Maybe (List Text, List Char)
+read_fields Z rest = Just ([], rest)
+read_fields (S count) characters = do
+  (value, rest) ← read_field characters
+  (values, ending) ← read_fields count rest
+  Just (value :: values, ending)
+
+read_library_records : Number → List Char → ReaderState → Either Text ReaderState
+read_library_records Z [] state = Right ({ changed := False } state)
+read_library_records Z _ state = Left "Library record count exceeds its source length"
+read_library_records (S fuel) [] state = Right ({ changed := False } state)
+read_library_records (S fuel) ('S' :: rest) state = case read_fields 3 rest of
+  Just ([identifier, title, source], remaining) ⇒
+    if any (\song ⇒ song.identifier ≟ identifier) state.songs
+      then Left "Duplicate song identifier in stored library"
+      else read_library_records fuel remaining
+        ({ songs $= (++ [Saved_song identifier (Song_document title source)]) } state)
+  _ ⇒ Left "Truncated song record"
+read_library_records (S fuel) ('L' :: rest) state = case read_fields 2 rest of
+  Just ([name, count_text], after_name) ⇒ case parsePositive {a=Number} count_text of
+    Nothing ⇒ Left "Invalid setlist length"
+    Just count ⇒ case read_fields count after_name of
+      Nothing ⇒ Left "Truncated setlist record"
+      Just (identifiers, remaining) ⇒ read_library_records fuel remaining
+        ({ setlists $= (++ [Setlist_value name identifiers]) } state)
+  _ ⇒ Left "Truncated setlist header"
+read_library_records (S fuel) ('P' :: rest) state = case read_fields 3 rest of
+  Just ([size_text, speed_text, instrument], remaining) ⇒
+    case (parsePositive {a=Number} size_text, parsePositive {a=Number} speed_text) of
+      (Just size, Just speed) ⇒ read_library_records fuel remaining
+        ({ settings := Reader_settings size speed instrument } state)
+      _ ⇒ Left "Invalid reader settings"
+  _ ⇒ Left "Truncated settings record"
+read_library_records (S fuel) ('R' :: rest) state = case read_fields 5 rest of
+  Just ([identifier, screen_text, shift_text, capo_text, position_text], remaining) ⇒
+    case (read_screen screen_text, parseInteger {a=Integer} shift_text,
+          parsePositive {a=Number} capo_text, parsePositive {a=Number} position_text) of
+      (Just screen, Just shift, Just capo, Just position) ⇒
+        if identifier ≟ "" || any (\song ⇒ song.identifier ≟ identifier) state.songs
+          then read_library_records fuel remaining
+            ({ selected_song := if identifier ≟ "" then Nothing else Just identifier,
+               screen := screen, transpose_semitones := shift,
+               capo_fret := capo, scroll_position := position } state)
+          else Left "Stored reader refers to an unknown song"
+      _ ⇒ Left "Invalid stored reader state"
+  _ ⇒ Left "Truncated reader state"
+read_library_records (S fuel) ('K' :: rest) state = case read_fields 2 rest of
+  Just ([letters, semitones], remaining) ⇒
+    case (parseInteger {a=Integer} letters, parseInteger {a=Integer} semitones) of
+      (Just letter_steps, Just semitone_steps) ⇒ read_library_records fuel remaining
+        ({ key_interval := Just (Written_interval letter_steps semitone_steps) } state)
+      _ ⇒ Left "Invalid written key interval"
+  _ ⇒ Left "Truncated key interval"
+read_library_records (S fuel) ('T' :: rest) state = case read_fields 2 rest of
+  Just ([source, destination], remaining) ⇒ do
+    source_key ← parse_key source
+    destination_key ← parse_key destination
+    interval ← interval_between_keys source_key destination_key
+    case state.key_interval of
+      Just existing ⇒ if existing.letter_steps ≟ interval.letter_steps &&
+                          existing.semitone_steps ≟ interval.semitone_steps
+        then read_library_records fuel remaining
+          ({ declared_key_change := Just (Key_change source_key destination_key) } state)
+        else Left "Stored keys disagree with the written interval"
+      Nothing ⇒ Left "Stored keys require a written interval"
+  _ ⇒ Left "Truncated declared keys"
+read_library_records (S fuel) _ state = Left "Unknown library record type"
+
+public export
+decode_library : Text → Either Text ReaderState
+decode_library source =
+  let header = unpack "ChordReader/Idric/1\n"
+      characters = unpack source
+  in if take (length header) characters ≟ header
+       then read_library_records (S (length characters))
+         (drop (length header) characters) initial_reader
+       else Left "Unrecognised library format; import legacy .txt/.pl files separately"

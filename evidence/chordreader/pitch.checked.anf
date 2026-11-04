@@ -1,0 +1,75 @@
+export AppPitch.accidental_symbol as accidental_symbol
+[0]: %let v4 = (%let v1 = ("#") in (Prelude.EqOrd.==(v0, v1))) in (%case v4 of { %constalt(1) => "\9839"| %constalt(0) => %let v3 = (%let v2 = ("b") in (Prelude.EqOrd.==(v0, v2))) in (%case v3 of { %constalt(1) => "\9837"| %constalt(0) => v0 Nothing }) Nothing })
+
+export AppPitch.pitch_down as pitch_down
+[0]: %let v7 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v7 of { %constalt(1) => -1| %constalt(0) => %let v6 = (%let v2 = (12) in (Prelude.EqOrd.<(v0, v2))) in (%case v6 of { %constalt(1) => %let v5 = (%let v3 = (1) in (Prelude.EqOrd.<(v0, v3))) in (%case v5 of { %constalt(1) => 11| %constalt(0) => %let v4 = (1) in (%op -Int32(v0, v4)) Nothing })| %constalt(0) => -1 Nothing }) Nothing })
+
+export AppPitch.pitch_up as pitch_up
+[0]: %let v7 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v7 of { %constalt(1) => -1| %constalt(0) => %let v6 = (%let v2 = (12) in (Prelude.EqOrd.<(v0, v2))) in (%case v6 of { %constalt(1) => %let v5 = (%let v3 = (11) in (Prelude.EqOrd.<(v0, v3))) in (%case v5 of { %constalt(1) => %let v4 = (1) in (AppPitch.add_checked_inputs(v0, v4))| %constalt(0) => 0 Nothing })| %constalt(0) => -1 Nothing }) Nothing })
+
+checked definition {__mainExpression:0}
+[]: %let v0 = (<{{__mainExpression:0}:0} underapp 1>()) in (PrimIO.unsafePerformIO(v0))
+
+checked definition {{__mainExpression:0}:0}
+[0]: AppPitch.main(v0)
+
+checked definition _builtin.NIL
+Constructor tag Just 0 arity 0 newtype by Nothing
+
+checked definition _builtin.CONS
+Constructor tag Just 1 arity 2 newtype by Nothing
+
+checked definition _builtin.NOTHING
+Constructor tag Just 0 arity 0 newtype by Nothing
+
+checked definition _builtin.JUST
+Constructor tag Just 1 arity 1 newtype by Nothing
+
+checked definition prim__sub_Integer
+[0, 1]: %op -Integer(v0, v1)
+
+checked definition AppPitch.pitch_up
+[0]: %let v7 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v7 of { %constalt(1) => -1| %constalt(0) => %let v6 = (%let v2 = (12) in (Prelude.EqOrd.<(v0, v2))) in (%case v6 of { %constalt(1) => %let v5 = (%let v3 = (11) in (Prelude.EqOrd.<(v0, v3))) in (%case v5 of { %constalt(1) => %let v4 = (1) in (AppPitch.add_checked_inputs(v0, v4))| %constalt(0) => 0 Nothing })| %constalt(0) => -1 Nothing }) Nothing })
+
+checked definition AppPitch.pitch_down
+[0]: %let v7 = (%let v1 = (0) in (Prelude.EqOrd.<(v0, v1))) in (%case v7 of { %constalt(1) => -1| %constalt(0) => %let v6 = (%let v2 = (12) in (Prelude.EqOrd.<(v0, v2))) in (%case v6 of { %constalt(1) => %let v5 = (%let v3 = (1) in (Prelude.EqOrd.<(v0, v3))) in (%case v5 of { %constalt(1) => 11| %constalt(0) => %let v4 = (1) in (%op -Int32(v0, v4)) Nothing })| %constalt(0) => -1 Nothing }) Nothing })
+
+checked definition AppPitch.main
+[0]: ___
+
+checked definition AppPitch.add_checked_inputs
+[0, 1]: %op +Int32(v0, v1)
+
+checked definition AppPitch.accidental_symbol
+[0]: %let v4 = (%let v1 = ("#") in (Prelude.EqOrd.==(v0, v1))) in (%case v4 of { %constalt(1) => "\9839"| %constalt(0) => %let v3 = (%let v2 = ("b") in (Prelude.EqOrd.==(v0, v2))) in (%case v3 of { %constalt(1) => "\9837"| %constalt(0) => v0 Nothing }) Nothing })
+
+checked definition Prelude.Types.prim__integerToNat
+[0]: %let v2 = (%let v1 = (0) in (%op <=Integer(v1, v0))) in (%case v2 of { %constalt(0) => 0 Just v0 })
+
+checked definition Prelude.EqOrd.compare
+[0, 1]: %let v3 = (Prelude.EqOrd.<(v0, v1)) in (%case v3 of { %constalt(1) => 0| %constalt(0) => %let v2 = (Prelude.EqOrd.==(v0, v1)) in (%case v2 of { %constalt(1) => 1| %constalt(0) => 2 Nothing }) Nothing })
+
+checked definition Prelude.EqOrd.==
+[0, 1]: %let v2 = (%op ==String(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.==
+[0, 1]: %let v2 = (%op ==Integer(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.<
+[0, 1]: %let v2 = (%op <Integer(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.<
+[0, 1]: %let v2 = (%op <Int32(v0, v1)) in (%case v2 of { %constalt(0) => 0 Just 1 })
+
+checked definition Prelude.EqOrd.compareInteger
+[0, 1]: Prelude.EqOrd.compare(v0, v1)
+
+checked definition PrimIO.unsafePerformIO
+[0]: %let v1 = (<PrimIO.{unsafePerformIO:0} underapp 1>(v0)) in (PrimIO.unsafeCreateWorld(v1))
+
+checked definition PrimIO.{unsafePerformIO:0}
+[0, 1]: v0 @ (v1)
+
+checked definition PrimIO.unsafeCreateWorld
+[0]: %let v1 = (%MkWorld) in (v0 @ (v1))
+

@@ -1,0 +1,617 @@
+module AndroidAcceptance
+
+import Data.Text
+import Data.List
+import Data.List1
+import Data.Maybe
+import Data.Buffer
+import System
+import System.Escape
+import System.File
+import System.File.Buffer
+import Reader
+import Chart
+import Key
+
+%default covering
+
+fail_check : Text → IO value
+fail_check explanation = do putStrLn ("FAIL\t" ++ explanation); exitFailure
+
+require : Text → Bool → IO ()
+require label passed = if passed then putStrLn ("PASS\t" ++ label) else fail_check label
+
+record Target where
+  constructor Android_target
+  adb : Text
+  serial : Text
+
+command : List Text → IO Text
+command arguments = do
+  (output, status) ← System.Escaped.run ("timeout" :: "60" :: arguments)
+  if status ≟ 0 then pure output else fail_check
+    ("Command failed: " ++ unwords (take 4 arguments) ++ " exit=" ++ show status ++ "\n" ++ output)
+
+retain : Text → Text → IO ()
+retain name content = do
+  Right () ← writeFile ("build/exec/" ++ name) content
+    | Left _ ⇒ fail_check ("Could not retain " ++ name)
+  pure ()
+
+device : Target → List Text → IO Text
+device target arguments = command ([target.adb, "-s", target.serial] ++ arguments)
+
+remote : Target → List Text → IO Text
+remote target arguments = device target ["shell", "-n", escapeCmd arguments]
+
+capture_screen : Target → Text → IO ()
+capture_screen target name = do
+  let filename = "chordreader-" ++ name ++ ".png"
+  ignore (remote target ["screencap", "-p", "/sdcard/" ++ filename])
+  ignore (device target ["pull", "/sdcard/" ++ filename, "build/exec/" ++ filename])
+
+after : List Char → List Char → Maybe (List Char)
+after needle [] = Nothing
+after needle remaining@(_ :: rest) =
+  if isPrefixOf needle remaining then Just (drop (length needle) remaining) else after needle rest
+
+attribute : Text → Text → Maybe Text
+attribute name node = map (\characters ⇒ pack (takeWhile (/= '"') characters))
+  (after (unpack (name ++ "=\"")) (unpack node))
+
+coordinates : Text → Maybe (Integer, Integer)
+coordinates bounds =
+  let groups : List Text = filter (\part ⇒ length (unpack part) > 0)
+        (forget (Data.Text.split (\character ⇒ character < '0' || character > '9') bounds))
+  in case the (Maybe (List Integer)) (traverse (parsePositive {a=Integer}) groups) of
+    Just [left, top, right, bottom] ⇒
+      if right > left && bottom > top then Just ((left + right) `div` 2, (top + bottom) `div` 2) else Nothing
+    _ ⇒ Nothing
+
+matching_position : Text → Text → Text → Maybe (Integer, Integer)
+matching_position field value xml = do
+  node ← find (\node ⇒ attribute field node ≟ Just value) (forget (Data.Text.split (== '<') xml))
+  bounds ← attribute "bounds" node
+  coordinates bounds
+
+button_position : Text → Text → Maybe (Integer, Integer)
+button_position = matching_position "content-desc"
+
+fresh_ui : Target → Nat → IO Text
+fresh_ui target Z = fail_check "Android did not supply a fresh accessibility root"
+fresh_ui target (S remaining) = do
+  ignore (remote target ["rm", "-f", "/sdcard/chordreader-acceptance.xml"])
+  result ← remote target ["uiautomator", "dump", "/sdcard/chordreader-acceptance.xml"]
+  retain "android-ui-dump.txt" result
+  case isInfixOf "dumped to:" result of
+    True ⇒ do
+      xml ← device target ["exec-out", "cat", "/sdcard/chordreader-acceptance.xml"]
+      retain "android-last-ui.xml" xml
+      pure xml
+    False ⇒ do
+      sleep 1
+      fresh_ui target remaining
+
+ui : Target → IO Text
+ui target = fresh_ui target 5
+
+click_matching : Target → Text → Text → IO ()
+click_matching target field description = do
+  xml ← ui target
+  case matching_position field description xml of
+    Nothing ⇒ fail_check ("Visible control missing: " ++ description)
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+
+click : Target → Text → IO ()
+click target = click_matching target "content-desc"
+
+exercise_scroll : Target → IO ()
+exercise_scroll target = do
+  xml ← ui target
+  case button_position "scroll" xml of
+    Nothing ⇒ fail_check "Auto-scroll control is not visible"
+    Just (x, y) ⇒ do
+      -- Android's dump waits for accessibility idle, which continuous scrolling
+      -- deliberately prevents. The pause action occupies the same fixed button
+      -- bounds. Observe those bounds before motion and verify state after pause.
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 2
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+  paused_view ← ui target
+  require "Pause returns a fresh stable reader accessibility tree"
+    (isInfixOf "content-desc=\"scroll\"" paused_view)
+
+enter_written_keys : Target → IO ()
+enter_written_keys target = do
+  xml ← ui target
+  case matching_position "class" "android.widget.EditText" xml of
+    Nothing ⇒ fail_check "Written-key source field is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "A%sminor"])
+      ignore (remote target ["input", "keyevent", "KEYCODE_TAB"])
+      ignore (remote target ["input", "text", "B%sminor"])
+  click target "save"
+
+finish_document_selection : Target → IO ()
+finish_document_selection target = do
+  xml ← ui target
+  let selection = case matching_position "resource-id" "com.android.documentsui:id/action_menu_select" xml of
+        Just position ⇒ Just position
+        Nothing ⇒ matching_position "resource-id" "com.google.android.documentsui:id/action_menu_select" xml
+  case selection of
+    Nothing ⇒ pure ()
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      sleep 1
+
+wait_for_application : Target → Nat → IO ()
+wait_for_application target Z = fail_check "Android did not return from the document picker"
+wait_for_application target (S remaining) = do
+  xml ← ui target
+  if isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" xml then pure ()
+    else do sleep 1; wait_for_application target remaining
+
+package_name : Text
+package_name = "org.isomorphisms.chordreader.dev"
+
+activity_name : Text
+activity_name = package_name ++ "/org.isomorphisms.NativeViewActivity"
+
+start_application : Target → IO ()
+start_application target = do
+  ignore (remote target ["am", "start", "-n", activity_name])
+  wait_for_application target 5
+
+stored : Target → IO ReaderState
+stored target = do
+  raw ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  case decode_library raw of
+    Left problem ⇒ fail_check ("Idriç could not decode the real Android library: " ++ problem)
+    Right library ⇒ pure library
+
+fixture_source : Text
+fixture_source = "C#7b9 FΔ7 A/C♯ C A♭\r\nA song in Am\n" ++
+  concatMap (\number ⇒ "Lyrics line " ++ show number ++ " stays unchanged\n") [1 .. 45]
+
+import_text : Target → Text → Text → IO ()
+import_text target name source = do
+  ignore (remote target ["am", "start", "-a", "android.intent.action.SEND", "-t", "text/plain",
+    "-n", activity_name, "--es", "android.intent.extra.TITLE", name,
+    "--es", "android.intent.extra.TEXT", source])
+  sleep 2
+  click target "save"
+
+find_song : Text → ReaderState → Maybe Song
+find_song title library = find (\song ⇒ song.document.title ≟ title) library.songs
+
+exercise_legacy_setlist_edit : Target → ReaderState → IO ()
+exercise_legacy_setlist_edit target original = do
+  click target "setlists"
+  click target "setlist:2"
+  click target "edit-setlist"
+  form ← ui target
+  case matching_position "class" "android.widget.EditText" form of
+    Nothing ⇒ fail_check "Legacy setlist title editor is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_MOVE_END"])
+      ignore (remote target ["input", "text", "%sEdited"])
+  click target "save"
+  edited ← stored target
+  require "Editing one identically named legacy setlist preserves both occurrences and their order"
+    (case (original.setlists, edited.setlists) of
+      ([old_first, old_second], [first, second]) ⇒ first.name ≟ old_first.name &&
+        first.song_identifiers ≟ old_first.song_identifiers &&
+        second.name ≟ (old_second.name ++ " Edited") && second.song_identifiers ≟ old_second.song_identifiers
+      _ ⇒ False)
+
+exercise_edit_and_share : Target → ReaderState → IO ()
+exercise_edit_and_share target upgraded = do
+  retained ← case find_song "Retained1001" upgraded of
+    Nothing ⇒ fail_check "Upgrade fixture is unavailable for real editing"
+    Just song ⇒ pure song
+  click target "library"
+  click target ("open:" ++ retained.identifier)
+  click target "edit"
+  form ← ui target
+  case matching_position "class" "android.widget.EditText" form of
+    Nothing ⇒ fail_check "Song title editor is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_MOVE_END"])
+      ignore (remote target ["input", "text", "%sEdited"])
+  click target "save"
+  edited ← stored target
+  require "Real editor replaces the existing song and preserves Unicode chart bytes"
+    (maybe False (\song ⇒ song.identifier ≟ retained.identifier &&
+      song.document.source ≟ retained.document.source) (find_song "Retained1001 Edited" edited))
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  reopened ← stored target
+  require "Actual edited title and source reopen after process death"
+    (maybe False (\song ⇒ song.identifier ≟ retained.identifier &&
+      song.document.source ≟ retained.document.source) (find_song "Retained1001 Edited" reopened))
+  click target "share"
+  activities ← remote target ["dumpsys", "activity", "activities"]
+  let resumed = filter (\row ⇒ isInfixOf "mResumedActivity:" row ||
+        isInfixOf "topResumedActivity=" row) (forget (Data.Text.split (== '\n') activities))
+  require "Share opens the real resumed Android chooser"
+    (any (isInfixOf "ChooserActivity") resumed)
+  ignore (remote target ["input", "keyevent", "KEYCODE_BACK"])
+  wait_for_application target 5
+  returned ← stored target
+  require "Dismissing sharing returns with every original chart unchanged"
+    (map (\song ⇒ (song.identifier, song.document.source)) returned.songs ≟
+      map (\song ⇒ (song.identifier, song.document.source)) reopened.songs)
+
+exercise_removal : Target → Text → Text → ReaderState → IO ()
+exercise_removal target nonce first_title original = do
+  first ← case find_song first_title original of
+    Nothing ⇒ fail_check "Original song missing before removal controls"
+    Just song ⇒ pure song
+  let disposable_title = "Disposable " ++ nonce
+  let disposable_list = "Deletion " ++ nonce
+  import_text target (disposable_title ++ ".txt") "F𝄪m\n"
+  with_disposable ← stored target
+  disposable ← case find_song disposable_title with_disposable of
+    Nothing ⇒ fail_check "Disposable song was not actually saved"
+    Just song ⇒ pure song
+  import_text target (disposable_list ++ ".pl")
+    (disposable_title ++ ".txt\n" ++ first_title ++ ".txt\n" ++ disposable_title ++ ".txt\n")
+  click target "library"
+  click target ("open:" ++ disposable.identifier)
+  before_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  click target "delete-song"
+  confirmation ← ui target
+  require "Song deletion names the selected chart before confirmation"
+    (isInfixOf disposable_title confirmation && isInfixOf "confirm-delete-song" confirmation)
+  click target "cancel-delete-song"
+  after_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Cancelling song deletion preserves exact library bytes" (after_cancel ≟ before_cancel)
+  click target "delete-song"
+  click target "confirm-delete-song"
+  removed ← stored target
+  require "Confirmed song deletion preserves every other source and title"
+    (map (\song ⇒ (song.identifier, song.document.title, song.document.source)) removed.songs ≟
+      map (\song ⇒ (song.identifier, song.document.title, song.document.source)) original.songs)
+  require "Deletion removes repeated references without disturbing other setlists"
+    (map (\list ⇒ list.song_identifiers) (find (\list ⇒ list.name ≟ disposable_list) removed.setlists) ≟
+      Just [first.identifier] &&
+     map (\list ⇒ (list.name, list.song_identifiers)) (filter (\list ⇒ not (list.name ≟ disposable_list)) removed.setlists) ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) original.setlists)
+  click target "setlists"
+  click_matching target "text" disposable_list
+  before_list_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  click target "delete-setlist"
+  click target "cancel-delete-setlist"
+  after_list_cancel ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Cancelling setlist deletion preserves exact library bytes" (after_list_cancel ≟ before_list_cancel)
+  click target "delete-setlist"
+  click target "confirm-delete-setlist"
+  list_removed ← stored target
+  require "Confirmed setlist deletion keeps other lists, repetitions and all songs"
+    (map (\list ⇒ (list.name, list.song_identifiers)) list_removed.setlists ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) original.setlists &&
+     map (\song ⇒ (song.identifier, song.document.source)) list_removed.songs ≟
+      map (\song ⇒ (song.identifier, song.document.source)) original.songs)
+
+self_test : IO ()
+self_test = do
+  require "XML target bounds" (button_position "save"
+    "<node content-desc=\"other\" bounds=\"[0,0][40,40]\"/><node content-desc=\"save\" bounds=\"[10,20][70,60]\"/>" ≟ Just (40, 40))
+  require "Missing XML target fails" (button_position "save" "<node content-desc=\"save-elsewhere\"/>" ≟ Nothing)
+  require "Invisible bounds fail" (button_position "save" "<node content-desc=\"save\" bounds=\"[0,0][0,0]\"/>" ≟ Nothing)
+
+accept : Target → Text → Text → Text → Text → Text → Text → IO ()
+accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
+  qemu ← remote target ["getprop", "ro.kernel.qemu"]
+  require "Explicit emulator boundary" (trim qemu ≟ "1")
+  abi ← remote target ["getprop", "ro.product.cpu.abi"]
+  require "Expected x86_64 emulator ABI" (trim abi ≟ "x86_64")
+  baseline_digest ← command ["sha256sum", baseline_apk]
+  require "Exact accepted version1001 baseline"
+    (isPrefixOf "077a2167a34542e91219a114da4db1f98bbcf7fc901dd7511ea646ce7ce9d83b " baseline_digest)
+  ignore (device target ["install", "-r", baseline_apk])
+  import_text target "Retained1001" "A/C♯  A♭\r\nOld source 🧪\n"
+  click target "up"
+  click target "settings"
+  click target "font-up"
+  import_text target "Upgrade list.pl" "Retained1001.txt\nRetained1001.txt\n"
+  import_text target "Upgrade list.pl" "Retained1001.txt\nRetained1001.txt\n"
+  old_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  old_state ← stored target
+  require "Accepted old app supplies real duplicate-name legacy setlists"
+    (case old_state.setlists of
+      [first, second] ⇒ first.name ≟ "Upgrade list" && second.name ≟ first.name &&
+        length first.song_identifiers ≟ 2 && second.song_identifiers ≟ first.song_identifiers
+      _ ⇒ False)
+  require "Accepted old app actually saved the upgrade fixture"
+    (map (\song ⇒ song.document.source) (find_song "Retained1001" old_state) ≟
+      Just "A/C♯  A♭\r\nOld source 🧪\n")
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (device target ["install", "-r", apk])
+  retained_library ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Version1001 to1002 replacement preserves private library bytes" (retained_library ≟ old_library)
+  start_application target
+  upgraded_state ← stored target
+  require "Managed app reopens old source, selection, written interval and preferences"
+    (map (\song ⇒ (song.identifier, song.document.title, song.document.source)) upgraded_state.songs ≟
+      map (\song ⇒ (song.identifier, song.document.title, song.document.source)) old_state.songs &&
+      upgraded_state.selected_song ≟ old_state.selected_song &&
+      upgraded_state.transpose_semitones ≟ old_state.transpose_semitones &&
+      upgraded_state.settings.text_size ≟ old_state.settings.text_size &&
+      upgraded_state.settings.scroll_speed ≟ old_state.settings.scroll_speed &&
+      upgraded_state.settings.instrument ≟ old_state.settings.instrument)
+  require "Replacement preserves both identically named legacy setlists"
+    (map (\list ⇒ (list.name, list.song_identifiers)) upgraded_state.setlists ≟
+      map (\list ⇒ (list.name, list.song_identifiers)) old_state.setlists)
+  exercise_legacy_setlist_edit target upgraded_state
+  exercise_edit_and_share target upgraded_state
+  ignore (device target ["push", pitch_dex, "/data/local/tmp/chordreader-checked-pitch.dex"])
+  ignore (device target ["push", runner_dex, "/data/local/tmp/chordreader-runner.dex"])
+  art ← device target ["shell", "-n", "CLASSPATH=/data/local/tmp/chordreader-checked-pitch.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
+  retain "art-direct.txt" art
+  putStrLn art
+  require "Checked DEX executes 33 retained and 7 managed ART assertions"
+    (isInfixOf "33 retained checks and 7 managed parser/chart/key/fingering checks" art)
+  ignore (device target ["push", mutant_dex, "/data/local/tmp/chordreader-wrong-music.dex"])
+  (mutant_output, mutant_status) ← System.Escaped.run
+    ["timeout", "60", target.adb, "-s", target.serial, "shell", "-n",
+     "CLASSPATH=/data/local/tmp/chordreader-wrong-music.dex:/data/local/tmp/chordreader-runner.dex app_process /system/bin Idric.ChordReaderRunner"]
+  require "Original observer rejects a compiled mutation of Music.transpose_note"
+    (mutant_status ≟ 73 && isInfixOf "FAIL ChordReader checked DEX operation" mutant_output)
+  let first_title = "Idric acceptance " ++ nonce ++ " First"
+  let second_title = "Idric acceptance " ++ nonce ++ " Second"
+  import_text target (first_title ++ ".txt") fixture_source
+  library ← stored target
+  first ← case find_song first_title library of
+    Nothing ⇒ fail_check "Imported song missing from Android storage"
+    Just song ⇒ pure song
+  require "Unicode, lyrics and CRLF survive real Android storage" (first.document.source ≟ fixture_source)
+  ignore (traverse (\_ ⇒ click target "up") [1 .. 12])
+  octave_view ← ui target
+  require "Twelve installed semitone increments restore source spelling"
+    (isInfixOf "C♯7♭9 FΔ7 A/C♯ C A♭" octave_view)
+  ignore (traverse (\_ ⇒ click target "down") [1 .. 12])
+  click target "up"
+  click target "down"
+  zero_view ← ui target
+  zero_state ← stored target
+  require "Opposite installed steps restore display and preserve source"
+    (zero_state.transpose_semitones ≟ 0 &&
+     isInfixOf "C♯7♭9 FΔ7 A/C♯ C A♭" zero_view &&
+     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title zero_state))
+  click target "up"
+  displayed ← ui target
+  require "Installed semitone button favors simple, chord-consistent spellings"
+    (isInfixOf "D7♭9 F♯Δ7 B♭/D C♯ A" displayed && not (isInfixOf "♯♯" displayed))
+  click target "chord:A"
+  transposed_diagram ← ui target
+  require "Transposed A-flat opens the sounding A fingering"
+    (isInfixOf ("A — " ++ zero_state.settings.instrument) transposed_diagram &&
+     isInfixOf "Variation " transposed_diagram &&
+     not (isInfixOf "No stored fingering" transposed_diagram))
+  capture_screen target "transposed-fingering"
+  click target "back-reader"
+  click target "down"
+  click target "down"
+  negative ← ui target
+  require "Installed negative semitone does not stack flats on A-flat"
+    (isInfixOf "C7♭9 EΔ7 A♭/C B G" negative && not (isInfixOf "♭♭" negative))
+  click target "down"
+  two_down ← ui target
+  require "Second negative semitone re-spells the original A-flat as G-flat"
+    (isInfixOf "G♭" two_down && not (isInfixOf "♭♭" two_down))
+  click target "up"
+  capture_screen target "reader"
+  before_scroll ← stored target
+  exercise_scroll target
+  paused ← stored target
+  require "Actual auto-scroll advances beyond its saved starting position"
+    (paused.scroll_position > before_scroll.scroll_position)
+  sleep 1
+  click target "slower"
+  stopped ← stored target
+  require "Pause holds the position while the speed control changes"
+    (stopped.scroll_position ≟ paused.scroll_position &&
+     stopped.settings.scroll_speed + 4 ≟ paused.settings.scroll_speed)
+  click target "faster"
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  reopened ← stored target
+  require "Process restart keeps source and interval" (reopened.transpose_semitones ≟ -1 &&
+    reopened.scroll_position ≟ paused.scroll_position &&
+    maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title reopened))
+  restored_pid ← remote target ["pidof", package_name]
+  restored_log ← remote target ["logcat", "-d", "--pid", trim restored_pid, "-s", "ChordReader:I"]
+  retain "android-restored.log" restored_log
+  putStrLn restored_log
+  require "Restart restores the actual Android viewport after layout"
+    (isInfixOf ("SCROLL_POSITION_APPLIED desired=" ++ show paused.scroll_position ++
+      " actual=" ++ show paused.scroll_position) restored_log)
+  ignore (remote target ["input", "keyevent", "KEYCODE_HOME"])
+  sleep 1
+  backgrounded ← stored target
+  require "Suspending the restored View reads back its actual retained position"
+    (backgrounded.scroll_position ≟ paused.scroll_position)
+  start_application target
+  click target "written-key"
+  enter_written_keys target
+  keyed ← stored target
+  require "Real key controls retain both minor declarations" (case keyed.declared_key_change of
+    Just change ⇒ print_key change.source_key ≟ "A minor" &&
+      print_key change.destination_key ≟ "B minor"
+    Nothing ⇒ False)
+  keyed_view ← ui target
+  require "Declared key transposition renders the written result" (isInfixOf "D♯7♭9" keyed_view)
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  key_reopened ← stored target
+  require "Declared key and original chart survive process death"
+    (key_reopened.transpose_semitones ≟ 2 && isJust key_reopened.declared_key_change &&
+     maybe False (\song ⇒ song.document.source ≟ fixture_source) (find_song first_title key_reopened))
+  click target "capo-up"
+  capo_view ← ui target
+  require "Actual capo control composes the written key interval" (isInfixOf "D7♭9" capo_view &&
+    isInfixOf "G♭Δ7" capo_view)
+  click target "capo-down"
+  import_text target (second_title ++ ".txt") "Bø7\n"
+  multiple ← stored target
+  require "Two songs survive single-task intent delivery" (isJust (find_song first_title multiple) && isJust (find_song second_title multiple))
+  import_text target ("Acceptance " ++ nonce ++ ".pl")
+    (first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n")
+  lists ← stored target
+  require "Legacy setlist order and repeated songs" (any (\list ⇒ length list.song_identifiers ≟ 3 &&
+    head' list.song_identifiers ≟ last' list.song_identifiers) lists.setlists)
+  exercise_removal target nonce first_title lists
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  final ← stored target
+  require "All saved songs survive another process restart" (isJust (find_song first_title final) && isJust (find_song second_title final))
+  before_replacement ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  ignore (remote target ["am", "force-stop", package_name])
+  ignore (device target ["install", "-r", apk])
+  after_replacement ← device target ["exec-out", "run-as", package_name, "cat", "files/library.txt"]
+  require "Replacement installation preserves exact private library bytes"
+    (before_replacement ≟ after_replacement)
+  package_path ← remote target ["pm", "path", package_name]
+  let installed_path = trim (pack (drop (length (unpack "package:")) (unpack (trim package_path))))
+  require "Installed package has one explicit base APK path"
+    (isPrefixOf "package:" (trim package_path) && not (isInfixOf "\n" (trim package_path)))
+  ignore (device target ["pull", installed_path, "build/exec/installed-chordreader.apk"])
+  installed_digest ← command ["sha256sum", "build/exec/installed-chordreader.apk"]
+  candidate_digest ← command ["sha256sum", apk]
+  require "Installed code bytes match the signer-verified candidate"
+    (head' (words installed_digest) ≟ head' (words candidate_digest))
+  start_application target
+  let setlist_name = "Acceptance " ++ nonce
+  let setlist_source = first_title ++ ".txt\n" ++ second_title ++ ".txt\n" ++ first_title ++ ".txt\n"
+  click_matching target "text" setlist_name
+  click target "export-setlist"
+  picker ← ui target
+  require "Standard Android save picker is visible"
+    (isInfixOf "package=\"com.android.documentsui\"" picker ||
+     isInfixOf "package=\"com.google.android.documentsui\"" picker)
+  click_matching target "resource-id" "android:id/button1"
+  wait_for_application target 5
+  exported ← remote target ["cat", "/sdcard/Download/" ++ setlist_name ++ ".pl"]
+  require "Document export keeps legacy .pl name and exact ordered bytes" (exported ≟ setlist_source)
+  click target "library"
+  click target "import"
+  click target "choose-file"
+  click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
+  wait_for_application target 5
+  imported ← ui target
+  require "Document display name selects legacy setlist importer" (isInfixOf "Setlist: one song title per line" imported)
+  click target "save"
+  from_document ← stored target
+  require "Document result callback saves another complete setlist" (length from_document.setlists ≟ S (length final.setlists))
+  click target "library"
+  click target ("open:" ++ first.identifier)
+  click target "chord:C"
+  if final.settings.instrument ≟ "Ukulele" then click target "instrument" else pure ()
+  diagram ← ui target
+  require "Original guitar dictionary opens a real diagram view" (isInfixOf "C — Guitar" diagram && isInfixOf "next-variation" diagram)
+  capture_screen target "guitar"
+  click target "instrument"
+  ukulele ← ui target
+  require "Original ukulele dictionary opens a real diagram view" (isInfixOf "C — Ukulele" ukulele)
+  capture_screen target "ukulele"
+  click target "custom"
+  custom_form ← ui target
+  case matching_position "class" "android.widget.EditText" custom_form of
+    Nothing ⇒ fail_check "Custom fingering input is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "keyevent", "KEYCODE_TAB"])
+      ignore (remote target ["input", "text", "0%s0%s0%s3"])
+  click target "save"
+  custom_source ← device target ["exec-out", "run-as", package_name, "cat", "files/custom-ukulele.crd"]
+  require "Real custom fingering UI saves exact checked positions" (custom_source ≟ "C: 0-0-0-3\n")
+  custom_pid ← remote target ["pidof", package_name]
+  custom_log ← remote target ["logcat", "-d", "--pid", trim custom_pid, "-s", "ChordReader:I"]
+  require "Installed custom fingering validation executes checked Idriç"
+    (isInfixOf "IDRIC_APPLICATION_EXECUTED command=g" custom_log)
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  custom_reopened ← device target ["exec-out", "run-as", package_name, "cat", "files/custom-ukulele.crd"]
+  require "Custom fingering survives process death" (custom_reopened ≟ custom_source)
+  click target "chord:C"
+  custom_view ← ui target
+  require "Reopened custom fingering remains a usable diagram" (isInfixOf "C — Ukulele" custom_view &&
+    isInfixOf "Variation 1 of 1" custom_view)
+  capture_screen target "custom"
+  click target "settings"
+  click target "font-up"
+  preferences ← stored target
+  require "Android text-size preference persists" (preferences.settings.text_size > final.settings.text_size)
+  Just malformed ← newBuffer 6
+    | Nothing ⇒ fail_check "Could not allocate the binary import fixture"
+  setBits8 malformed 0 67
+  setBits8 malformed 1 0
+  setBits8 malformed 2 98
+  setBits8 malformed 3 97
+  setBits8 malformed 4 100
+  setBits8 malformed 5 10
+  Right () ← writeBufferToFile "build/exec/nul-song.txt" malformed 6
+    | Left _ ⇒ fail_check "Could not write the binary import fixture"
+  -- Reuse the document just created by this test. Its provider registration
+  -- and read grant are the same as the positive byte-for-byte import above.
+  ignore (device target ["push", "build/exec/nul-song.txt", "/sdcard/Download/" ++ setlist_name ++ ".pl"])
+  click target "library"
+  click target "import"
+  click target "choose-file"
+  click_matching target "text" (setlist_name ++ ".pl")
+  finish_document_selection target
+  wait_for_application target 5
+  refused ← ui target
+  require "Binary NUL import is refused rather than truncated" (isInfixOf "could not be read" refused)
+  preserved ← stored target
+  require "Refused import preserves every saved source" (
+    map (\song ⇒ (song.identifier, song.document.source)) preserved.songs ≟
+    map (\song ⇒ (song.identifier, song.document.source)) preferences.songs)
+  -- This emulator has no IB search receiver. A typed search must remain in
+  -- ChordReader with a visible refusal, not open Startpage/DDG or another
+  -- installed implicit ACTION_VIEW browser.
+  known_ib ← remote target ["pm", "list", "packages", "org.isomorphisms.ib.prepaint"]
+  require "Isolated emulator has no IB search receiver" (trim known_ib ≟ "")
+  click target "library"
+  click target "import"
+  search_form ← ui target
+  case matching_position "class" "android.widget.EditText" search_form of
+    Nothing ⇒ fail_check "Search title input not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "piano"])
+  click target "search-web"
+  denied_search ← ui target
+  require "Missing IB search receiver retains ChordReader instead of external browser"
+    (isInfixOf "IB search is unavailable" denied_search &&
+     isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" denied_search)
+  application_pid ← remote target ["pidof", package_name]
+  application_log ← remote target ["logcat", "-d", "--pid", trim application_pid, "-s", "ChordReader:I"]
+  require "Actual installed process uses checked parsing, chart spans, rendering and reader state"
+    (all (\operation ⇒ isInfixOf ("IDRIC_APPLICATION_EXECUTED command=" ++ operation) application_log)
+      ["p", "c", "b", "u", "v"])
+  fingerprint ← remote target ["getprop", "ro.build.fingerprint"]
+  apk_digest ← command ["sha256sum", apk]
+  receipt ← writeFile "build/exec/android-emulator.receipt.tsv"
+    ("runtime\tmanaged Idric music/chart/reader with Lua presentation and native JNI\nphysical_device\tNOT_VERIFIED\nserial\t" ++ target.serial ++
+     "\nfingerprint\t" ++ trim fingerprint ++ "\nART_assertions\t40 PASS\ncompiled_music_mutant\tREJECTED\nmanaged_application_calls\tPASS\nlegacy_1001_to_1002_upgrade\tPASS\nlegacy_duplicate_setlist_edit\tPASS\nreal_edit_reopen_and_share\tPASS\nremoval_and_cancellation\tPASS\nactual_viewport_and_background_resume\tPASS\nUI_and_persistence\tPASS\napk_sha256\t" ++ trim apk_digest ++ "\n")
+  case receipt of
+    Left problem ⇒ fail_check "Could not retain the Android acceptance receipt"
+    Right () ⇒ putStrLn "PASS\tAndroid application acceptance; emulator evidence only"
+
+main : IO ()
+main = do
+  arguments ← getArgs
+  case arguments of
+    [_, "--self-test"] ⇒ self_test
+    [_, adb, serial, apk, pitch_dex, mutant_dex, runner_dex, nonce, baseline_apk] ⇒
+      accept (Android_target adb serial) apk pitch_dex mutant_dex runner_dex nonce baseline_apk
+    _ ⇒ fail_check "usage: android-acceptance ADB SERIAL APK CHECKED_DEX MUTANT_DEX RUNNER_DEX NONCE BASELINE_APK"

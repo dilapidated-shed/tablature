@@ -1,0 +1,10 @@
+module NativeCore
+
+import Data.Text
+
+%export "arm-thumb:canonical_accidental"
+canonical_accidental : Text → Text
+canonical_accidental source = if source ≟ "#" then "♯" else source
+
+main : IO ()
+main = pure ()

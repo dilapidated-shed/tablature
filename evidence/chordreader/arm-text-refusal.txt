@@ -1,0 +1,1 @@
+Error: arm-thumb rejected source ABI for `NativeCore.canonical_accidental`: unsupported source primitive type `String`. Supported arguments are RendererPrimitives.Float32, RendererPrimitives.Float32Buffer, Int32, and Bits32; the result must be RendererPrimitives.Float32 or a 32-bit word.

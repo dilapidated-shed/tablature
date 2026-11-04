@@ -1,0 +1,19 @@
+field	value
+consumer_head	77d3ad01afda17924e58e89d34546ced17f4ef56
+frontend_head	e7e03fdc896d3740c735c603b5fed792e6172d83
+canonical_backend_head	6ab4818219efa7ea5eda137ca6b76976eb2a4d42
+entry	AndroidCore.canonical_chord calling unchanged Music.parse_chord
+Music_sha256	067c8cfe5e282e6d17846047a18f56bafc153397b7ab95f63df1e3e3e4b47522
+AndroidCore_sha256	c3075881c28a11ff2e876f1eabda232dfdd0d8a16f9136c41598b0216db07480
+DEX_bytes	113300
+DEX_sha256	6aca097b707865cfd32a48f3a4a90039c0ea584a49f89d8f51f52486ff14ac9e
+source_and_DEX_compilation	PASS
+independent_baksmali_decode	PASS
+ART_execution	NOT_RUN
+application_integration	NOT_RUN
+physical_TAB_P10	NOT_RUN
+workflow	https://github.com/dilapidated-shed/tablature/actions/runs/41330040829
+artifact	https://github.com/dilapidated-shed/tablature/actions/runs/41330040829/artifacts/13093222967
+artifact_zip_sha256	61e4bd6ee56d00bf08641fd4a9373f6ed914b2775ec5016911486d4d7924e216
+original_refusal	https://github.com/dilapidated-shed/tablature/actions/runs/41317096789
+main_diagnostic	Absent after reconciling frontend syntax; not an independent backend rejection

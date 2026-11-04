@@ -1,0 +1,25 @@
+module RegressionRows
+
+import Data.Text
+import Music
+import Chart
+
+inputs : List Text
+inputs = ["C#7b9", "B°7", "Bø7", "FΔ7", "A/C♯", "A/D♭", "F𝄪m",
+  "Cm(maj7)", "G7(b9,#11)", "C6/9", "Cadd9", "D7sus4"] ++
+  concatMap (\root ⇒ map (root ++) ["", "m", "7", "maj7", "m7b5", "dim7", "sus2", "add11"])
+    ["C", "C#", "D♭", "D", "E♭", "E", "F", "F#", "G", "A♭", "A", "B♭", "B"]
+
+row : Text → Integer → Text
+row source semitones =
+  let result = case parse_chord source of
+        Left _ ⇒ "ERROR\tERROR"
+        Right chord ⇒ let moved = transpose_chord (chromatic_interval semitones) chord
+          in print_chord moved ++ "\t" ++ fingering_lookup_key moved
+  in "chord\t" ++ show semitones ++ "\t" ++ source ++ "\t" ++ result
+
+main : IO ()
+main = do
+  traverse_ (\source ⇒ traverse_ (\shift ⇒ putStrLn (row source shift))
+    [-24, -12, -7, -1, 0, 1, 7, 12, 24]) inputs
+  traverse_ (\source ⇒ putStrLn (row source 0)) ["Amazing", "Cfoo", "G7(b9", "A/", "C7b"]
