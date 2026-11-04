@@ -152,7 +152,7 @@ transpose_chromatic_chord semitones chord =
           then negate (wrap 12 (abs semitones))
           else wrap 12 semitones
         steps : List Integer
-        steps = if shift < 0 then [-6 .. 0] else [0 .. 6]
+        steps = if shift < 0 then [-7 .. 0] else [0 .. 7]
         prefer_flats = chromatic_prefer_flats shift chord
         candidates = map (\letters ⇒
           transpose_chord (Written_interval letters shift) chord) steps
