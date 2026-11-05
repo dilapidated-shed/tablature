@@ -45,6 +45,7 @@ app.event("remote_reply","201",'{"commit":{"sha":"abc"}}')
 assert(screen.notice:find("saved on GitHub",1,true))
 assert(files["remote-base.txt"])
 assert(not files["remote-base.txt"]:find(token,1,true))
+local_bytes=files["library.txt"]
 local remote_bytes=local_bytes:gsub("C\n","D\n",1)
 assert(remote_bytes~=local_bytes)
 assert(app_module.decode(remote_bytes).songs[1].source=="D\n")
