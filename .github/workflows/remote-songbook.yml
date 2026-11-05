@@ -20,6 +20,6 @@ jobs:
       - name: Install host Lua 5.4
         run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lua5.4
       - name: Check all changed Lua syntax
-        run: luac5.4 -p contingency/remote.lua contingency/remote-test.lua contingency/app.lua
+        run: luac5.4 -p contingency/remote.lua contingency/remote-test.lua contingency/remote-app-test.lua contingency/app.lua
       - name: Execute offline mock GitHub storage contract
-        run: lua5.4 contingency/remote-test.lua
+        run: lua5.4 contingency/remote-test.lua && lua5.4 contingency/remote-app-test.lua
