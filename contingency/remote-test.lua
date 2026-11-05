@@ -22,7 +22,7 @@ assert(remote.base64_decode(remote.base64_encode("a"))=="a")
 assert(remote.base64_decode(remote.base64_encode("ab"))=="ab")
 assert(remote.base64_decode(remote.base64_encode("abc"))=="abc")
 assert(remote.base64_decode(remote.base64_encode("B♭\0𝄪"))=="B♭\0𝄪")
-assert(not remote.base64_decode("Zm9="))
+assert(not remote.base64_decode("Zg=a"))
 assert(not remote.base64_decode("Zg==AAAA"))
 assert(not remote.base64_decode("%%%="))
 local files={["library.txt"]=first}
@@ -110,8 +110,8 @@ for _,body in ipairs {
   '{"type":"file","encoding":"base64","sha":"'..sha..'","size":1,"content":"YQ="}'
 } do
   assert(fresh:start("restore"):find("Checking",1,true))
-  assert(fresh:reply(200,body):find("invalid",1,true) or
-    fresh:description():find("GitHub",1,true))
+  local response=fresh:reply(200,body)
+  assert(response:find("invalid",1,true) or response:find("failed validation",1,true),response)
   assert(files["library.txt"]==third)
 end
 assert(fresh:start("sync"):find("Checking",1,true))
