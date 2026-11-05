@@ -32,7 +32,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Install pinned Android NDK
-        run: "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
       - name: Retrieve and verify pinned Lua source
         run: |
           curl -fL https://www.lua.org/ftp/lua-5.4.8.tar.gz -o lua-5.4.8.tar.gz
