@@ -1,0 +1,25 @@
+name: GitHub songbook remote contract
+on:
+  push:
+    branches: [feature/remote-songbook-20261105]
+  pull_request:
+    branches: [implementation/idric-chordreader]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remote-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install host Lua 5.4
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lua5.4
+      - name: Check all changed Lua syntax
+        run: luac5.4 -p contingency/remote.lua contingency/remote-test.lua contingency/app.lua
+      - name: Execute offline mock GitHub storage contract
+        run: lua5.4 contingency/remote-test.lua
