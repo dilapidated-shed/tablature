@@ -29,6 +29,7 @@ static int present(lua_State *lua) {
     screen.body = text_field(lua, 1, "body", "");
     screen.edit_title = text_field(lua, 1, "edit_title", "");
     lua_getfield(lua, 1, "editable"); screen.editable = lua_toboolean(lua, -1); lua_pop(lua, 1);
+    lua_getfield(lua, 1, "secret"); screen.secret = lua_toboolean(lua, -1); lua_pop(lua, 1);
     lua_getfield(lua, 1, "size"); screen.text_size = (int)luaL_optinteger(lua, -1, 20); lua_pop(lua, 1);
     lua_getfield(lua, 1, "actions");
     screen.action_count = lua_rawlen(lua, -1);
@@ -98,6 +99,14 @@ static int export_file(lua_State *lua) {
 static int choose_file(lua_State *lua) { lua_pushboolean(lua, platform_choose_file(reader(lua)->platform)); return 1; }
 static int search_ib(lua_State *lua) { lua_pushboolean(lua, platform_search_ib(reader(lua)->platform, luaL_checkstring(lua, 1))); return 1; }
 static int fetch(lua_State *lua) { lua_pushboolean(lua, platform_fetch(reader(lua)->platform, luaL_checkstring(lua, 1))); return 1; }
+static int remote_request(lua_State *lua) {
+    const char *verb=luaL_checkstring(lua, 1), *url=luaL_checkstring(lua, 2);
+    const char *token=luaL_checkstring(lua, 3);
+    size_t length=0;
+    const char *payload=luaL_checklstring(lua, 4, &length);
+    lua_pushboolean(lua, platform_remote_request(reader(lua)->platform, verb, url, token, payload, length));
+    return 1;
+}
 static int pitch_up(lua_State *lua) { lua_pushinteger(lua, platform_pitch_step(reader(lua)->platform, (int)luaL_checkinteger(lua, 1), 1)); return 1; }
 static int pitch_down(lua_State *lua) { lua_pushinteger(lua, platform_pitch_step(reader(lua)->platform, (int)luaL_checkinteger(lua, 1), -1)); return 1; }
 static int accidental_symbol(lua_State *lua) {
@@ -167,6 +176,7 @@ void *reader_start(Platform *platform) {
     bind(lua, instance, "write", write_private); bind(lua, instance, "asset", read_asset);
     bind(lua, instance, "scroll", scroll_to); bind(lua, instance, "scroll_position", scroll_position);
     bind(lua, instance, "share", share); bind(lua, instance, "search_ib", search_ib); bind(lua, instance, "fetch", fetch);
+    bind(lua, instance, "remote_request", remote_request);
     bind(lua, instance, "export", export_file); bind(lua, instance, "choose_file", choose_file);
     bind(lua, instance, "pitch_up", pitch_up); bind(lua, instance, "pitch_down", pitch_down);
     bind(lua, instance, "accidental_symbol", accidental_symbol);

@@ -10,7 +10,7 @@ typedef struct { const char *identifier, *label; } UiAction;
 typedef struct { int beginning, ending; } UiSpan; /* UTF-16 code units */
 typedef struct {
     const char *title, *notice, *body, *edit_title;
-    int editable, text_size;
+    int editable, secret, text_size;
     const UiAction *actions;
     size_t action_count;
     size_t fixed_action_count;
@@ -29,6 +29,8 @@ int platform_export(Platform *, const char *, const char *, size_t);
 int platform_choose_file(Platform *);
 int platform_search_ib(Platform *, const char *);
 int platform_fetch(Platform *, const char *);
+/* HTTPS GitHub Contents API. Async reply events carry HTTP status and bounded body. */
+int platform_remote_request(Platform *, const char *, const char *, const char *, const char *, size_t);
 char *platform_read(Platform *, const char *);
 int platform_write(Platform *, const char *, const char *, size_t);
 char *platform_asset(Platform *, const char *, size_t *);

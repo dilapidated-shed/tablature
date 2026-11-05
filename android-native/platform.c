@@ -27,6 +27,7 @@ struct Platform {
     unsigned core_calls[4];
     unsigned char application_commands[256];
     int scroll_pending, requested_scroll, scroll_observed;
+    int secret_form;
     char *pending_export;
     size_t pending_export_size;
     void *reader;
@@ -41,6 +42,10 @@ typedef struct {
     Platform *platform;
     JavaVM *vm;
     char *url, *text, *problem;
+    char *token, *payload;
+    size_t payload_size;
+    char verb[4];
+    int remote, status;
 } FetchRequest;
 static Platform *activities;
 
@@ -228,6 +233,7 @@ static jobject diagram_image(Platform *platform, const UiScreen *screen) {
 }
 
 void platform_present(Platform *platform, const UiScreen *screen) {
+    platform->secret_form = screen->editable && screen->secret;
     platform->scroll_pending = 0;
     platform->scroll_observed = 0;
     JNIEnv *env = platform->activity->env;
@@ -308,6 +314,8 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     }
     jobject body = view(platform, screen->editable ? "android/widget/EditText" : "android/widget/TextView");
     set_text(env, body, screen->body);
+    if (screen->editable && screen->secret)
+        (*env)->CallVoidMethod(env, body, method(env, body, "setInputType", "(I)V"), (jint)0x81); /* text password */
     (*env)->CallVoidMethod(env, body, method(env, body, "setTextSize", "(F)V"), (jfloat)screen->text_size);
     jclass typeface_type = (*env)->FindClass(env, "android/graphics/Typeface");
     jobject monospace = (*env)->GetStaticObjectField(env, typeface_type,
@@ -395,6 +403,13 @@ int platform_scroll_position(Platform *platform) {
     return (*env)->CallIntMethod(env, platform->scroll_view,
         method(env, platform->scroll_view, "getScrollY", "()I"));
 }
+static void erase_and_free(char *value) {
+    if (!value) return;
+    volatile unsigned char *bytes = (volatile unsigned char *)value;
+    size_t n = strlen(value);
+    while (n--) *bytes++ = 0;
+    free(value);
+}
 static void clicked(JNIEnv *env, jobject listener, jobject button) {
     (void)listener;
     jobject context = (*env)->CallObjectMethod(env, button,
@@ -407,8 +422,10 @@ static void clicked(JNIEnv *env, jobject listener, jobject button) {
     char *identifier = native_text(env, tag);
     char *title = entry_text(env, platform->title_entry);
     char *body = entry_text(env, platform->body_entry);
+    int secret_form=platform->secret_form;
     if (identifier && title && body) reader_event(platform->reader, identifier, title, body);
-    free(identifier); free(title); free(body);
+    free(identifier); free(title);
+    if (secret_form) erase_and_free(body); else free(body);
     (*env)->DeleteLocalRef(env, tag);
     report(env, "native click callback");
 }
@@ -672,7 +689,8 @@ static void release_platform(Platform *platform) {
 }
 static void discard_request(FetchRequest *request) {
     Platform *platform = request->platform;
-    free(request->url); free(request->text); free(request->problem); free(request);
+    free(request->url); free(request->text); free(request->problem);
+    erase_and_free(request->token); erase_and_free(request->payload); free(request);
     release_platform(platform);
 }
 static int fetch_finished(int descriptor, int events, void *data) {
@@ -680,9 +698,16 @@ static int fetch_finished(int descriptor, int events, void *data) {
     Platform *platform = data;
     FetchRequest *request;
     while (read(descriptor, &request, sizeof request) == sizeof request) {
-        if (platform->reader) reader_event(platform->reader,
-            request->problem ? "download_failed" : "downloaded", request->url,
-            request->problem ? request->problem : request->text);
+        if (platform->reader) {
+            if (request->remote) {
+                char status[20]; snprintf(status, sizeof status, "%d", request->status);
+                reader_event(platform->reader, request->problem ? "remote_failed" : "remote_reply",
+                    status, request->problem ? request->problem : (request->text ? request->text : ""));
+            } else {
+                reader_event(platform->reader, request->problem ? "download_failed" : "downloaded",
+                    request->url, request->problem ? request->problem : request->text);
+            }
+        }
         discard_request(request);
     }
     return 1;
@@ -766,6 +791,141 @@ int platform_fetch(Platform *platform, const char *url) {
     atomic_fetch_add(&platform->references, 1);
     pthread_t worker;
     if (pthread_create(&worker, NULL, fetch_worker, request)) { discard_request(request); return 0; }
+    pthread_detach(worker);
+    return 1;
+}
+
+/* GitHub remote transport is deliberately separate from chart URL import.
+ * Tokens are accepted only for the fixed GitHub API origin; redirects are
+ * disabled. Neither tokens nor request bodies reach Android logcat.
+ */
+static void *remote_worker(void *data) {
+    FetchRequest *request = data;
+    Platform *platform = request->platform;
+    JavaVM *vm = request->vm;
+    JNIEnv *env = NULL;
+    if ((*vm)->AttachCurrentThread(vm, &env, NULL) != JNI_OK) {
+        request->problem = strdup("Cannot attach remote network worker");
+    } else {
+        (*env)->PushLocalFrame(env, 48);
+        jclass url_type = (*env)->FindClass(env, "java/net/URL");
+        jobject url = (*env)->NewObject(env, url_type,
+            (*env)->GetMethodID(env, url_type, "<init>", "(Ljava/lang/String;)V"),
+            android_text(env, request->url));
+        jobject connection = NULL;
+        if (url && !(*env)->ExceptionCheck(env)) connection = (*env)->CallObjectMethod(env,
+            url, method(env, url, "openConnection", "()Ljava/net/URLConnection;"));
+        if (connection && !(*env)->ExceptionCheck(env)) {
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setInstanceFollowRedirects", "(Z)V"), JNI_FALSE);
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setConnectTimeout", "(I)V"), 12000);
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setReadTimeout", "(I)V"), 12000);
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setRequestMethod", "(Ljava/lang/String;)V"),
+                android_text(env, request->verb));
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setRequestProperty",
+                    "(Ljava/lang/String;Ljava/lang/String;)V"),
+                android_text(env, "User-Agent"), android_text(env, "ChordReader/remote-songbook"));
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setRequestProperty",
+                    "(Ljava/lang/String;Ljava/lang/String;)V"),
+                android_text(env, "Accept"), android_text(env, "application/vnd.github+json"));
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "setRequestProperty",
+                    "(Ljava/lang/String;Ljava/lang/String;)V"),
+                android_text(env, "X-GitHub-Api-Version"), android_text(env, "2022-11-28"));
+            char *authorization = NULL;
+            if (asprintf(&authorization, "Bearer %s", request->token) >= 0) {
+                (*env)->CallVoidMethod(env, connection,
+                    method(env, connection, "setRequestProperty",
+                        "(Ljava/lang/String;Ljava/lang/String;)V"),
+                    android_text(env, "Authorization"), android_text(env, authorization));
+            }
+            erase_and_free(authorization);
+            if (!strcmp(request->verb, "PUT") && !(*env)->ExceptionCheck(env)) {
+                (*env)->CallVoidMethod(env, connection,
+                    method(env, connection, "setRequestProperty",
+                        "(Ljava/lang/String;Ljava/lang/String;)V"),
+                    android_text(env, "Content-Type"), android_text(env, "application/json"));
+                (*env)->CallVoidMethod(env, connection,
+                    method(env, connection, "setDoOutput", "(Z)V"), JNI_TRUE);
+                jobject output = (*env)->CallObjectMethod(env, connection,
+                    method(env, connection, "getOutputStream", "()Ljava/io/OutputStream;"));
+                if (output && !(*env)->ExceptionCheck(env)) {
+                    jbyteArray bytes = (*env)->NewByteArray(env, (jsize)request->payload_size);
+                    if (bytes) {
+                        (*env)->SetByteArrayRegion(env, bytes, 0, (jsize)request->payload_size,
+                            (const jbyte *)request->payload);
+                        (*env)->CallVoidMethod(env, output,
+                            method(env, output, "write", "([B)V"), bytes);
+                    }
+                    if (!(*env)->ExceptionCheck(env))
+                        (*env)->CallVoidMethod(env, output, method(env, output, "close", "()V"));
+                }
+            }
+            if (!(*env)->ExceptionCheck(env)) {
+                request->status = (*env)->CallIntMethod(env, connection,
+                    method(env, connection, "getResponseCode", "()I"));
+                jobject stream = NULL;
+                if (!(*env)->ExceptionCheck(env)) {
+                    stream = (*env)->CallObjectMethod(env, connection,
+                        method(env, connection, request->status >= 400 ?
+                            "getErrorStream" : "getInputStream", "()Ljava/io/InputStream;"));
+                }
+                if (stream && !(*env)->ExceptionCheck(env)) {
+                    request->text=read_stream(env, stream);
+                    if (!(*env)->ExceptionCheck(env))
+                        (*env)->CallVoidMethod(env, stream,
+                            method(env, stream, "close", "()V"));
+                } else if (!(*env)->ExceptionCheck(env)) {
+                    request->text=strdup("");
+                }
+            }
+            if ((*env)->ExceptionCheck(env)) report(env, "remote HTTPS transaction");
+            (*env)->CallVoidMethod(env, connection,
+                method(env, connection, "disconnect", "()V"));
+        }
+        report(env, "remote HTTPS boundary");
+        if (!request->text) request->problem=strdup("Remote request failed or exceeded 16 MiB");
+        (*env)->PopLocalFrame(env, NULL);
+        (*vm)->DetachCurrentThread(vm);
+    }
+    pthread_mutex_lock(&platform->lifetime);
+    int delivered=platform->alive &&
+        write(platform->mailbox[1], &request, sizeof request)==sizeof request;
+    pthread_mutex_unlock(&platform->lifetime);
+    if (!delivered) discard_request(request);
+    return NULL;
+}
+int platform_remote_request(Platform *platform, const char *verb, const char *url,
+    const char *token, const char *payload, size_t length) {
+    if (!platform || !verb || !url || !token || !payload ||
+        (strcmp(verb,"GET") && strcmp(verb,"PUT")) ||
+        strncmp(url,"https://api.github.com/repos/",29) ||
+        strpbrk(token,"\r\n") || strlen(token)<16 || strlen(token)>255 ||
+        length>12*1024*1024 || platform->mailbox[0]<0) return 0;
+    if (!strcmp(verb,"GET") && length!=0) return 0;
+    FetchRequest *request=calloc(1,sizeof *request);
+    if (!request) return 0;
+    request->platform=platform; request->vm=platform->activity->vm;
+    request->remote=1; request->status=-1;
+    memcpy(request->verb,verb,strlen(verb)+1);
+    request->url=strdup(url); request->token=strdup(token);
+    request->payload=malloc(length+1);
+    if (!request->url || !request->token || !request->payload) {
+        free(request->url); erase_and_free(request->token); free(request->payload);
+        free(request); return 0;
+    }
+    memcpy(request->payload,payload,length); request->payload[length]=0;
+    request->payload_size=length;
+    atomic_fetch_add(&platform->references,1);
+    pthread_t worker;
+    if (pthread_create(&worker,NULL,remote_worker,request)) {
+        discard_request(request); return 0;
+    }
     pthread_detach(worker);
     return 1;
 }
