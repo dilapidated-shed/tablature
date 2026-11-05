@@ -425,7 +425,7 @@ local function new(platform)
     elseif id == "remote-sync" or id == "remote-upload" or id == "remote-restore" then
       save(); mode="remote"
       notice=remote:start(id=="remote-sync" and "sync" or id=="remote-upload" and "upload" or "restore")
-    elseif id == "remote-confirm" then notice=remote:confirm_restore(); mode="remote"
+    elseif id == "remote-confirm" then notice=remote:confirm_restore(); mode="remote"; present(); return
     elseif id == "remote-clear-token" then notice=remote:forget_token(); mode="remote"
     elseif id == "new" or id == "import" then start_edit(id == "new" and "edit" or "import")
     elseif id:sub(1,5) == "open:" then
