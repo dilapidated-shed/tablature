@@ -20,4 +20,12 @@ New PNG SHA256: a6a224d6036f40901a90f3e8d9d523766393c0c02936d83c6513759c4c31e814
 FFmpeg now decodes it successfully; the two anonymous fretboard shapes and
 transition arrow were inspected. This changes encoding, not the approved
 vector artwork. Per-file resource diagnostics precede APK packaging and are
-retained in CI. Actual aapt2 acceptance of the repaired source is pending.
+retained in CI. All three ABI packages now pass resource compilation and signing.
+
+The 797c5bf run reached real song/setlist deletion and exposed Android's
+automatic capitalization of an application-authored setlist label. Its fresh
+accessibility tree contained `DELETION ...` instead of the retained `Deletion ...`
+spelling. Native buttons now disable this transformation, matching the shared
+presentation controls and preserving authored case in chord names as well.
+The original case-sensitive interaction test is retained; complete current
+API29/API34 acceptance remains pending.

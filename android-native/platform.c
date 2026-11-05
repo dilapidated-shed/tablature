@@ -285,6 +285,7 @@ void platform_present(Platform *platform, const UiScreen *screen) {
                 (*env)->CallIntMethod(env, action_parent, method(env, action_parent, "getChildCount", "()I")) - 1);
         }
         jobject button = view(platform, "android/widget/Button");
+        (*env)->CallVoidMethod(env, button, method(env, button, "setAllCaps", "(Z)V"), JNI_FALSE);
         set_text(env, button, screen->actions[index].label);
         jstring tag = android_text(env, screen->actions[index].identifier);
         (*env)->CallVoidMethod(env, button, method(env, button, "setContentDescription",
