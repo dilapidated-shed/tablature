@@ -2,7 +2,12 @@
 -- Exercise the actual Lua UI/transport wiring without Android or Idriç compiler.
 package.path="contingency/?.lua;"..package.path
 package.preload.music=function()
-  return {use_idric=function() end}
+  return {
+    use_idric=function() end,
+    interval=function() return {letters=0,semitones=0} end,
+    render=function(source) return source end,
+    recognise=function() return {} end,
+  }
 end
 local app_module=require("app")
 local remote=require("remote")
