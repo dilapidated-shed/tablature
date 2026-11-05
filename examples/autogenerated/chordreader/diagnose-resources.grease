@@ -1,0 +1,30 @@
+#!/usr/bin/env grease
+# Build-host diagnostic for the observed aapt2 --dir crash; no APK fallback.
+set -eu -o pipefail
+if (len(ARGV) !== 3) { echo 'requires AAPT2 RESOURCE_TREE NEW_OUTPUT' >&2; exit 2 }
+var compiler = ARGV[0]
+var resources = ARGV[1]
+var output = ARGV[2]
+test -x "$compiler"
+test -d "$resources"
+test ! -e "$output"
+mkdir -p "$output"
+"$compiler" version > "$output/version.txt"
+sha256sum "$compiler" > "$output/compiler.sha256"
+var index = 0
+var failed = 0
+for source in @(find "$resources" -type f) {
+  test -f "$source"
+  var lane = "$output/$index"
+  mkdir -p "$lane"
+  printf '%s\n' "$source" > "$lane/source.txt"
+  sha256sum "$source" > "$lane/source.sha256"
+  try { "$compiler" compile "$source" -o "$lane" > "$lane/compile.txt" 2>&1 }
+  var status = _error.code
+  printf '%s\t%s\n' "$status" "$source" >> "$output/individual.tsv"
+  if (status !== 0) { setvar failed = 1; cat "$lane/compile.txt"; echo "FAIL individual resource: $source"; }
+  setvar index = index + 1
+}
+cat "$output/individual.tsv"
+if (failed !== 0) { exit 1 }
+echo 'PASS individual resource compilation; directory packaging is a separate check'
