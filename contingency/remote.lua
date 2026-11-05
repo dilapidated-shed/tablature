@@ -23,6 +23,7 @@ local function b64decode(encoded)
   local out={}
   for i=1,#source,4 do
     local block=source:sub(i,i+3)
+    if block:sub(3,3)=="=" and block:sub(4,4)~="=" then return nil end
     local padding=block:sub(3,4)=="==" and 2 or (block:sub(4,4)=="=" and 1 or 0)
     if padding>0 and i+3~=#source then return nil end
     local values={}
@@ -33,7 +34,8 @@ local function b64decode(encoded)
       if ch=="=" and j<3 then return nil end
       values[j]=(p or 1)-1
     end
-    if (padding==2 and values[3]~=0) or (padding==1 and values[4]~=0) then return nil end
+    if padding==2 and values[2]%16~=0 then return nil end
+    if padding==1 and values[3]%4~=0 then return nil end
     local bits=values[1]*262144+values[2]*4096+values[3]*64+values[4]
     out[#out+1]=string.char((bits//65536)%256)
     if padding<2 then out[#out+1]=string.char((bits//256)%256) end
