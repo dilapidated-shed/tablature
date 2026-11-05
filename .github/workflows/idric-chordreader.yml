@@ -3,7 +3,6 @@ on:
   push:
     branches: [master, implementation/idric-chordreader]
   pull_request:
-    branches: [master]
   workflow_dispatch:
 permissions:
   contents: read
@@ -20,6 +19,7 @@ jobs:
       ANDROID_NDK_REPO: ${{ github.workspace }}/deps/android-NDK
       CHARCOAL_REPO: ${{ github.workspace }}/deps/charcoal
       AICI_REPO: ${{ github.workspace }}/deps/ai-ci
+      CHARCOAL_ACCEPTANCE: ${{ github.workspace }}/deps/charcoal-acceptance
       ANDROID_GREASE: ${{ github.workspace }}/deps/runtime/.build/grease/bin/grease
       LUA_SOURCE: ${{ github.workspace }}/build/lua-5.4.8/src
       ANDROID_KEYSTORE: ${{ github.workspace }}/deps/signer/_/build/app/wegert-debug.keystore
@@ -59,6 +59,12 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          repository: isomorphisms/ai-ci
+          ref: dd9f41e757add6ffcf44d17c888d3faf09d6665e
+          path: deps/charcoal-acceptance
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
           repository: isomorphismes/wegert
           ref: 89dcfb840cec1a66ee04c7f7404954cbd6c09839
           path: deps/signer
@@ -72,7 +78,7 @@ jobs:
           path: deps/ai-ci
           persist-credentials: false
       - name: Bootstrap dependencies
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip ripgrep
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential libgmp-dev chezscheme curl unzip zip ripgrep ffmpeg
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: isomorphisms/catfood

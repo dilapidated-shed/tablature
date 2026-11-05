@@ -128,6 +128,8 @@ emulator-check:
 	"$(ACCEPTANCE_RUN_DIR)/android-acceptance" "$(ADB)" "$(ANDROID_SERIAL)" "$(ACCEPTANCE_RUN_DIR)/candidate.apk" "$(ACCEPTANCE_RUN_DIR)/chordreader-pitch.dex" "$(ACCEPTANCE_RUN_DIR)/chordreader-mutant.dex" "$(ACCEPTANCE_RUN_DIR)/chordreader-runner.dex" "$(ACCEPTANCE_NONCE)" "$(ACCEPTANCE_RUN_DIR)/baseline.apk"
 	cp build/exec/android-emulator.receipt.tsv "$(ACCEPTANCE_RUN_DIR)/"
 	cp build/exec/chordreader-*.png "$(ACCEPTANCE_RUN_DIR)/"
+	$(ANDROID_GREASE) "$(CHARCOAL_ACCEPTANCE)/charcoal/self-test.grease" "$(ANDROID_GREASE)" "$(shell command -v ffmpeg)" "$(ACCEPTANCE_RUN_DIR)/charcoal-self-test"
+	$(foreach screen,reader transposed-fingering guitar ukulele custom,$(ANDROID_GREASE) "$(CHARCOAL_ACCEPTANCE)/charcoal/check-frame.grease" "$(shell command -v ffmpeg)" "$(ACCEPTANCE_RUN_DIR)/chordreader-$(screen).png" "$(ACCEPTANCE_RUN_DIR)/charcoal-$(screen).txt" && ) true
 
 assets: dex callback
 	mkdir -p build/android/assets build/android/res
