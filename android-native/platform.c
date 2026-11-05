@@ -143,6 +143,7 @@ static jobject view(Platform *platform, const char *name) {
 static void set_text(JNIEnv *env, jobject object, const char *text) {
     jstring value = android_text(env, text ? text : "");
     (*env)->CallVoidMethod(env, object, method(env, object, "setText", "(Ljava/lang/CharSequence;)V"), value);
+    (*env)->CallVoidMethod(env, object, method(env, object, "setTextColor", "(I)V"), (jint)CHARCOAL_TEXT);
     (*env)->DeleteLocalRef(env, value);
 }
 static char *entry_text(JNIEnv *env, jobject object) {
