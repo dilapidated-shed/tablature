@@ -69,6 +69,7 @@ comparisons: build/exec/lua-host
 	./build/exec/runtime-rows library > build/exec/library-fixture.txt
 	./build/exec/lua-host contingency/application-test.lua "$(ROOT)" build/exec/pitch-rows.tsv build/exec/library-fixture.txt
 	./build/exec/lua-host contingency/remote-test.lua
+	./build/exec/lua-host contingency/remote-app-test.lua
 	$(IDRIC) -Werror --check --source-dir $(CORE) $(CORE)/KeyRows.idric
 	$(IDRIC) -Werror --source-dir $(CORE) $(CORE)/KeyRows.idric -o key-rows
 	cp "$(SUPPORT)" build/exec/key-rows_app/
