@@ -13,7 +13,7 @@ mkdir -p "$output"
 sha256sum "$compiler" > "$output/compiler.sha256"
 var index = 0
 var failed = 0
-for source in "$resources"/*/* {
+for source in @(find "$resources" -type f) {
   test -f "$source"
   var lane = "$output/$index"
   mkdir -p "$lane"
