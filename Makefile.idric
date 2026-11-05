@@ -68,6 +68,7 @@ comparisons: build/exec/lua-host
 	./build/exec/runtime-rows > build/exec/pitch-rows.tsv
 	./build/exec/runtime-rows library > build/exec/library-fixture.txt
 	./build/exec/lua-host contingency/application-test.lua "$(ROOT)" build/exec/pitch-rows.tsv build/exec/library-fixture.txt
+	./build/exec/lua-host contingency/remote-test.lua
 	$(IDRIC) -Werror --check --source-dir $(CORE) $(CORE)/KeyRows.idric
 	$(IDRIC) -Werror --source-dir $(CORE) $(CORE)/KeyRows.idric -o key-rows
 	cp "$(SUPPORT)" build/exec/key-rows_app/
@@ -134,7 +135,7 @@ assets: dex callback
 	cp "$(SUPPORT)" build/exec/dictionary-assets_app/
 	./build/exec/dictionary-assets app/src/main/res/raw/guitar_chords.json app/src/main/res/raw/ukulele_chords.json build/android/assets/guitar-index.tsv build/android/assets/ukulele-index.tsv
 	sha256sum app/src/main/res/raw/guitar_chords.json app/src/main/res/raw/ukulele_chords.json build/android/assets/guitar-index.tsv build/android/assets/ukulele-index.tsv > build/exec/dictionary-index.sha256
-	cp contingency/app.lua contingency/json.lua build/android/assets/
+	cp contingency/app.lua contingency/json.lua contingency/remote.lua build/android/assets/
 	cp contingency/managed-music.lua build/android/assets/music.lua
 	cp app/src/main/res/raw/guitar_chords.json app/src/main/res/raw/ukulele_chords.json build/android/assets/
 	cp app/src/main/res/raw/about_body_*.htm LICENSE* build/android/assets/
