@@ -4,6 +4,7 @@
 -- available only for retained comparison tests.
 local music=require("music")
 local json=require("json")
+local remote_storage=require("remote")
 local header="ChordReader/Idric/1\n"
 local function field(text) return assert(utf8.len(text))..":"..text end
 local function basename(name) return name:gsub("^.*[/\\:]",""):gsub("%.txt$",""):gsub("%.pl$","") end
@@ -171,7 +172,7 @@ local function new(platform)
   end
   local function selected_song() return song_by_id(selected) end
   local function capture_session()
-    local screens={library="song_library",reader="reading_song",diagram="reading_song",settings="preferences",
+    local screens={library="song_library",reader="reading_song",diagram="reading_song",settings="preferences",remote="preferences",
       setlists="setlist_library",setlist="setlist_library",["setlist-edit"]="setlist_library",custom="reading_song",
       edit="editing_song",import="online_search",["confirm-delete-song"]="reading_song",
       ["confirm-delete-setlist"]="setlist_library"}
@@ -204,6 +205,28 @@ local function new(platform)
     raw=encoded
     return true
   end
+  -- The remote adapter sees canonical, checked local bytes only. A restore
+  -- validates before replacing anything and retains the previous library.
+  local remote
+  local function validate_remote(bytes)
+    local ok=pcall(decode,bytes)
+    if not ok then return false end
+    if platform.application_request then
+      local checked,reply=pcall(platform.application_request,"v"..bytes)
+      return checked and reply=="1"..bytes
+    end
+    return true
+  end
+  local function apply_remote(bytes)
+    local ok,loaded=pcall(decode,bytes)
+    if not ok or not validate_remote(bytes) then return false end
+    if raw and raw~=bytes and not platform.write("library-recovery.txt",raw) then return false end
+    if not platform.write("library.txt",bytes) then return false end
+    raw=bytes; state=loaded; locked=false
+    selected=nil; mode="library"; scrolling=false; shift=0; capo=0; scroll=0; remainder=0
+    return true
+  end
+  remote=remote_storage.new(platform,validate_remote,apply_remote,function() return raw or encode(state) end)
   local function dictionary()
     if dictionaries[state.instrument] then return dictionaries[state.instrument] end
     if platform.application_request then
@@ -274,11 +297,18 @@ local function new(platform)
     local model={title="ChordReader",notice=notice,body="",size=state.size,actions={}}
     local actions=model.actions
     if locked then model.body=notice; platform.present(model); return end
-    add(actions,"library","Songs"); add(actions,"setlists","Setlists"); add(actions,"settings","Settings")
+    add(actions,"library","Songs"); add(actions,"setlists","Setlists"); add(actions,"settings","Settings"); add(actions,"remote","Remote")
     if mode == "library" then
       add(actions,"new","New song"); add(actions,"import","Import / Search")
       model.body=#state.songs == 0 and "No songs saved. Create a song or import a plain-text chart." or ""
       for _,song in ipairs(state.songs) do add(actions,"open:"..song.id,song.title) end
+    elseif mode == "remote" then
+      model.body=remote:description().."\n\nSync checks revisions before uploading or downloading. "..
+        "Conflicts stop without replacing either copy."
+      add(actions,"remote-config","Configure"); add(actions,"remote-token","GitHub token")
+      add(actions,"remote-sync","Sync"); add(actions,"remote-upload","Upload"); add(actions,"remote-restore","Download")
+      if remote:can_confirm() then add(actions,"remote-confirm","Confirm restore") end
+      add(actions,"remote-clear-token","Clear token")
     elseif mode == "reader" then
       local song=selected_song()
       if not song then mode="library"; return present() end
@@ -313,9 +343,11 @@ local function new(platform)
         local spelling=music.print(located.chord)
         if not seen[spelling] then add(actions,"chord:"..spelling,spelling); seen[spelling]=true end
       end
-    elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" then
-      model.editable=true; model.edit_title=draft_title; model.body=draft_body
-      model.title=mode == "written-key" and "Source key above; destination key below (e.g. A minor)" or
+    elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "remote-config" or mode == "remote-token" then
+      model.editable=true; model.secret=mode=="remote-token"; model.edit_title=draft_title; model.body=draft_body
+      model.title=mode == "remote-token" and "Paste fine-grained token in password field (session only)" or
+        mode == "remote-config" and "GitHub repository (title), branch and path (two body lines)" or
+        mode == "written-key" and "Source key above; destination key below (e.g. A minor)" or
         mode == "setlist-edit" and "Setlist: one song title per line" or
         mode == "custom" and "Fingering: x or fret, separated by spaces" or "Song title and chart text / URL"
       add(actions,"save","Save"); add(actions,"cancel","Cancel")
@@ -376,10 +408,25 @@ local function new(platform)
     if mode == "reader" then scroll=platform.scroll_position() end
     if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and id ~= "resume" and
       id ~= "exported" and id ~= "export_failed" and id ~= "import_failed" and
-      (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key") then
+      id ~= "remote_reply" and id ~= "remote_failed" and
+      (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "remote-config" or mode == "remote-token") then
       draft_title=title; draft_body=body
     end
-    if id == "library" or id == "setlists" or id == "settings" then mode=id; scrolling=false
+    if id == "remote_reply" then
+      notice=remote:reply(title,body); mode="remote"; present(); return
+    elseif id == "remote_failed" then
+      notice=remote:failure(); mode="remote"; present(); return
+    elseif id == "library" or id == "setlists" or id == "settings" or id == "remote" then mode=id; scrolling=false
+    elseif id == "remote-config" then
+      local c=remote.config
+      start_edit("remote-config",c and c.repository or "owner/private-songbook",
+        (c and c.branch or "main").."\n"..(c and c.path or "chordreader/library.txt"))
+    elseif id == "remote-token" then start_edit("remote-token","Token (not stored)","")
+    elseif id == "remote-sync" or id == "remote-upload" or id == "remote-restore" then
+      save(); mode="remote"
+      notice=remote:start(id=="remote-sync" and "sync" or id=="remote-upload" and "upload" or "restore")
+    elseif id == "remote-confirm" then notice=remote:confirm_restore(); mode="remote"
+    elseif id == "remote-clear-token" then notice=remote:forget_token(); mode="remote"
     elseif id == "new" or id == "import" then start_edit(id == "new" and "edit" or "import")
     elseif id:sub(1,5) == "open:" then
       if platform.application_request then
@@ -391,10 +438,23 @@ local function new(platform)
       else notice="Import requires valid UTF-8 text without NUL bytes" end
     elseif id == "edit" then local song=assert(selected_song()); start_edit("edit",song.title,song.source,song.id)
     elseif id == "written-key" then start_edit("written-key","","")
-    elseif id == "cancel" then mode=selected and "reader" or "library"
+    elseif id == "cancel" then mode=(mode == "remote-config" or mode == "remote-token") and "remote" or (selected and "reader" or "library"); draft_body=""
     elseif id == "as-setlist" then mode="setlist-edit"
     elseif id == "save" then
-      if draft_title == "" then notice="Enter a title first"
+      if mode == "remote-config" then
+        local parts=lines(draft_body)
+        if #parts~=2 then notice="Enter the branch and path on separate lines"
+        else
+          local good,message=remote:configure(draft_title,parts[1],parts[2])
+          notice=message
+          if good then mode="remote"; draft_title=""; draft_body="" end
+        end
+      elseif mode == "remote-token" then
+        local good,message=remote:set_token(draft_body)
+        draft_title=""; draft_body=""
+        notice=message
+        if good then mode="remote" end
+      elseif draft_title == "" then notice="Enter a title first"
       elseif mode == "written-key" then
         if platform.application_request then
           if transition("key",draft_title,draft_body) then mode="reader" end
