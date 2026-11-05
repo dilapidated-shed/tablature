@@ -58,7 +58,8 @@ local function hierarchical(s,limit)
 end
 local function config_ok(c)
   if type(c)~="table" or c.provider~="github" then return false end
-  local owner,repo=c.repository and c.repository:match("^([^/]+)/([^/]+)$")
+  if type(c.repository)~="string" then return false end
+  local owner,repo=c.repository:match("^([^/]+)/([^/]+)$")
   return component(owner) and component(repo) and hierarchical(c.branch,120) and
     hierarchical(c.path,220) and c.path:sub(-4)==".txt"
 end
