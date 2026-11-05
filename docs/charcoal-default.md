@@ -10,3 +10,14 @@ functional and visual acceptance, system night mode on/off, launch/rotation
 frames and physical MIRO C67 acceptance must be recorded separately. Source
 edits and an earlier green run do not satisfy those obligations. No installed
 application is replaced by this work.
+
+Packaging also exposed an inherited unreadable launcher PNG at the starting
+45f32c2 source: FFmpeg refused it with `chunk too big`, while aapt2 crashed
+during resource compilation. Regenerated the 256px PNG directly from the
+unchanged branding/chord-changes-icon.svg with Inkscape. SVG SHA256:
+72a758986ac92a58a6a4a663b8faaf48e48330ae067b201e14edbffbf97390e0.
+New PNG SHA256: a6a224d6036f40901a90f3e8d9d523766393c0c02936d83c6513759c4c31e814.
+FFmpeg now decodes it successfully; the two anonymous fretboard shapes and
+transition arrow were inspected. This changes encoding, not the approved
+vector artwork. Per-file resource diagnostics precede APK packaging and are
+retained in CI. Actual aapt2 acceptance of the repaired source is pending.
