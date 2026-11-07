@@ -188,6 +188,41 @@ import_text target name source = do
 find_song : Text → ReaderState → Maybe Song
 find_song title library = find (\song ⇒ song.document.title ≟ title) library.songs
 
+||| Check the *installed* Android screen, current checked state, and fresh app
+||| epoch. The original song bytes must never be rewritten by a display option.
+exercise_key_spelling_view : Target → Text → IO ()
+exercise_key_spelling_view target nonce = do
+  let title = "Key spelling " ++ nonce
+  let chart = "Dmaj7 B7\nGbm7 Bm7\nEm7 Gb7\nA/D♭\n"
+  import_text target (title ++ ".txt") chart
+  click target "display-key"
+  form ← ui target
+  case matching_position "class" "android.widget.EditText" form of
+    Nothing ⇒ fail_check "Display key text input is not visible"
+    Just (x, y) ⇒ do
+      ignore (remote target ["input", "tap", show x, show y])
+      ignore (remote target ["input", "text", "D%smajor"])
+  click target "save"
+  preferred ← ui target
+  require "Real D-major spelling option displays F sharp for G-flat roots"
+    (isInfixOf "F♯m7" preferred && isInfixOf "F♯7" preferred &&
+     isInfixOf "A/D♭" preferred && not (isInfixOf "G♭m7" preferred))
+  stored_state ← stored target
+  require "Display preference retains exact imported chart source and declared key"
+    (map (\song ⇒ song.document.source) (find_song title stored_state) ≟ Just chart &&
+     map print_key stored_state.display_key ≟ Just "D major")
+  ignore (remote target ["am", "force-stop", package_name])
+  start_application target
+  reopened ← ui target
+  require "Key spelling persists on actual restart" (isInfixOf "F♯m7" reopened)
+  click target "clear-display-key"
+  original ← ui target
+  cleared ← stored target
+  require "Clearing preference restores original spelling without changing source"
+    (isInfixOf "G♭m7" original && isNothing cleared.display_key &&
+     map (\song ⇒ song.document.source) (find_song title cleared) ≟ Just chart)
+
+
 exercise_legacy_setlist_edit : Target → ReaderState → IO ()
 exercise_legacy_setlist_edit target original = do
   click target "setlists"
@@ -593,6 +628,7 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   require "Missing IB search receiver retains ChordReader instead of external browser"
     (isInfixOf "IB search is unavailable" denied_search &&
      isInfixOf "package=\"org.isomorphisms.chordreader.dev\"" denied_search)
+  exercise_key_spelling_view target nonce
   application_pid ← remote target ["pidof", package_name]
   application_log ← remote target ["logcat", "-d", "--pid", trim application_pid, "-s", "ChordReader:I"]
   require "Actual installed process uses checked parsing, chart spans, rendering and reader state"
