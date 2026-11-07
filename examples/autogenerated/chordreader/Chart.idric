@@ -3,6 +3,7 @@ module Chart
 import Data.Text
 import Data.Maybe
 import Music
+import Key
 
 public export
 record SourcePosition where
@@ -151,6 +152,30 @@ public export
 render_chromatic : Integer → Text → Text
 render_chromatic semitones source =
   replace_chromatic_spans 0 (unpack source) (recognise_chart source) semitones
+
+||| Only an explicit user-selected key enables this display suggestion. The
+||| source text is immutable: no rewrite is saved or sent to share/export.
+||| The key's diatonic pitch classes suggest root *names*, not harmonic function.
+||| Slash basses are deliberately not respelled without additional evidence.
+replace_key_spans : Number → List Char → List PositionedChord → WrittenKey → Text
+replace_key_spans offset remaining [] key = pack remaining
+replace_key_spans offset remaining (positioned :: rest) key =
+  let prefix_length = minus positioned.beginning.scalar_offset offset
+      chord_length = minus positioned.ending.scalar_offset positioned.beginning.scalar_offset
+      prefix = take prefix_length remaining
+      after = drop (prefix_length + chord_length) remaining
+      spelling = case preferred_key_root key positioned.chord.root of
+        Nothing ⇒ positioned.original
+        Just note ⇒ if print_note note ≟ print_note positioned.chord.root
+          then positioned.original
+          else replace_root_spelling note positioned.original
+  in pack prefix ++ spelling ++
+     replace_key_spans positioned.ending.scalar_offset after rest key
+
+public export
+render_key_spelling : WrittenKey → Text → Text
+render_key_spelling key source =
+  replace_key_spans 0 (unpack source) (recognise_chart source) key
 
 ||| Source preservation is separate from canonical rendering. Saving an unedited
 ||| chart writes this original text; merely highlighting/transposing changes none

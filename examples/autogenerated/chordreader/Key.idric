@@ -73,3 +73,14 @@ diatonic_note key degree = do
 public export
 key_signature_notes : WrittenKey → List WrittenNote
 key_signature_notes key = mapMaybe (diatonic_note key) [1 .. 7]
+
+||| A user-selected key can suggest how to *display* a chord root with a
+||| diatonic pitch class. This does not infer the chord's harmonic function:
+||| explicit source spellings remain authoritative until display mode is chosen.
+||| In particular, a chromatic pitch class has no proposed key spelling.
+public export
+preferred_key_root : WrittenKey → WrittenNote → Maybe WrittenNote
+preferred_key_root key note =
+  find (\candidate ⇒ (sounding_pitch candidate).semitone ≟ (sounding_pitch note).semitone)
+       (key_signature_notes key)
+

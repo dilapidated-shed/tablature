@@ -35,6 +35,9 @@ local function encode(state)
         field(music.print_key(state.key_interval.destination_key))
     end
   end
+  if state.display_key then
+    pieces[#pieces+1]="H"..field(music.print_key(state.display_key))
+  end
   return table.concat(pieces)
 end
 local function decode(raw)
@@ -78,6 +81,10 @@ local function decode(raw)
       assert(state.key_interval and state.key_interval.letters == interval.letters and
         state.key_interval.semitones == interval.semitones,"Stored keys disagree with the written interval")
       state.key_interval=interval
+    elseif kind == "H" then
+      local key,problem=music.parse_key(read_field())
+      assert(key,problem)
+      state.display_key=key
     else error("Unknown stored library record "..kind) end
   end
   assert(state.size >= 8 and state.size <= 96 and state.speed >= 0,"Invalid reader settings")
@@ -288,10 +295,16 @@ local function new(platform)
         model.notice=model.notice.."\n"..music.print_key(state.key_interval.source_key).." → "..
           music.print_key(state.key_interval.destination_key)
       end
+      if state.display_key then
+        model.notice=model.notice.."\nPreferred roots: "..music.print_key(state.display_key)..
+          " (original source retained)"
+      end
       add(actions,"scroll",scrolling and "Pause" or "Auto scroll"); add(actions,"slower","Slower"); add(actions,"faster","Faster")
       model.fixed_actions=#actions
       add(actions,"down","− semitone"); add(actions,"up","+ semitone"); add(actions,"edit","Edit")
       add(actions,"written-key","Transpose by key")
+      add(actions,"display-key","Prefer key spellings")
+      if state.display_key then add(actions,"clear-display-key","Original spellings") end
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
       add(actions,"export","Save file")
       if platform.application_request then add(actions,"delete-song","Delete song") end
@@ -313,9 +326,10 @@ local function new(platform)
         local spelling=music.print(located.chord)
         if not seen[spelling] then add(actions,"chord:"..spelling,spelling); seen[spelling]=true end
       end
-    elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" then
+    elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "display-key" then
       model.editable=true; model.edit_title=draft_title; model.body=draft_body
-      model.title=mode == "written-key" and "Source key above; destination key below (e.g. A minor)" or
+      model.title=mode == "display-key" and "Display key above (e.g. D major); original chart unchanged" or
+        mode == "written-key" and "Source key above; destination key below (e.g. A minor)" or
         mode == "setlist-edit" and "Setlist: one song title per line" or
         mode == "custom" and "Fingering: x or fret, separated by spaces" or "Song title and chart text / URL"
       add(actions,"save","Save"); add(actions,"cancel","Cancel")
@@ -376,7 +390,7 @@ local function new(platform)
     if mode == "reader" then scroll=platform.scroll_position() end
     if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and id ~= "resume" and
       id ~= "exported" and id ~= "export_failed" and id ~= "import_failed" and
-      (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key") then
+      (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "display-key") then
       draft_title=title; draft_body=body
     end
     if id == "library" or id == "setlists" or id == "settings" then mode=id; scrolling=false
@@ -391,10 +405,17 @@ local function new(platform)
       else notice="Import requires valid UTF-8 text without NUL bytes" end
     elseif id == "edit" then local song=assert(selected_song()); start_edit("edit",song.title,song.source,song.id)
     elseif id == "written-key" then start_edit("written-key","","")
+    elseif id == "display-key" then
+      start_edit("display-key",state.display_key and music.print_key(state.display_key) or "","")
+    elseif id == "clear-display-key" then
+      if platform.application_request then transition("clear-display-key")
+      else state.display_key=nil end
     elseif id == "cancel" then mode=selected and "reader" or "library"
     elseif id == "as-setlist" then mode="setlist-edit"
     elseif id == "save" then
       if draft_title == "" then notice="Enter a title first"
+      elseif mode == "display-key" then
+        if transition("display-key",draft_title) then mode="reader" end
       elseif mode == "written-key" then
         if platform.application_request then
           if transition("key",draft_title,draft_body) then mode="reader" end
@@ -541,6 +562,7 @@ local function new(platform)
         if valid then
           state.songs=loaded.songs; state.setlists=loaded.setlists
           state.size=loaded.size; state.speed=loaded.speed; state.instrument=loaded.instrument
+          state.display_key=loaded.display_key
           raw=latest
           if selected and not selected_song() then selected=nil; mode="library"; scrolling=false end
         else locked=true; notice="Stored library changed to an unreadable format; its bytes were preserved"; present(); return end

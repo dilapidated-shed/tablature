@@ -216,6 +216,22 @@ chromatic_navigation input =
        Left _ ⇒ False
        Right reopened ⇒ reader_text reopened ≟ reader_text original
 
+||| Retained Fred Rogers-style chart: the imported source is literal and
+||| must not change when a display-only spelling preference is selected.
+display_key_round_trip : Bool
+display_key_round_trip =
+  let chart = "Dmaj7  B7\r\nGbm7  Bm7\nEm7  Gb7\nA/D♭\n"
+      key = Written_key (Written_note d_note 0) major_key
+      imported = update_reader (import_song "fred" "It's You I Like" chart) initial_reader
+      chosen = update_reader (choose_display_key key) imported
+      expected = "Dmaj7  B7\r\nF♯m7  Bm7\nEm7  F♯7\nA/D♭\n"
+  in case decode_library (encode_library chosen) of
+    Left _ ⇒ False
+    Right reopened ⇒ reader_text reopened ≟ expected &&
+      map source (selected_document reopened) ≟ Just chart &&
+      map print_key reopened.display_key ≟ Just "D major" &&
+      reader_text (update_reader clear_display_key reopened) ≟ render_chromatic 0 chart
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -281,6 +297,19 @@ tests =
   , ("A flat major tonic remains A flat", map print_note
       (diatonic_note (Written_key (Written_note a_note (-1)) major_key) 1) ≟ Just "A♭")
   , ("A major slash retains written third", canonical "A/C♯" ≟ "A/C♯")
+  , ("D-major display respells G-flat chords to F-sharp", render_key_spelling
+      (Written_key (Written_note d_note 0) major_key)
+      "Dmaj7  B7\r\nGbm7  Bm7\nEm7  Gb7\n" ≟
+      "Dmaj7  B7\r\nF♯m7  Bm7\nEm7  F♯7\n")
+  , ("D-minor does not mislabel chromatic G-flat", render_key_spelling
+      (Written_key (Written_note d_note 0) minor_key) "Gbm7\n" ≟ "Gbm7\n")
+  , ("A-major preference preserves intentional slash bass", render_key_spelling
+      (Written_key (Written_note a_note 0) major_key)
+      "A/D♭  A/C♯\n" ≟ "A/D♭  A/C♯\n")
+  , ("key spelling leaves ordinary lyric line unmodified", render_key_spelling
+      (Written_key (Written_note d_note 0) major_key)
+      "It's Gbm7 in the lyrics\nGbm7\n" ≟ "It's Gbm7 in the lyrics\nF♯m7\n")
+  , ("display key survives restart without source mutation", display_key_round_trip)
   , ("E minor signature differs", map print_note
       (key_signature_notes (Written_key (Written_note e_note 0) minor_key)) ≟
       ["E", "F♯", "G", "A", "B", "C", "D"])
