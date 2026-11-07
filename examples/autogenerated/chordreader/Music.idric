@@ -285,6 +285,15 @@ read_note (character :: rest) = do
   let (accidental, remaining) = read_accidentals 0 rest
   Just (Written_note letter accidental, remaining)
 
+||| Respell only the chord-root token. Keep its exact original suffix,
+||| including seventh quality, slash spelling and any source punctuation.
+||| This function never edits a song's stored source.
+public export
+replace_root_spelling : WrittenNote → Text → Text
+replace_root_spelling note source = case read_note (unpack source) of
+  Just (_, suffix) ⇒ print_note note ++ pack suffix
+  Nothing ⇒ source
+
 public export
 parse_note : Text → Either Text WrittenNote
 parse_note text = case read_note (unpack text) of
