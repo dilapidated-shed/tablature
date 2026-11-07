@@ -46,6 +46,7 @@ record ReaderState where
   transpose_semitones : Integer
   key_interval : Maybe WrittenInterval
   declared_key_change : Maybe KeyChange
+  display_key : Maybe WrittenKey
   capo_fret : Number
   scroll_position : Number
   scroll_remainder : Number
@@ -56,7 +57,7 @@ record ReaderState where
 public export
 initial_reader : ReaderState
 initial_reader = Reader_state [] [] Nothing song_library
-  (Reader_settings 20 24 "Guitar") 0 Nothing Nothing 0 0 0 False False Nothing
+  (Reader_settings 20 24 "Guitar") 0 Nothing Nothing Nothing 0 0 0 False False Nothing
 
 public export
 choice reader_event one_of
@@ -69,6 +70,8 @@ choice reader_event one_of
   transpose_to Integer
   transpose_between_keys WrittenNote WrittenNote
   transpose_between_declared_keys WrittenKey WrittenKey
+  choose_display_key WrittenKey
+  clear_display_key
   capo_to Number
   toggle_scrolling
   elapsed_milliseconds Number
@@ -159,13 +162,13 @@ update_reader (import_song identifier title source) state =
          selected_song := Just identifier, screen := reading_song,
          changed := True, last_error := Nothing, scroll_position := 0, scroll_remainder := 0,
          transpose_semitones := 0, key_interval := Nothing, declared_key_change := Nothing,
-         capo_fret := 0, scrolling := False } state
+         display_key := Nothing, capo_fret := 0, scrolling := False } state
 update_reader (open_song identifier) state =
   if any (\song ⇒ song.identifier ≟ identifier) state.songs
     then { selected_song := Just identifier, screen := reading_song,
            scroll_position := 0, scroll_remainder := 0, transpose_semitones := 0, capo_fret := 0,
            scrolling := False, key_interval := Nothing, declared_key_change := Nothing,
-           last_error := Nothing } state
+           display_key := Nothing, last_error := Nothing } state
     else { last_error := Just "Song not found" } state
 update_reader (edit_song source) state = modify_selected ({ source := source }) state
 update_reader (rename_song title) state = modify_selected ({ title := title }) state
@@ -188,6 +191,10 @@ update_reader (transpose_between_declared_keys source destination) state =
     Right interval ⇒
       { transpose_semitones := interval.semitone_steps, key_interval := Just interval,
         declared_key_change := Just (Key_change source destination), last_error := Nothing } state
+update_reader (choose_display_key key) state =
+  { display_key := Just key, changed := True, last_error := Nothing } state
+update_reader clear_display_key state =
+  { display_key := Nothing, changed := True, last_error := Nothing } state
 update_reader (capo_to fret) state = { capo_fret := fret } state
 update_reader toggle_scrolling state =
   { scrolling := not state.scrolling && isJust (selected_document state) } state
@@ -224,13 +231,19 @@ public export
 reader_text : ReaderState → Text
 reader_text state = case selected_document state of
   Nothing ⇒ ""
-  Just document ⇒ case state.key_interval of
-    Nothing ⇒ render_chromatic
-      (state.transpose_semitones − cast state.capo_fret) document.source
-    Just interval ⇒
-      let written = render_transposition interval document.source
-      in if state.capo_fret ≟ 0 then written
-         else render_chromatic (negate (cast state.capo_fret)) written
+  Just document ⇒
+    let transposed = case state.key_interval of
+          Nothing ⇒ render_chromatic
+            (state.transpose_semitones − cast state.capo_fret) document.source
+          Just interval ⇒
+            let written = render_transposition interval document.source
+            in if state.capo_fret ≟ 0 then written
+               else render_chromatic (negate (cast state.capo_fret)) written
+    in case (state.display_key, state.key_interval) of
+      (Just key, Nothing) ⇒ if state.transpose_semitones ≟ 0 && state.capo_fret ≟ 0
+        then render_key_spelling key document.source
+        else transposed
+      _ ⇒ transposed
 
 ||| Persistence uses length-prefixed decoded text. Android must encode the
 ||| resulting Text as UTF-8 exactly once. Newlines, delimiters and empty songs
@@ -276,7 +289,10 @@ encode_library state = "ChordReader/Idric/1\n" ++
     Just interval ⇒ "K" ++ field (show interval.letter_steps) ++ field (show interval.semitone_steps)) ++
   (case state.declared_key_change of
     Nothing ⇒ ""
-    Just change ⇒ "T" ++ field (print_key change.source_key) ++ field (print_key change.destination_key))
+    Just change ⇒ "T" ++ field (print_key change.source_key) ++ field (print_key change.destination_key)) ++
+  (case state.display_key of
+    Nothing ⇒ ""
+    Just key ⇒ "H" ++ field (print_key key))
 
 read_number : List Char → Number → Maybe (Number, List Char)
 read_number [] value = Nothing
@@ -360,6 +376,11 @@ read_library_records (S fuel) ('T' :: rest) state = case read_fields 2 rest of
         else Left "Stored keys disagree with the written interval"
       Nothing ⇒ Left "Stored keys require a written interval"
   _ ⇒ Left "Truncated declared keys"
+read_library_records (S fuel) ('H' :: rest) state = case read_fields 1 rest of
+  Just ([written_key], remaining) ⇒ do
+    key ← parse_key written_key
+    read_library_records fuel remaining ({ display_key := Just key } state)
+  _ ⇒ Left "Truncated display key"
 read_library_records (S fuel) _ state = Left "Unknown library record type"
 
 public export
