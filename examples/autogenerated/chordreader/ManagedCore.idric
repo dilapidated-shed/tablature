@@ -49,6 +49,11 @@ transition "key" source destination _ state = do
   source_key ← parse_key source
   destination_key ← parse_key destination
   Right (update_reader (transpose_between_declared_keys source_key destination_key) state)
+transition "display-key" source _ _ state = do
+  key ← parse_key source
+  Right (update_reader (choose_display_key key) state)
+transition "clear-display-key" _ _ _ state =
+  Right (update_reader clear_display_key state)
 transition "capo-up" _ _ _ state = Right (update_reader (capo_to (S state.capo_fret)) state)
 transition "capo-down" _ _ _ state = Right (update_reader (capo_to (minus state.capo_fret 1)) state)
 transition "setlist" title identifiers selected state =
