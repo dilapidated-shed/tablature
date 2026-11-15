@@ -69,6 +69,8 @@ comparisons: build/exec/lua-host
 	./build/exec/runtime-rows > build/exec/pitch-rows.tsv
 	./build/exec/runtime-rows library > build/exec/library-fixture.txt
 	./build/exec/lua-host contingency/application-test.lua "$(ROOT)" build/exec/pitch-rows.tsv build/exec/library-fixture.txt
+	./build/exec/lua-host contingency/latency-regression-test.lua "$(ROOT)"
+	./build/exec/lua-host contingency/latency-cache-controls.lua "$(ROOT)"
 	$(IDRIC) -Werror --check --source-dir $(CORE) $(CORE)/KeyRows.idric
 	$(IDRIC) -Werror --source-dir $(CORE) $(CORE)/KeyRows.idric -o key-rows
 	cp "$(SUPPORT)" build/exec/key-rows_app/

@@ -124,6 +124,8 @@ local function new(platform)
   music.use_idric(platform.pitch_up,platform.pitch_down,platform.accidental_symbol,platform.application_request)
   local state={songs={},setlists={},size=20,speed=24,instrument="Guitar"}
   local raw=platform.read("library.txt")
+  -- A decoded external or startup snapshot is checked once before short-circuiting.
+  local raw_checked=false
   local locked,notice=false,""
   if raw then
     local passed,loaded=pcall(decode,raw)
@@ -138,6 +140,8 @@ local function new(platform)
   local shift,capo,scrolling,scroll,remainder=session.shift or 0,session.capo or 0,false,session.scroll or 0,0
   local draft_title,draft_body,editing_id="","",nil
   local selected_chord,variation=nil,1
+  -- Render results are owned by checked Idriç; this only caches their transport.
+  local cached_chart=nil
   local pending_song_delete,pending_setlist_delete=nil,nil
   local pending_setlist_delete_name=nil
   local dictionaries,custom={},{}
@@ -201,14 +205,16 @@ local function new(platform)
     if locked then return false end
     capture_session()
     local encoded=encode(state)
+    if raw_checked and encoded == raw then return true end
     if platform.application_request then
       local checked=assert(platform.application_request("v"..encoded))
       if checked:sub(1,1) ~= "1" then notice=checked:sub(2); return false end
       encoded=checked:sub(2)
     end
-    if encoded == raw then return true end
+    if encoded == raw then raw_checked=true; return true end
     if not platform.write("library.txt",encoded) then notice="Saving failed; existing data was retained"; return false end
     raw=encoded
+    raw_checked=true
     return true
   end
   local function dictionary()
@@ -308,24 +314,45 @@ local function new(platform)
       add(actions,"capo-down","Capo −"); add(actions,"capo-up","Capo +"); add(actions,"share","Share")
       add(actions,"export","Save file")
       if platform.application_request then add(actions,"delete-song","Delete song") end
-      if platform.application_request then
-        capture_session()
-        local reply=assert(platform.application_request("b"..encode(state)))
-        assert(reply:sub(1,1) == "1",reply:sub(2))
-        model.body=reply:sub(2)
-      else
-        local interval=state.key_interval or music.interval(shift)
-        local capo_interval=music.interval(-capo)
-        model.body=music.render(song.source,{letters=interval.letters+capo_interval.letters,
-          semitones=interval.semitones-capo})
+      -- These are the exact reader_text dependencies: selected source, chromatic
+      -- shift, capo, written interval and optional display key. Size, speed,
+      -- viewport and navigation do not change the checked rendered chart.
+      local key_interval=state.key_interval
+      local interval_key=key_interval and (field(tostring(key_interval.letters))..
+        field(tostring(key_interval.semitones))..
+        field(key_interval.source_key and music.print_key(key_interval.source_key) or "")..
+        field(key_interval.destination_key and music.print_key(key_interval.destination_key) or "")) or ""
+      local display_key=state.display_key and music.print_key(state.display_key) or ""
+      -- Compare the immutable source rather than allocate a chart-sized cache key.
+      if not cached_chart or cached_chart.song_id ~= song.id or
+        cached_chart.song_source ~= song.source or cached_chart.shift ~= shift or
+        cached_chart.capo ~= capo or cached_chart.interval_key ~= interval_key or
+        cached_chart.display_key ~= display_key then
+        local body
+        if platform.application_request then
+          capture_session()
+          local reply=assert(platform.application_request("b"..encode(state)))
+          assert(reply:sub(1,1) == "1",reply:sub(2))
+          body=reply:sub(2)
+        else
+          local interval=state.key_interval or music.interval(shift)
+          local capo_interval=music.interval(-capo)
+          body=music.render(song.source,{letters=interval.letters+capo_interval.letters,
+            semitones=interval.semitones-capo})
+        end
+        local spans,chords,seen={},{},{}
+        for _,located in ipairs(music.recognise(body)) do
+          spans[#spans+1]={located.beginning.units,located.ending.units}
+          local spelling=music.print(located.chord)
+          if not seen[spelling] then chords[#chords+1]=spelling; seen[spelling]=true end
+        end
+        cached_chart={song_id=song.id,song_source=song.source,shift=shift,capo=capo,
+          interval_key=interval_key,display_key=display_key,
+          body=body,spans=spans,chords=chords}
       end
-      model.spans={}
-      local seen={}
-      for _,located in ipairs(music.recognise(model.body)) do
-        model.spans[#model.spans+1]={located.beginning.units,located.ending.units}
-        local spelling=music.print(located.chord)
-        if not seen[spelling] then add(actions,"chord:"..spelling,spelling); seen[spelling]=true end
-      end
+      model.body=cached_chart.body
+      model.spans=cached_chart.spans
+      for _,spelling in ipairs(cached_chart.chords) do add(actions,"chord:"..spelling,spelling) end
     elseif mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "display-key" then
       model.editable=true; model.edit_title=draft_title; model.body=draft_body
       model.title=mode == "display-key" and "Display key above (e.g. D major); original chart unchanged" or
@@ -564,6 +591,7 @@ local function new(platform)
           state.size=loaded.size; state.speed=loaded.speed; state.instrument=loaded.instrument
           state.display_key=loaded.display_key
           raw=latest
+          raw_checked=false
           if selected and not selected_song() then selected=nil; mode="library"; scrolling=false end
         else locked=true; notice="Stored library changed to an unreadable format; its bytes were preserved"; present(); return end
       end
