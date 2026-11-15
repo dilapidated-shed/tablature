@@ -27,6 +27,7 @@ local function checked(command)
   calls[op]=calls[op]+1
   if op == "v" then
     if reject_validation then return "0Simulated validation refusal" end
+    if application.decode(command:sub(2)).session.scroll < 0 then return "0Invalid stored reader state" end
     return "1"..command:sub(2)
   end
   if op == "n" then return "1"..command:sub(2) end
@@ -55,6 +56,7 @@ local function checked(command)
   local third; third,at=take_field(command,at)
   assert(at == #command+1)
   local state=application.decode(encoded)
+  if state.session.scroll < 0 then return "0Invalid stored reader state" end
   if event == "speed" then state.speed=assert(tonumber(first))
   elseif event == "size" then state.size=assert(tonumber(first))
   elseif event == "instrument" then state.instrument=first
@@ -186,6 +188,20 @@ external=application.decode(files["library.txt"])
 external.songs[1].source="Am\nExternally replaced source\n"
 files["library.txt"]=application.encode(external)
 rerenders("resume",nil,nil,"Externally replaced source")
+-- Android may temporarily report a negative offset during top-edge overscroll.
+-- The semantic viewport starts at zero; a semitone action must still save.
+local before=application.decode(files["library.txt"])
+position=-12
+app.event("up","","")
+local after=application.decode(files["library.txt"])
+assert(after.session.shift == before.session.shift+1 and after.session.scroll == 0,
+  "Top-edge overscroll blocked the semitone action or persisted a negative viewport")
+assert(not model.notice:find("Invalid stored reader state",1,true))
+assert(after.songs[1].source == before.songs[1].source,"Overscroll changed source bytes")
+position=-7
+app.event("suspend","","")
+assert(application.decode(files["library.txt"]).session.scroll == 0,
+  "Suspend persisted a transient negative viewport")
 files["library.txt"]="corrupt"
 local writes=calls.write
 app.event("resume","","")

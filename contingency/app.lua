@@ -181,6 +181,11 @@ local function new(platform)
     for _,song in ipairs(state.songs) do if song.id == id then return song end end
   end
   local function selected_song() return song_by_id(selected) end
+  local function viewport_position()
+    -- Android top-edge overscroll is transient presentation state. The checked
+    -- reader stores a nonnegative document position, not that edge displacement.
+    return math.max(0,platform.scroll_position())
+  end
   local function capture_session()
     local screens={library="song_library",reader="reading_song",diagram="reading_song",settings="preferences",
       setlists="setlist_library",setlist="setlist_library",["setlist-edit"]="setlist_library",custom="reading_song",
@@ -414,7 +419,7 @@ local function new(platform)
   local function event(id,title,body)
     if locked then return end
     if id ~= "resume" and id ~= "suspend" then notice="" end
-    if mode == "reader" then scroll=platform.scroll_position() end
+    if mode == "reader" then scroll=viewport_position() end
     if id ~= "downloaded" and id ~= "download_failed" and id ~= "incoming" and id ~= "resume" and
       id ~= "exported" and id ~= "export_failed" and id ~= "import_failed" and
       (mode == "edit" or mode == "import" or mode == "setlist-edit" or mode == "custom" or mode == "written-key" or mode == "display-key") then
@@ -523,13 +528,13 @@ local function new(platform)
         notice="IB search is unavailable on this phone; no external browser was opened"
       end
     elseif id == "up" or id == "down" or id == "capo-up" or id == "capo-down" then
-      scroll=platform.scroll_position()
+      scroll=viewport_position()
       if platform.application_request then transition(id)
       elseif id == "up" then shift=shift+1; state.key_interval=nil
       elseif id == "down" then shift=shift-1; state.key_interval=nil
       elseif id == "capo-up" then capo=capo+1
       else capo=math.max(0,capo-1) end
-    elseif id == "scroll" then scrolling=not scrolling; scroll=platform.scroll_position()
+    elseif id == "scroll" then scrolling=not scrolling; scroll=viewport_position()
     elseif id == "slower" or id == "faster" then
       local speed=math.max(0,state.speed+(id == "slower" and -4 or 4))
       if platform.application_request then transition("speed",tostring(speed)) else state.speed=speed end
@@ -612,7 +617,7 @@ local function new(platform)
         local total=elapsed*state.speed+remainder
         remainder=total%1000; distance=math.floor(total/1000)
       end
-      scroll=platform.scroll_position()+distance
+      scroll=viewport_position()+distance
       platform.scroll(scroll)
     end
   end

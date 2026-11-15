@@ -21,6 +21,8 @@ local cases={
     "Stale cached chart after save"},
   {"external-snapshot","raw_checked=false\n          if selected","raw_checked=true\n          if selected",
     "Externally loaded snapshot must be rechecked"},
+  {"negative-viewport","return math.max(0,platform.scroll_position())","return platform.scroll_position()",
+    "Top-edge overscroll blocked the semitone action or persisted a negative viewport"},
 }
 for _,case in ipairs(cases) do
   local first,last=source:find(case[2],1,true)

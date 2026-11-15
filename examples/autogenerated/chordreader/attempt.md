@@ -303,3 +303,13 @@ language defect. No language change is justified by this experiment.
 See `docs/interaction-cache.md` for the executed host checks and remaining
 Android/physical boundaries. Native instrumentation from the earlier proposal
 did not apply to the full checkout and was not included without a build.
+
+### C67 saved-state refusal follow-up
+
+Android viewport displacement may temporarily be negative at a scroll edge;
+the semantic document position in ReaderState remains Number. The presentation
+boundary maps that transient displacement to zero, while decode_library still
+rejects malformed negative persisted positions. Signed semitone Integer remains
+valid. The added Idriç controls exercise raw persisted fields and exact managed
+diagnostics; they do not mock music or state decoding. Local execution of those
+controls requires the pinned toolchain and remains pending hosted execution.

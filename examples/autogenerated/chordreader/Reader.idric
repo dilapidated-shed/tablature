@@ -354,7 +354,10 @@ read_library_records (S fuel) ('R' :: rest) state = case read_fields 5 rest of
                screen := screen, transpose_semitones := shift,
                capo_fret := capo, scroll_position := position } state)
           else Left "Stored reader refers to an unknown song"
-      _ ⇒ Left "Invalid stored reader state"
+      (Nothing, _, _, _) ⇒ Left "Invalid saved reader screen"
+      (_, Nothing, _, _) ⇒ Left "Invalid saved semitone displacement: expected a signed whole number"
+      (_, _, Nothing, _) ⇒ Left "Invalid saved capo: expected a nonnegative whole number"
+      (_, _, _, Nothing) ⇒ Left "Invalid saved scroll position: expected a nonnegative whole number"
   _ ⇒ Left "Truncated reader state"
 read_library_records (S fuel) ('K' :: rest) state = case read_fields 2 rest of
   Just ([letters, semitones], remaining) ⇒

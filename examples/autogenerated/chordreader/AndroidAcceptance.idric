@@ -435,10 +435,20 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "down"
   click target "down"
   negative ← ui target
+  negative_state ← stored target
+  require "Negative semitone persists without a saved-state refusal"
+    (negative_state.transpose_semitones ≟ -1 &&
+     not (isInfixOf "Invalid stored reader state" negative) &&
+     not (isInfixOf "Invalid saved" negative))
   require "Installed negative semitone does not stack flats on A-flat"
     (isInfixOf "C7♭9 EΔ7 A♭/C B G" negative && not (isInfixOf "♭♭" negative))
   click target "down"
   two_down ← ui target
+  two_down_state ← stored target
+  require "Successive negative semitone persists without a saved-state refusal"
+    (two_down_state.transpose_semitones ≟ -2 &&
+     not (isInfixOf "Invalid stored reader state" two_down) &&
+     not (isInfixOf "Invalid saved" two_down))
   require "Second negative semitone re-spells the original A-flat as G-flat"
     (isInfixOf "G♭" two_down && not (isInfixOf "♭♭" two_down))
   click target "up"

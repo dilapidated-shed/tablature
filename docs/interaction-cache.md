@@ -72,3 +72,31 @@ latencies and frame evidence before making a causal or performance claim.
 The older proposed native tracing changes are not included: their recovered
 patch failed to apply to the actual `platform.c` checkout. That proposal needs
 separate reconciliation and compilation rather than being called implemented.
+
+## C67 semitone screenshot follow-up
+
+The user supplied physical C67 screenshots after delivery of the ARM64
+candidate. The displayed chords at -1, zero and +1 have the expected semitone
+relationship. One screenshot at -1 also contains `Invalid stored reader state`.
+The screenshots do not establish action duration or installed-package hashes.
+They establish a visible refusal that the previous emulator assertions did not
+explicitly exclude, even while checking the chord text.
+
+Source inspection finds that the frontend reads Android's viewport offset
+directly into a nonnegative persisted field. A simulated transient offset of
+-12 reproduces a refused semitone transition and save. This is a demonstrated
+failure path, not proof that it caused the physical screenshot. The frontend
+now maps a transient negative offset to document position zero before events,
+suspend or scrolling can use it. Checked persistence still rejects negative
+positions; it does not silently repair stored data.
+
+The generic decoder message now distinguishes invalid screen, semitone, capo
+and viewport fields. Five checked-core controls cover the signed semitone and
+each diagnostic. Installed acceptance also checks that -1/-2 transitions really
+reach durable storage without a saved-state error, rather than accepting chord
+text alone. Those new Idriç and Android checks require a new exact-head run.
+
+Supplementary Lua transport checks pass with negative-offset event/suspend
+inputs, and a ninth mutant removing the normalization is rejected. The test
+fails before the frontend repair. No physical fix or layout-jump cause is
+claimed from this host scenario.
