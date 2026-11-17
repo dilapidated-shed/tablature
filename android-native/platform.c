@@ -567,6 +567,7 @@ char *platform_accidental_symbol(Platform *platform, const char *source) {
     return result;
 }
 char *platform_application_request(Platform *platform, const char *source) {
+    uint64_t request_began = monotonic_millis();
     if (!platform->idric_class) return NULL;
     JNIEnv *env = platform->activity->env;
     jstring input = android_text(env, source);
@@ -588,6 +589,11 @@ char *platform_application_request(Platform *platform, const char *source) {
         if (!platform->application_commands[command]++)
             __android_log_print(ANDROID_LOG_INFO, "ChordReader", "IDRIC_APPLICATION_EXECUTED command=%c", command);
     }
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "IDRIC_REQUEST code=%c elapsed_ms=%llu input_bytes=%zu output_bytes=%zu success=%d",
+        source[0] ? source[0] : '?',
+        (unsigned long long)(monotonic_millis() - request_began),
+        strlen(source), result ? strlen(result) : 0, result != NULL);
     return result;
 }
 char *platform_read(Platform *platform, const char *name) {
@@ -611,6 +617,7 @@ char *platform_read(Platform *platform, const char *name) {
     return result;
 }
 int platform_write(Platform *platform, const char *name, const char *text, size_t size) {
+    uint64_t write_began = monotonic_millis();
     char *path = private_path(platform, name), *temporary = NULL;
     if (!path || asprintf(&temporary, "%s.new", path) < 0) { free(path); return 0; }
     FILE *file = fopen(temporary, "wb");
@@ -622,6 +629,9 @@ int platform_write(Platform *platform, const char *name, const char *text, size_
     if (passed && rename(temporary, path)) passed = 0;
     if (!passed) unlink(temporary);
     free(path); free(temporary);
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "PRIVATE_WRITE file=%s bytes=%zu elapsed_ms=%llu success=%d", name, size,
+        (unsigned long long)(monotonic_millis() - write_began), passed);
     return passed;
 }
 
