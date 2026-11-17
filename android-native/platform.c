@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/timerfd.h>
+#include <time.h>
 #include <unistd.h>
 
 struct Platform {
@@ -44,6 +45,13 @@ typedef struct {
     char *url, *text, *problem;
 } FetchRequest;
 static Platform *activities;
+
+/* Monotonic stage timings are diagnostic only; no chart contents are logged. */
+static uint64_t monotonic_millis(void) {
+    struct timespec now = {0};
+    if (clock_gettime(CLOCK_MONOTONIC, &now)) return 0;
+    return (uint64_t)now.tv_sec * 1000 + (uint64_t)now.tv_nsec / 1000000;
+}
 
 static void report(JNIEnv *env, const char *operation) {
     if ((*env)->ExceptionCheck(env)) {
@@ -230,6 +238,7 @@ static jobject diagram_image(Platform *platform, const UiScreen *screen) {
 }
 
 void platform_present(Platform *platform, const UiScreen *screen) {
+    uint64_t present_started = monotonic_millis();
     platform->scroll_pending = 0;
     platform->scroll_observed = 0;
     JNIEnv *env = platform->activity->env;
@@ -345,6 +354,10 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     if (screen->fixed_action_count)
         (*env)->CallBooleanMethod(env, root, method(env, root, "requestFocus", "()Z"));
     report(env, "present platform Views");
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "VIEW_PRESENT elapsed_ms=%llu actions=%zu spans=%zu text_bytes=%zu",
+        (unsigned long long)(monotonic_millis() - present_started),
+        screen->action_count, screen->span_count, strlen(screen->body ? screen->body : ""));
     (*env)->PopLocalFrame(env, NULL);
 }
 
@@ -436,7 +449,34 @@ static char *private_path(Platform *platform, const char *name) {
     if (asprintf(&result, "%s/%s", platform->activity->internalDataPath, name) < 0) return NULL;
     return result;
 }
+/* The APK asset is the sole DEX authority. Reuse a private read-only copy only
+ * after byte-for-byte verification; changed or writable files are replaced. */
+static int cached_idric_dex_matches(const char *path, const char *bytes, size_t length) {
+    int descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (descriptor < 0) return 0;
+    struct stat metadata;
+    int matches = !fstat(descriptor, &metadata) && S_ISREG(metadata.st_mode) &&
+        (metadata.st_mode & 0777) == 0400 && metadata.st_size >= 0 &&
+        (uint64_t)metadata.st_size == (uint64_t)length;
+    char chunk[8192];
+    size_t position = 0;
+    while (matches && position < length) {
+        size_t remaining = length - position;
+        size_t count = remaining < sizeof chunk ? remaining : sizeof chunk;
+        ssize_t received = read(descriptor, chunk, count);
+        if (received < 0 && errno == EINTR) continue;
+        if (received <= 0 || memcmp(chunk, bytes + position, (size_t)received)) {
+            matches = 0;
+            break;
+        }
+        position += (size_t)received;
+    }
+    if (close(descriptor)) matches = 0;
+    return matches;
+}
+
 int platform_load_idric(Platform *platform) {
+    uint64_t started = monotonic_millis();
     size_t length = 0;
     char *bytes = platform_asset(platform, "chordreader-pitch.dex", &length);
     if (!bytes || length < 112 || memcmp(bytes, "dex\n035", 7)) { free(bytes); return 0; }
@@ -444,21 +484,29 @@ int platform_load_idric(Platform *platform) {
     char *temporary = private_path(platform, "idric-core.XXXXXX");
     char *optimized = private_path(platform, "idric-optimized");
     if (!path || !temporary || !optimized) { free(bytes); free(path); free(temporary); free(optimized); return 0; }
-    int descriptor = mkstemp(temporary);
-    /* Android 14 requires dynamic code files to be read-only when loaded.
-     * Set that mode on the already-open descriptor before writing the bytes. */
-    int passed = descriptor >= 0 && !fchmod(descriptor, 0400);
-    size_t written = 0;
-    while (passed && written < length) {
-        ssize_t amount = write(descriptor, bytes + written, length - written);
-        if (amount < 0 && errno == EINTR) continue;
-        if (amount <= 0) passed = 0; else written += (size_t)amount;
+    int reused = cached_idric_dex_matches(path, bytes, length);
+    int passed = reused;
+    if (!reused) {
+        int descriptor = mkstemp(temporary);
+        /* Android 14 requires the file to be read-only *before* writing.
+         * Keep the existing atomic replacement and durability guarantees. */
+        passed = descriptor >= 0 && !fchmod(descriptor, 0400);
+        size_t written = 0;
+        while (passed && written < length) {
+            ssize_t amount = write(descriptor, bytes + written, length - written);
+            if (amount < 0 && errno == EINTR) continue;
+            if (amount <= 0) passed = 0; else written += (size_t)amount;
+        }
+        if (descriptor >= 0) {
+            if (fsync(descriptor)) passed = 0;
+            if (close(descriptor)) passed = 0;
+        }
+        if (passed && rename(temporary, path)) passed = 0;
+        if (!passed) unlink(temporary);
     }
-    if (descriptor >= 0) { if (fsync(descriptor)) passed = 0; if (close(descriptor)) passed = 0; }
-    if (passed && rename(temporary, path)) passed = 0;
-    if (!passed) unlink(temporary);
     free(temporary); free(bytes);
     if (mkdir(optimized, 0700) && errno != EEXIST) passed = 0;
+    uint64_t staged = monotonic_millis();
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 16);
     if (passed) {
@@ -483,6 +531,12 @@ int platform_load_idric(Platform *platform) {
         }
     }
     report(env, "load checked Idriç DEX operations");
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "DEX_LOAD cache=%s stage_ms=%llu class_ms=%llu bytes=%zu success=%d",
+        reused ? "hit" : "miss",
+        (unsigned long long)(staged - started),
+        (unsigned long long)(monotonic_millis() - staged),
+        length, platform->idric_class != NULL);
     (*env)->PopLocalFrame(env, NULL);
     free(path); free(optimized);
     return platform->idric_class != NULL;
