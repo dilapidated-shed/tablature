@@ -302,12 +302,20 @@ read_number (character :: rest) value =
     then read_number rest (value × 10 + cast (ord character − ord '0'))
     else Nothing
 
+-- Consume the declared field once. Checking length rest first would scan
+-- the entire remaining library for every short header or metadata field.
+split_field_chars : Number → List Char → Maybe (List Char, List Char)
+split_field_chars Z remaining = Just ([], remaining)
+split_field_chars (S count) [] = Nothing
+split_field_chars (S count) (character :: remaining) = do
+  (prefix, suffix) ← split_field_chars count remaining
+  Just (character :: prefix, suffix)
+
 read_field : List Char → Maybe (Text, List Char)
 read_field characters = do
   (count, rest) ← read_number characters 0
-  if count <= length rest
-    then Just (pack (take count rest), drop count rest)
-    else Nothing
+  (content, remaining) ← split_field_chars count rest
+  Just (pack content, remaining)
 
 public export
 read_fields : Number → List Char → Maybe (List Text, List Char)
