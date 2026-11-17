@@ -564,11 +564,15 @@ char *platform_application_request(Platform *platform, const char *source) {
         if (!platform->application_commands[command]++)
             __android_log_print(ANDROID_LOG_INFO, "ChordReader", "IDRIC_APPLICATION_EXECUTED command=%c", command);
     }
-    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
-        "IDRIC_REQUEST code=%c elapsed_ms=%llu input_bytes=%zu output_bytes=%zu success=%d",
-        source[0] ? source[0] : '?',
-        (unsigned long long)(monotonic_millis() - request_began),
-        strlen(source), result ? strlen(result) : 0, result != NULL);
+    uint64_t request_elapsed = monotonic_millis() - request_began;
+    /* A running autoscroll clocks this call every 20 ms. Tracing each short
+     * tick would itself add UI-thread load and obscure the stalls we seek. */
+    if (source[0] != 'e' || request_elapsed >= 16)
+        __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+            "IDRIC_REQUEST code=%c elapsed_ms=%llu input_bytes=%zu output_bytes=%zu success=%d",
+            source[0] ? source[0] : '?',
+            (unsigned long long)request_elapsed,
+            strlen(source), result ? strlen(result) : 0, result != NULL);
     return result;
 }
 char *platform_read(Platform *platform, const char *name) {
