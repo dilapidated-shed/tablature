@@ -276,3 +276,40 @@ plus double accidental. The flat/sharp preference broke a tie in the sum of
 accidental magnitudes. Candidate selection now first minimizes the largest
 accidental magnitude, then the existing sum/preference cost. The deliberately
 written root/bass interval still moves together; the test bound is not relaxed.
+
+## Interaction transport cache, November 15, 2026
+
+The semantic operations stay `reader_text : ReaderState → Text`, checked chart
+recognition, reader transition and library validation in Idriç. Their inputs
+and outputs are unchanged. Lua stores a single transport result indexed by
+song identifier, exact immutable source, signed chromatic displacement, capo,
+written interval and optional written display key. Its value is rendered Text,
+UTF-16 span pairs and distinct checked chord names. This is presentation cache
+state, not musical state or a replacement parser.
+
+The persistence invariant is that an identical snapshot may bypass validation
+only after the current durable bytes passed validation. Failed validation and
+failed writes leave that claim false for changed bytes. External reloads reset
+it. The native atomic-write effect is unchanged.
+
+The retained Lua transport test was extended in its established test directory,
+using the actual packaged managed-music adapter and simulated ART replies.
+No new Idriç program or alternative musical implementation was needed. Eight
+in-memory mutants prove that omissions are rejected. Full checked Idriç/DEX
+qualification is blocked locally at the missing pinned NDK compiler, before
+core execution; this is an unavailable build-input boundary, not an Idriç
+language defect. No language change is justified by this experiment.
+
+See `docs/interaction-cache.md` for the executed host checks and remaining
+Android/physical boundaries. Native instrumentation from the earlier proposal
+did not apply to the full checkout and was not included without a build.
+
+### C67 saved-state refusal follow-up
+
+Android viewport displacement may temporarily be negative at a scroll edge;
+the semantic document position in ReaderState remains Number. The presentation
+boundary maps that transient displacement to zero, while decode_library still
+rejects malformed negative persisted positions. Signed semitone Integer remains
+valid. The added Idriç controls exercise raw persisted fields and exact managed
+diagnostics; they do not mock music or state decoding. Local execution of those
+controls requires the pinned toolchain and remains pending hosted execution.

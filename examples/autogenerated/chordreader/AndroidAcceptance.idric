@@ -414,6 +414,14 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   ignore (traverse (\_ ⇒ click target "down") [1 .. 12])
   click target "up"
   click target "down"
+  timing_pid ← remote target ["pidof", package_name]
+  timing_log ← remote target ["logcat", "-d", "--pid", trim timing_pid, "-s", "ChordReader:I"]
+  retain "android-interaction-latency.log" timing_log
+  require "Installed semitone operations emit managed, presentation and event timings"
+    (isInfixOf "EVENT_LATENCY event=up" timing_log &&
+     isInfixOf "EVENT_LATENCY event=down" timing_log &&
+     isInfixOf "IDRIC_REQUEST code=b" timing_log &&
+     isInfixOf "VIEW_PRESENT elapsed_ms=" timing_log)
   zero_view ← ui target
   zero_state ← stored target
   require "Opposite installed steps restore display and preserve source"
@@ -435,10 +443,20 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   click target "down"
   click target "down"
   negative ← ui target
+  negative_state ← stored target
+  require "Negative semitone persists without a saved-state refusal"
+    (negative_state.transpose_semitones ≟ -1 &&
+     not (isInfixOf "Invalid stored reader state" negative) &&
+     not (isInfixOf "Invalid saved" negative))
   require "Installed negative semitone does not stack flats on A-flat"
     (isInfixOf "C7♭9 EΔ7 A♭/C B G" negative && not (isInfixOf "♭♭" negative))
   click target "down"
   two_down ← ui target
+  two_down_state ← stored target
+  require "Successive negative semitone persists without a saved-state refusal"
+    (two_down_state.transpose_semitones ≟ -2 &&
+     not (isInfixOf "Invalid stored reader state" two_down) &&
+     not (isInfixOf "Invalid saved" two_down))
   require "Second negative semitone re-spells the original A-flat as G-flat"
     (isInfixOf "G♭" two_down && not (isInfixOf "♭♭" two_down))
   click target "up"
@@ -465,6 +483,8 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   restored_log ← remote target ["logcat", "-d", "--pid", trim restored_pid, "-s", "ChordReader:I"]
   retain "android-restored.log" restored_log
   putStrLn restored_log
+  require "Unchanged packaged Idriç DEX reuses the verified read-only launch cache"
+    (isInfixOf "DEX_LOAD cache=hit" restored_log)
   require "Restart restores the actual Android viewport after layout"
     (isInfixOf ("SCROLL_POSITION_APPLIED desired=" ++ show paused.scroll_position ++
       " actual=" ++ show paused.scroll_position) restored_log)

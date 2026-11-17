@@ -2,6 +2,7 @@
  * Android platform adapter; ordinary C is deliberately confined to this ABI.
  */
 #include "platform.h"
+#include "dex-cache.h"
 #include "native/presentation/charcoal.h"
 #include <android/asset_manager.h>
 #include <android/log.h>
@@ -18,6 +19,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/timerfd.h>
+#include <time.h>
 #include <unistd.h>
 
 struct Platform {
@@ -44,6 +46,13 @@ typedef struct {
     char *url, *text, *problem;
 } FetchRequest;
 static Platform *activities;
+
+/* Monotonic stage timings are diagnostic only; no chart contents are logged. */
+static uint64_t monotonic_millis(void) {
+    struct timespec now = {0};
+    if (clock_gettime(CLOCK_MONOTONIC, &now)) return 0;
+    return (uint64_t)now.tv_sec * 1000 + (uint64_t)now.tv_nsec / 1000000;
+}
 
 static void report(JNIEnv *env, const char *operation) {
     if ((*env)->ExceptionCheck(env)) {
@@ -230,6 +239,7 @@ static jobject diagram_image(Platform *platform, const UiScreen *screen) {
 }
 
 void platform_present(Platform *platform, const UiScreen *screen) {
+    uint64_t present_started = monotonic_millis();
     platform->scroll_pending = 0;
     platform->scroll_observed = 0;
     JNIEnv *env = platform->activity->env;
@@ -345,6 +355,10 @@ void platform_present(Platform *platform, const UiScreen *screen) {
     if (screen->fixed_action_count)
         (*env)->CallBooleanMethod(env, root, method(env, root, "requestFocus", "()Z"));
     report(env, "present platform Views");
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "VIEW_PRESENT elapsed_ms=%llu actions=%zu spans=%zu text_bytes=%zu",
+        (unsigned long long)(monotonic_millis() - present_started),
+        screen->action_count, screen->span_count, strlen(screen->body ? screen->body : ""));
     (*env)->PopLocalFrame(env, NULL);
 }
 
@@ -437,6 +451,7 @@ static char *private_path(Platform *platform, const char *name) {
     return result;
 }
 int platform_load_idric(Platform *platform) {
+    uint64_t started = monotonic_millis();
     size_t length = 0;
     char *bytes = platform_asset(platform, "chordreader-pitch.dex", &length);
     if (!bytes || length < 112 || memcmp(bytes, "dex\n035", 7)) { free(bytes); return 0; }
@@ -444,21 +459,29 @@ int platform_load_idric(Platform *platform) {
     char *temporary = private_path(platform, "idric-core.XXXXXX");
     char *optimized = private_path(platform, "idric-optimized");
     if (!path || !temporary || !optimized) { free(bytes); free(path); free(temporary); free(optimized); return 0; }
-    int descriptor = mkstemp(temporary);
-    /* Android 14 requires dynamic code files to be read-only when loaded.
-     * Set that mode on the already-open descriptor before writing the bytes. */
-    int passed = descriptor >= 0 && !fchmod(descriptor, 0400);
-    size_t written = 0;
-    while (passed && written < length) {
-        ssize_t amount = write(descriptor, bytes + written, length - written);
-        if (amount < 0 && errno == EINTR) continue;
-        if (amount <= 0) passed = 0; else written += (size_t)amount;
+    int reused = cached_idric_dex_matches(path, bytes, length);
+    int passed = reused;
+    if (!reused) {
+        int descriptor = mkstemp(temporary);
+        /* Android 14 requires the file to be read-only *before* writing.
+         * Keep the existing atomic replacement and durability guarantees. */
+        passed = descriptor >= 0 && !fchmod(descriptor, 0400);
+        size_t written = 0;
+        while (passed && written < length) {
+            ssize_t amount = write(descriptor, bytes + written, length - written);
+            if (amount < 0 && errno == EINTR) continue;
+            if (amount <= 0) passed = 0; else written += (size_t)amount;
+        }
+        if (descriptor >= 0) {
+            if (fsync(descriptor)) passed = 0;
+            if (close(descriptor)) passed = 0;
+        }
+        if (passed && rename(temporary, path)) passed = 0;
+        if (!passed) unlink(temporary);
     }
-    if (descriptor >= 0) { if (fsync(descriptor)) passed = 0; if (close(descriptor)) passed = 0; }
-    if (passed && rename(temporary, path)) passed = 0;
-    if (!passed) unlink(temporary);
     free(temporary); free(bytes);
     if (mkdir(optimized, 0700) && errno != EEXIST) passed = 0;
+    uint64_t staged = monotonic_millis();
     JNIEnv *env = platform->activity->env;
     (*env)->PushLocalFrame(env, 16);
     if (passed) {
@@ -483,6 +506,12 @@ int platform_load_idric(Platform *platform) {
         }
     }
     report(env, "load checked Idriç DEX operations");
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "DEX_LOAD cache=%s stage_ms=%llu class_ms=%llu bytes=%zu success=%d",
+        reused ? "hit" : "miss",
+        (unsigned long long)(staged - started),
+        (unsigned long long)(monotonic_millis() - staged),
+        length, platform->idric_class != NULL);
     (*env)->PopLocalFrame(env, NULL);
     free(path); free(optimized);
     return platform->idric_class != NULL;
@@ -513,6 +542,7 @@ char *platform_accidental_symbol(Platform *platform, const char *source) {
     return result;
 }
 char *platform_application_request(Platform *platform, const char *source) {
+    uint64_t request_began = monotonic_millis();
     if (!platform->idric_class) return NULL;
     JNIEnv *env = platform->activity->env;
     jstring input = android_text(env, source);
@@ -534,6 +564,15 @@ char *platform_application_request(Platform *platform, const char *source) {
         if (!platform->application_commands[command]++)
             __android_log_print(ANDROID_LOG_INFO, "ChordReader", "IDRIC_APPLICATION_EXECUTED command=%c", command);
     }
+    uint64_t request_elapsed = monotonic_millis() - request_began;
+    /* A running autoscroll clocks this call every 20 ms. Tracing each short
+     * tick would itself add UI-thread load and obscure the stalls we seek. */
+    if (source[0] != 'e' || request_elapsed >= 16)
+        __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+            "IDRIC_REQUEST code=%c elapsed_ms=%llu input_bytes=%zu output_bytes=%zu success=%d",
+            source[0] ? source[0] : '?',
+            (unsigned long long)request_elapsed,
+            strlen(source), result ? strlen(result) : 0, result != NULL);
     return result;
 }
 char *platform_read(Platform *platform, const char *name) {
@@ -557,6 +596,7 @@ char *platform_read(Platform *platform, const char *name) {
     return result;
 }
 int platform_write(Platform *platform, const char *name, const char *text, size_t size) {
+    uint64_t write_began = monotonic_millis();
     char *path = private_path(platform, name), *temporary = NULL;
     if (!path || asprintf(&temporary, "%s.new", path) < 0) { free(path); return 0; }
     FILE *file = fopen(temporary, "wb");
@@ -568,6 +608,9 @@ int platform_write(Platform *platform, const char *name, const char *text, size_
     if (passed && rename(temporary, path)) passed = 0;
     if (!passed) unlink(temporary);
     free(path); free(temporary);
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "PRIVATE_WRITE file=%s bytes=%zu elapsed_ms=%llu success=%d", name, size,
+        (unsigned long long)(monotonic_millis() - write_began), passed);
     return passed;
 }
 

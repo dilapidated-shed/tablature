@@ -232,6 +232,11 @@ display_key_round_trip =
       map print_key reopened.display_key ≟ Just "D major" &&
       reader_text (update_reader clear_display_key reopened) ≟ render_chromatic 0 chart
 
+||| Raw persisted fields for decoder controls; no chart or GUI behavior is mocked.
+stored_reader_record : Text → Text → Text → Text → Text
+stored_reader_record screen shift capo position = "ChordReader/Idric/1\nR" ++
+  field "" ++ field screen ++ field shift ++ field capo ++ field position
+
 tests : List (Text, Bool)
 tests =
   [ ("ASCII accidentals", canonical "C#7b9" ≟ "C♯7♭9")
@@ -350,8 +355,30 @@ tests =
   , ("legacy setlist", legacy_setlist "one.txt\r\ntwo.txt\n" ≟ ["one.txt", "two.txt"])
   , ("multiple song persistence", persistence_example)
   , ("rendering leaves source intact", source_preserved)
+  , ("single-pass field reader preserves Unicode scalar boundaries",
+      read_fields 2 (unpack "0:1:𝄪") ≟ Just (["", "𝄪"], []))
+  , ("single-pass field reader leaves subsequent records untouched",
+      read_fields 1 (unpack "1:C0:") ≟ Just (["C"], unpack "0:"))
+  , ("single-pass field reader rejects truncated field lengths",
+      isNothing (read_fields 1 (unpack "4:AB")))
   , ("truncated persistence rejected", case decode_library "ChordReader/Idric/1\nS10:ab" of
       Left _ ⇒ True; Right _ ⇒ False)
+  , ("negative semitone is valid saved state", case decode_library
+      (stored_reader_record "reading_song" "-1" "0" "0") of
+        Right state ⇒ state.transpose_semitones ≟ -1 && state.scroll_position ≟ 0
+        Left _ ⇒ False)
+  , ("negative viewport identifies the failed field", application_request
+      ("v" ++ stored_reader_record "reading_song" "-1" "0" "-12") ≟
+        "0Invalid saved scroll position: expected a nonnegative whole number")
+  , ("invalid semitone identifies the failed field", application_request
+      ("v" ++ stored_reader_record "reading_song" "wrong" "0" "0") ≟
+        "0Invalid saved semitone displacement: expected a signed whole number")
+  , ("invalid capo identifies the failed field", application_request
+      ("v" ++ stored_reader_record "reading_song" "-1" "-1" "0") ≟
+        "0Invalid saved capo: expected a nonnegative whole number")
+  , ("invalid reader screen identifies the failed field", application_request
+      ("v" ++ stored_reader_record "wrong" "-1" "0" "0") ≟
+        "0Invalid saved reader screen")
   , ("setlist rejects unknown song", isJust (update_reader
       (save_setlist "Invalid" ["missing"]) two_songs).last_error)
   , ("pause stops scrolling", (update_reader (elapsed_milliseconds 1000)

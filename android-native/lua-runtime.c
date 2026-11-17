@@ -11,6 +11,13 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+static uint64_t monotonic_millis(void) {
+    struct timespec now = {0};
+    if (clock_gettime(CLOCK_MONOTONIC, &now)) return 0;
+    return (uint64_t)now.tv_sec * 1000 + (uint64_t)now.tv_nsec / 1000000;
+}
 
 typedef struct { Platform *platform; lua_State *lua; int application; } Reader;
 static Reader *reader(lua_State *lua) { return lua_touserdata(lua, lua_upvalueindex(1)); }
@@ -132,6 +139,7 @@ static void failed(Reader *instance, const char *action) {
     lua_pop(instance->lua, 1);
 }
 void *reader_start(Platform *platform) {
+    uint64_t startup_began = monotonic_millis();
     Reader *instance = calloc(1, sizeof *instance);
     if (!instance) return NULL;
     instance->platform = platform; instance->application = LUA_NOREF;
@@ -160,6 +168,7 @@ void *reader_start(Platform *platform) {
     if (!platform_load_idric(platform)) {
         lua_pushliteral(lua, "The checked Idriç DEX payload could not be loaded"); failed(instance, "Idriç startup"); return instance;
     }
+    uint64_t dex_ready = monotonic_millis();
     lua_getglobal(lua, "require"); lua_pushliteral(lua, "app");
     if (lua_pcall(lua, 1, 1, 0) != LUA_OK) { failed(instance, "load application"); return instance; }
     lua_getfield(lua, -1, "new"); lua_newtable(lua);
@@ -174,6 +183,10 @@ void *reader_start(Platform *platform) {
     if (lua_pcall(lua, 1, 1, 0) != LUA_OK) { failed(instance, "start application"); return instance; }
     instance->application = luaL_ref(lua, LUA_REGISTRYINDEX);
     lua_settop(lua, 0);
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "APPLICATION_STARTUP total_ms=%llu after_dex_ms=%llu",
+        (unsigned long long)(monotonic_millis() - startup_began),
+        (unsigned long long)(monotonic_millis() - dex_ready));
     __android_log_print(ANDROID_LOG_INFO, "ChordReader", "APPLICATION_STARTED runtime=managed_Idric musical_contingency=none presentation=Lua");
     return instance;
 }
@@ -183,11 +196,16 @@ static int application_function(Reader *instance, const char *name) {
     lua_getfield(instance->lua, -1, name); lua_remove(instance->lua, -2); return 1;
 }
 void reader_event(void *opaque, const char *identifier, const char *title, const char *body) {
+    uint64_t event_began = monotonic_millis();
     Reader *instance = opaque;
     if (!application_function(instance, "event")) return;
     lua_pushstring(instance->lua, identifier); lua_pushstring(instance->lua, title); lua_pushstring(instance->lua, body);
-    if (lua_pcall(instance->lua, 3, 0, 0) != LUA_OK) failed(instance, identifier);
+    int status = lua_pcall(instance->lua, 3, 0, 0);
+    if (status != LUA_OK) failed(instance, identifier);
     else __android_log_print(ANDROID_LOG_INFO, "ChordReader", "APPLICATION_EVENT %s", identifier);
+    __android_log_print(ANDROID_LOG_INFO, "ChordReader",
+        "EVENT_LATENCY event=%s elapsed_ms=%llu success=%d", identifier,
+        (unsigned long long)(monotonic_millis() - event_began), status == LUA_OK);
 }
 void reader_tick(void *opaque, unsigned elapsed) {
     Reader *instance = opaque;
