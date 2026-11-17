@@ -2,6 +2,7 @@
  * Android platform adapter; ordinary C is deliberately confined to this ABI.
  */
 #include "platform.h"
+#include "dex-cache.h"
 #include "native/presentation/charcoal.h"
 #include <android/asset_manager.h>
 #include <android/log.h>
@@ -449,32 +450,6 @@ static char *private_path(Platform *platform, const char *name) {
     if (asprintf(&result, "%s/%s", platform->activity->internalDataPath, name) < 0) return NULL;
     return result;
 }
-/* The APK asset is the sole DEX authority. Reuse a private read-only copy only
- * after byte-for-byte verification; changed or writable files are replaced. */
-static int cached_idric_dex_matches(const char *path, const char *bytes, size_t length) {
-    int descriptor = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
-    if (descriptor < 0) return 0;
-    struct stat metadata;
-    int matches = !fstat(descriptor, &metadata) && S_ISREG(metadata.st_mode) &&
-        (metadata.st_mode & 0777) == 0400 && metadata.st_size >= 0 &&
-        (uint64_t)metadata.st_size == (uint64_t)length;
-    char chunk[8192];
-    size_t position = 0;
-    while (matches && position < length) {
-        size_t remaining = length - position;
-        size_t count = remaining < sizeof chunk ? remaining : sizeof chunk;
-        ssize_t received = read(descriptor, chunk, count);
-        if (received < 0 && errno == EINTR) continue;
-        if (received <= 0 || memcmp(chunk, bytes + position, (size_t)received)) {
-            matches = 0;
-            break;
-        }
-        position += (size_t)received;
-    }
-    if (close(descriptor)) matches = 0;
-    return matches;
-}
-
 int platform_load_idric(Platform *platform) {
     uint64_t started = monotonic_millis();
     size_t length = 0;
