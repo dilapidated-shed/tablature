@@ -475,6 +475,8 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   restored_log ← remote target ["logcat", "-d", "--pid", trim restored_pid, "-s", "ChordReader:I"]
   retain "android-restored.log" restored_log
   putStrLn restored_log
+  require "Unchanged packaged Idriç DEX reuses the verified read-only launch cache"
+    (isInfixOf "DEX_LOAD cache=hit" restored_log)
   require "Restart restores the actual Android viewport after layout"
     (isInfixOf ("SCROLL_POSITION_APPLIED desired=" ++ show paused.scroll_position ++
       " actual=" ++ show paused.scroll_position) restored_log)
