@@ -317,6 +317,14 @@ read_fields (S count) characters = do
   (values, ending) ← read_fields count rest
   Just (value :: values, ending)
 
+invalid_saved_reader_state :
+  Maybe reader_screen → Maybe Integer → Maybe Number → Maybe Number → Text
+invalid_saved_reader_state Nothing _ _ _ = "Invalid saved reader screen"
+invalid_saved_reader_state _ Nothing _ _ = "Invalid saved semitone displacement: expected a signed whole number"
+invalid_saved_reader_state _ _ Nothing _ = "Invalid saved capo: expected a nonnegative whole number"
+invalid_saved_reader_state _ _ _ Nothing = "Invalid saved scroll position: expected a nonnegative whole number"
+invalid_saved_reader_state _ _ _ _ = "Invalid stored reader state"
+
 read_library_records : Number → List Char → ReaderState → Either Text ReaderState
 read_library_records Z [] state = Right ({ changed := False } state)
 read_library_records Z _ state = Left "Library record count exceeds its source length"
@@ -354,10 +362,10 @@ read_library_records (S fuel) ('R' :: rest) state = case read_fields 5 rest of
                screen := screen, transpose_semitones := shift,
                capo_fret := capo, scroll_position := position } state)
           else Left "Stored reader refers to an unknown song"
-      (Nothing, _, _, _) ⇒ Left "Invalid saved reader screen"
-      (_, Nothing, _, _) ⇒ Left "Invalid saved semitone displacement: expected a signed whole number"
-      (_, _, Nothing, _) ⇒ Left "Invalid saved capo: expected a nonnegative whole number"
-      (_, _, _, Nothing) ⇒ Left "Invalid saved scroll position: expected a nonnegative whole number"
+      _ ⇒ Left (invalid_saved_reader_state (read_screen screen_text)
+        (parseInteger {a=Integer} shift_text)
+        (parsePositive {a=Number} capo_text)
+        (parsePositive {a=Number} position_text))
   _ ⇒ Left "Truncated reader state"
 read_library_records (S fuel) ('K' :: rest) state = case read_fields 2 rest of
   Just ([letters, semitones], remaining) ⇒
