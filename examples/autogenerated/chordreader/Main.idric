@@ -355,6 +355,12 @@ tests =
   , ("legacy setlist", legacy_setlist "one.txt\r\ntwo.txt\n" ≟ ["one.txt", "two.txt"])
   , ("multiple song persistence", persistence_example)
   , ("rendering leaves source intact", source_preserved)
+  , ("single-pass field reader preserves Unicode scalar boundaries",
+      read_fields 2 (unpack "0:1:𝄪") ≟ Just (["", "𝄪"], []))
+  , ("single-pass field reader leaves subsequent records untouched",
+      read_fields 1 (unpack "1:C0:") ≟ Just (["C"], unpack "0:"))
+  , ("single-pass field reader rejects truncated field lengths",
+      isNothing (read_fields 1 (unpack "4:AB")))
   , ("truncated persistence rejected", case decode_library "ChordReader/Idric/1\nS10:ab" of
       Left _ ⇒ True; Right _ ⇒ False)
   , ("negative semitone is valid saved state", case decode_library
