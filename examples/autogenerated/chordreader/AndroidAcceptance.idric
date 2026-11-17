@@ -414,6 +414,14 @@ accept target apk pitch_dex mutant_dex runner_dex nonce baseline_apk = do
   ignore (traverse (\_ ⇒ click target "down") [1 .. 12])
   click target "up"
   click target "down"
+  timing_pid ← remote target ["pidof", package_name]
+  timing_log ← remote target ["logcat", "-d", "--pid", trim timing_pid, "-s", "ChordReader:I"]
+  retain "android-interaction-latency.log" timing_log
+  require "Installed semitone operations emit managed, presentation and event timings"
+    (isInfixOf "EVENT_LATENCY event=up" timing_log &&
+     isInfixOf "EVENT_LATENCY event=down" timing_log &&
+     isInfixOf "IDRIC_REQUEST code=b" timing_log &&
+     isInfixOf "VIEW_PRESENT elapsed_ms=" timing_log)
   zero_view ← ui target
   zero_state ← stored target
   require "Opposite installed steps restore display and preserve source"
